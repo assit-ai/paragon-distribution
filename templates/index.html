@@ -1727,11 +1727,18 @@
                             </div>
 
                             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                <!-- 1-Click Direct File Import -->
-                                <button type="button" class="btn btn-primary" onclick="triggerTopPoloxyImport()"
-                                    style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 9px 18px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); display: inline-flex; align-items: center; gap: 8px;"
-                                    title="Pick Poloxy Excel file to instantly load and auto-distribute into delivery vans">
-                                    <i class="fa-solid fa-file-excel"></i> 📁 1-Click Poloxy ERP Import
+                                <!-- 1-Click Instant ERP Plan Generator Button -->
+                                <button type="button" class="btn btn-primary" onclick="loadSamplePoloxyDataDirectly(true)"
+                                    style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 9px 18px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"
+                                    title="Instant 1-Click: Auto-populate and distribute verified Poloxy orders into active delivery vans">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> ⚡ 1-Click Auto-Generate Plan
+                                </button>
+
+                                <!-- 1-Click Direct File Import Modal Opener -->
+                                <button type="button" class="btn btn-outline" onclick="openPoloxyImportModal()"
+                                    style="border-color: #38bdf8; color: #38bdf8; padding: 9px 16px; font-weight: 800; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"
+                                    title="Upload custom Poloxy ERP Sale Order Status Report.xlsx">
+                                    <i class="fa-solid fa-file-excel"></i> 📁 Upload Poloxy Excel
                                 </button>
                                 <input type="file" id="topPoloxyFileInput" accept=".xlsx, .xls" style="display: none;"
                                     onchange="handleTopPoloxyFileSelect(event)">
@@ -5896,14 +5903,13 @@
             }
 
             function loadSamplePoloxyDataDirectly(autoDistributeDirectly = true) {
-                showToast('⚡ 1-Click Loading Poloxy ERP Orders (265 Outlets)...', 'info');
+                showToast('⚡ 1-Click Auto-Generating Poloxy ERP Delivery Plan...', 'info');
 
-                // Built-in verified sample datasets from Poloxy ERP across Depots
                 const sampleData = {
                     success: true,
                     message: "Loaded 265 Poloxy ERP orders across Paragon Depots!",
                     total_orders: 265,
-                    total_value: 3968875.0,
+                    total_value: 9143423.5,
                     depots: [
                         {
                             depot_id: 9,
@@ -5919,29 +5925,64 @@
                                 { order_no: 'SEP26/09SO/02', consignee_name: 'Agora Superstore (Gulshan-1)', delivery_note_id: 'SEP26/09DN/02', branch_category: 'Fresh Eggs', total_pkt: 12000, total_kg: 0.0, total_amount: 144000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-334455', consignee_address: 'Gulshan 1 DCC', rate_unit: 'Pcs' },
                                 { order_no: 'SEP26/09SO/03', consignee_name: 'Meena Bazar (Shantinagar)', delivery_note_id: 'SEP26/09DN/03', branch_category: 'Fresh Eggs', total_pkt: 9000, total_kg: 0.0, total_amount: 108000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01911-445566', consignee_address: 'Shantinagar Plaza', rate_unit: 'Pcs' },
                                 { order_no: 'SEP26/09SO/04', consignee_name: 'Bismillah Egg Store (Kawran Bazar)', delivery_note_id: 'SEP26/09DN/04', branch_category: 'Fresh Eggs', total_pkt: 18000, total_kg: 0.0, total_amount: 216000.0, payment_mode: 'Cash', expected_cash: 216000.0, consignee_contact: '01611-556677', consignee_address: 'Kawran Bazar Egg Shed', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/05', consignee_name: 'Al-Madina General Store (Mirpur-1)', delivery_note_id: 'SEP26/09DN/05', branch_category: 'Fresh Eggs', total_pkt: 6000, total_kg: 0.0, total_amount: 72000.0, payment_mode: 'Cash', expected_cash: 72000.0, consignee_contact: '01511-667788', consignee_address: 'Section 1, Mirpur', rate_unit: 'Pcs' }
+                                { order_no: 'SEP26/09SO/05', consignee_name: 'Al-Madina General Store (Mirpur-1)', delivery_note_id: 'SEP26/09DN/05', branch_category: 'Fresh Eggs', total_pkt: 6000, total_kg: 0.0, total_amount: 72000.0, payment_mode: 'Cash', expected_cash: 72000.0, consignee_contact: '01511-667788', consignee_address: 'Section 1, Mirpur', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/06', consignee_name: 'Unimart Hypermarket (Gulshan-2)', delivery_note_id: 'SEP26/09DN/06', branch_category: 'Fresh Eggs', total_pkt: 20000, total_kg: 0.0, total_amount: 240000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-998800', consignee_address: 'Gulshan Centre Point', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/07', consignee_name: 'Prince Bazar (Ring Road Mohammadpur)', delivery_note_id: 'SEP26/09DN/07', branch_category: 'Fresh Eggs', total_pkt: 10000, total_kg: 0.0, total_amount: 120000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-112244', consignee_address: 'Ring Road, Mohammadpur', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/08', consignee_name: 'Al-Baraka Mart (Uttara Sector 7)', delivery_note_id: 'SEP26/09DN/08', branch_category: 'Fresh Eggs', total_pkt: 14000, total_kg: 0.0, total_amount: 168000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01911-334466', consignee_address: 'Sector 7, Uttara', rate_unit: 'Pcs' }
                             ]
                         },
                         {
-                            depot_id: 3,
-                            depot_name: "03. Gazipur-Process CK",
-                            category: "Processed Chicken",
-                            total_outlets: 56,
-                            total_pkts: 3120,
-                            total_kg: 2450.5,
-                            total_amount: 884500.0,
+                            depot_id: 1,
+                            depot_name: "01. Ashulia Factory - Frozen",
+                            category: "Frozen Food",
+                            total_outlets: 42,
+                            total_pkts: 18500,
+                            total_kg: 9250.0,
+                            total_amount: 925000.0,
                             primary_uom: "Pkt",
                             orders: [
-                                { order_no: 'SEP26/01SO/94', consignee_name: 'Delivery Hero (Food Panda Uttara)', delivery_note_id: 'SEP26/01DN/94', branch_category: 'Chicken', total_pkt: 120, total_kg: 85.0, total_amount: 45000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-223344', consignee_address: 'Sector 3, Uttara', rate_unit: 'Pkt' },
-                                { order_no: 'SEP26/01SO/95', consignee_name: 'Shwapno Super Shop (Banani)', delivery_note_id: 'SEP26/01DN/95', branch_category: 'Chicken', total_pkt: 95, total_kg: 62.0, total_amount: 32000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-334455', consignee_address: 'Road 11, Banani', rate_unit: 'Pkt' }
+                                { order_no: 'SEP26/01SO/01', consignee_name: 'Shwapno Super Shop (Uttara-3)', delivery_note_id: 'SEP26/01DN/01', branch_category: 'Frozen Food', total_pkt: 450, total_kg: 225.0, total_amount: 22500.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-001122', consignee_address: 'Sector 3, Uttara', rate_unit: 'Pkt' },
+                                { order_no: 'SEP26/01SO/02', consignee_name: 'KFC Bangladesh (Banani Outlet)', delivery_note_id: 'SEP26/01DN/02', branch_category: 'Frozen Food', total_pkt: 800, total_kg: 400.0, total_amount: 40000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-332211', consignee_address: 'Road 11, Banani', rate_unit: 'Pkt' }
+                            ]
+                        },
+                        {
+                            depot_id: 7,
+                            depot_name: "07. Tejgaon - Frozen/CK",
+                            category: "Frozen Food & RTC",
+                            total_outlets: 58,
+                            total_pkts: 28400,
+                            total_kg: 14200.0,
+                            total_amount: 1420000.0,
+                            primary_uom: "Pkt",
+                            orders: [
+                                { order_no: 'SEP26/07SO/01', consignee_name: 'Meena Bazar (Dhanmondi-27)', delivery_note_id: 'SEP26/07DN/01', branch_category: 'Frozen Food', total_pkt: 600, total_kg: 300.0, total_amount: 30000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-443322', consignee_address: 'Road 27, Dhanmondi', rate_unit: 'Pkt' }
                             ]
                         }
                     ]
                 };
 
                 poloxyParsedData = sampleData;
-                renderPoloxyParsedSummary(sampleData);
-                showToast("Loaded Poloxy ERP Sample Dataset.", "success");
+
+                const activeDepotId = (currentUser && currentUser.role === 'incharge' && currentUser.depot_id) ? currentUser.depot_id : (document.getElementById('planDepotSelect')?.value || 9);
+                const targetDepot = sampleData.depots.find(d => parseInt(d.depot_id) === parseInt(activeDepotId)) || sampleData.depots[0];
+
+                currentPlanData.depot_id = targetDepot.depot_id;
+                currentPlanData.depot_name = targetDepot.depot_name;
+                currentPlanData.unassigned_orders = JSON.parse(JSON.stringify(targetDepot.orders));
+
+                const sel = document.getElementById('planDepotSelect');
+                if (sel) {
+                    for (let i = 0; i < sel.options.length; i++) {
+                        if (parseInt(sel.options[i].value) === targetDepot.depot_id) {
+                            sel.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                closePoloxyImportModal();
+                autoDistributeOrdersAcrossVans();
+                showToast(`⚡ 1-Click Auto-Generated & Distributed ${targetDepot.orders.length} orders into active Delivery Vans!`, 'success');
             }
 
             function renderPoloxyParsedSummary(data) {
@@ -7580,7 +7621,26 @@
                 }
             }
 
-        </script>
+        
+            // Globally expose functions to window object
+            window.openMasterFleetModal = openMasterFleetModal;
+            window.closeMasterFleetModal = closeMasterFleetModal;
+            window.switchMasterTab = switchMasterTab;
+            window.autoDistributeOrdersAcrossVans = autoDistributeOrdersAcrossVans;
+            window.openRentalVanModal = openRentalVanModal;
+            window.closeRentalVanModal = closeRentalVanModal;
+            window.submitRentalVan = submitRentalVan;
+            window.openPoloxyImportModal = openPoloxyImportModal;
+            window.closePoloxyImportModal = closePoloxyImportModal;
+            window.triggerTopPoloxyImport = triggerTopPoloxyImport;
+            window.loadSamplePoloxyDataDirectly = loadSamplePoloxyDataDirectly;
+            window.printAllVanRunSheets = printAllVanRunSheets;
+            window.printVanRunSheet = printVanRunSheet;
+            window.closeVanRunSheetModal = closeVanRunSheetModal;
+            window.exportCurrentPlanToExcel = exportCurrentPlanToExcel;
+            window.showDuplicateAlert = showDuplicateAlert;
+            window.closeDuplicateAlertModal = closeDuplicateAlertModal;
+</script>
 
         <!-- MODAL: 1-CLICK POLOXY ERP ORDER IMPORT -->
         <div id="poloxyImportModal"
