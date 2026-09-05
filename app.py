@@ -1108,56 +1108,54 @@ def match_depot_ref(branch_str, ref_str, order_no_str=''):
     r = str(ref_str or '').upper()
     o = str(order_no_str or '').upper()
     
-    # 01 - Chicken (সকল Chicken: Gazipur or Tejgaon)
-    if '01.' in b or '01SO' in o or '01.' in r or 'CHICKEN' in b:
+    # 03 - Egg (Tejgaon Fresh Egg: 03SO, 03. Branded Eggs, 03TG, EGG)
+    if '03SO' in o or 'BRANDED EGGS' in b or 'EGG' in b or '03TG' in r or '09.' in r or '09SO' in o:
+        return {"id": 9, "name": "09. Tejgaon - Fresh Egg", "category": "Fresh Eggs"}
+        
+    # 01 - Chicken (Gazipur or Tejgaon Chicken: 01SO, 01. Process Chicken)
+    if '01SO' in o or 'PROCESS CHICKEN' in b or 'GAZIPUR' in r or '01.' in r:
         if 'TG' in r or 'TEJGAON' in r or '01.TG' in r:
             return {"id": 7, "name": "07. Tejgaon - Frozen/CK", "category": "Chicken & Frozen"}
         return {"id": 3, "name": "03. Gazipur-Process CK", "category": "Processed Chicken"}
     
-    # 02 - Frozen (সকল Frozen: Ashulia, Tejgaon, CTG, Sylhet, Jessore, Rangpur)
-    if '02.' in b or '02SO' in o or '02.' in r or 'FROZEN' in b:
-        if 'ASHULIA' in r or 'ASH' in r:
-            return {"id": 1, "name": "01. Ashulia Factory - Frozen", "category": "Frozen Food"}
-        elif 'CTG' in r or 'CHITTAGONG' in r:
+    # 02 - Frozen Foods (02SO, 02. Frozen Foods: CTG, Tejgaon, Ashulia, Sylhet, Jessore, Rangpur)
+    if '02SO' in o or 'FROZEN' in b or '02.' in b or '07.' in r or '07SO' in o or 'MOMO' in b:
+        if 'CTG' in r or 'CHITTAGONG' in r or '02.CTG' in r:
             return {"id": 13, "name": "13. CTG Depot - Frozen", "category": "Frozen Food"}
+        elif 'ASHULIA' in r or 'ASH' in r:
+            return {"id": 1, "name": "01. Ashulia Factory - Frozen", "category": "Frozen Food"}
         elif 'SYLHET' in r or 'SYL' in r:
             return {"id": 6, "name": "06. Sylhet Depot - Frozen", "category": "Frozen Food"}
         elif 'JD' in r or 'JESSORE' in r:
             return {"id": 15, "name": "15. Jessore - Frozen Food", "category": "Frozen Food"}
         elif 'RANGPUR' in r or 'RNG' in r:
             return {"id": 17, "name": "17. Rangpur Depot - Frozen", "category": "Frozen Food"}
+        elif 'MOMO' in r or 'MOMO' in b:
+            return {"id": 12, "name": "12. Mohakhali Depot", "category": "Momo & Snacks"}
         else:
             return {"id": 7, "name": "07. Tejgaon - Frozen/CK", "category": "Chicken & Frozen"}
-            
-    # 03 - Egg (সকল Egg: Tejgaon Fresh Egg)
-    if '03.' in b or '03SO' in o or '03' in r or 'EGG' in b or 'EGG' in r:
-        return {"id": 9, "name": "09. Tejgaon - Fresh Egg", "category": "Fresh Eggs"}
         
-    # 04 - Tea (সকল Tea: Sylhet or Tejgaon)
-    if '04.' in b or '04SO' in o or '04.' in r or 'TEA' in b:
-        if 'SYLHET' in r or 'SYL' in r:
+    # 04 - Tea (04SO, 04. Tea, 04.Sylhet, Sreemangal/Tejgaon)
+    if '04SO' in o or 'TEA' in b or '04.' in b or '04.' in r:
+        if 'SYLHET' in r or 'SYL' in r or '04.SYLHET' in r:
             return {"id": 5, "name": "05. Sylhet - Tea Packing Unit", "category": "Tea"}
         return {"id": 10, "name": "10. Tejgaon - Tea Distribution", "category": "Tea"}
         
-    # 05 - Dry Food (সকল Dry Food: Ashulia, CTG, Jessore)
-    if '05.' in b or '05SO' in o or '05.' in r or 'DRY' in b:
+    # 05 - Dry Food (05SO, 05. Dry Foods, 05.Ashulia)
+    if '05SO' in o or 'DRY' in b or '05.' in b or '05.' in r or 'FEED' in b:
         if 'CTG' in r or 'CHITTAGONG' in r:
             return {"id": 14, "name": "14. CTG Depot - Dry Food", "category": "Dry Food"}
         elif 'JD' in r or 'JESSORE' in r:
             return {"id": 16, "name": "16. Jessore - Dry Food", "category": "Dry Food"}
         return {"id": 2, "name": "02. Ashulia Factory - Dry Food", "category": "Dry Food"}
         
-    # 07 - Momo (সকল Momo: Mohakhali)
-    if '07.' in b or '07SO' in o or '07.' in r or 'MOMO' in b or 'MOMO' in r:
-        return {"id": 12, "name": "12. Mohakhali Depot", "category": "Momo & Snacks"}
-        
-    # 06 - Dairy (সকল Dairy: Sirajganj or Tejgaon)
+    # 06 - Dairy (Sirajganj or Tejgaon Dairy)
     if 'DAIRY' in b or 'MILK' in b or '06.' in b or '06SO' in o or '06.' in r:
         if 'SIRAJGANJ' in r or 'SJ' in r:
             return {"id": 4, "name": "04. Sirajganj Dairy", "category": "Dairy"}
         return {"id": 11, "name": "11. Tejgaon - Dairy", "category": "Dairy"}
         
-    # 08 - eCommerce / Sweets & Savory
+    # 08 - eCommerce / Sweets
     if 'ECOM' in b or 'ECOM' in r or 'SWEET' in b or '08.' in b or '08SO' in o:
         return {"id": 8, "name": "08. Tejgaon - e-Commerce", "category": "e-Commerce"}
         
@@ -1207,6 +1205,12 @@ def import_poloxy_orders():
         depot_map = {}
         total_orders_parsed = 0
         
+        def _clean_val(v):
+            if v is None: return 0.0
+            if isinstance(v, (int, float)): return float(v)
+            cleaned = re.sub(r'[^\d.-]', '', str(v))
+            return float(cleaned) if cleaned else 0.0
+
         for r in rows[header_row_idx + 1:]:
             if not any(r):
                 continue
@@ -1218,10 +1222,11 @@ def import_poloxy_orders():
             branch = str(r[6]).strip() if len(r) > 6 and r[6] else ''
             item = str(r[7]).strip() if len(r) > 7 and r[7] else ''
             raw_rate_unit = str(r[8]).strip() if len(r) > 8 and r[8] else ''
-            rate = r[9] if len(r) > 9 else 0
-            qty_bag = r[10] if len(r) > 10 else 0
-            qty_kg = r[11] if len(r) > 11 else 0
-            total_amount_col_n = r[13] if len(r) > 13 else None
+            rate = _clean_val(r[9]) if len(r) > 9 else 0.0
+            qty_bag = _clean_val(r[10]) if len(r) > 10 else 0.0
+            qty_kg = _clean_val(r[11]) if len(r) > 11 else 0.0
+            raw_col_n = r[13] if len(r) > 13 else None
+            col_n_val = _clean_val(raw_col_n) if raw_col_n is not None and str(raw_col_n).strip() != '' else None
             d_note_id = str(r[27]).strip() if len(r) > 27 and r[27] else ''
             consignee_name = str(r[32]).strip() if len(r) > 32 and r[32] else customer
             consignee_contact = str(r[33]).strip() if len(r) > 33 and r[33] else ''
@@ -1230,7 +1235,7 @@ def import_poloxy_orders():
             if not ref_no and not order_no and not item:
                 continue
                 
-            depot_info = fixed_depot_info or match_depot_ref(branch, ref_no, order_no)
+            depot_info = match_depot_ref(branch, ref_no, order_no)
             depot_key = f"{depot_info['id']}_{depot_info['name']}"
             
             # Resolve appropriate default UOM for depot
@@ -1269,7 +1274,7 @@ def import_poloxy_orders():
                     "total_amount": 0.0,
                     "col_n_found": False,
                     "assigned_van": "",
-                    "payment_mode": "Credit" if any(k in consignee_name.lower() for k in ["shwapno", "agora", "meena", "unimart", "aarong", "pran", "food panda"]) else "Cash",
+                    "payment_mode": "Credit" if any(k in consignee_name.lower() for k in ["shwapno", "agora", "meena", "unimart", "aarong", "pran", "food panda", "lavender", "kfc"]) else "Cash",
                     "expected_cash": 0.0,
                     "rate_unit": rate_unit
                 }
@@ -1277,35 +1282,26 @@ def import_poloxy_orders():
                 total_orders_parsed += 1
                 
             # Check Column N (Invoice Value)
-            if total_amount_col_n is not None and not depot_map[depot_key]["orders"][ord_key]["col_n_found"]:
-                try:
-                    col_n_num = float(total_amount_col_n)
-                    if col_n_num > 0:
-                        depot_map[depot_key]["orders"][ord_key]["total_amount"] = col_n_num
-                        depot_map[depot_key]["orders"][ord_key]["col_n_found"] = True
-                except:
-                    pass
+            if col_n_val is not None and col_n_val > 0 and not depot_map[depot_key]["orders"][ord_key]["col_n_found"]:
+                depot_map[depot_key]["orders"][ord_key]["total_amount"] = round(col_n_val, 2)
+                depot_map[depot_key]["orders"][ord_key]["col_n_found"] = True
 
-            try: q_bag_num = float(qty_bag) if qty_bag else 0.0
-            except: q_bag_num = 0.0
-            try: q_kg_num = float(qty_kg) if qty_kg else 0.0
-            except: q_kg_num = 0.0
-            try: r_num = float(rate) if rate else 0.0
-            except: r_num = 0.0
-            
-            item_line_amount = r_num * (q_kg_num if q_kg_num > 0 else q_bag_num)
+            egg_pcs = qty_kg if qty_kg > 0 else qty_bag
+            if is_egg:
+                item_line_amount = (rate * qty_bag) if (bool(re.search(r'pkt|bag|12', rate_unit, re.I)) and qty_bag > 0) else (rate * egg_pcs)
+            else:
+                item_line_amount = rate * (qty_kg if qty_kg > 0 else qty_bag)
             
             depot_map[depot_key]["orders"][ord_key]["items"].append({
                 "item": item,
                 "rate_unit": "Pcs" if is_egg else rate_unit,
-                "rate": r_num,
-                "qty_pkt": q_bag_num,
-                "qty_kg": 0.0 if is_egg else q_kg_num,
-                "amount": item_line_amount
+                "rate": rate,
+                "qty_pkt": egg_pcs if is_egg else qty_bag,
+                "qty_kg": 0.0 if is_egg else qty_kg,
+                "amount": round(item_line_amount, 2)
             })
             
-            # For Eggs: Quantity (Pcs) is STRICTLY taken from Column L (q_kg_num / Max. Qty.(Kg))!
-            egg_pcs = q_kg_num if q_kg_num > 0 else q_bag_num
+            # For Eggs: Quantity (Pcs) is STRICTLY taken from Column L (egg_pcs / Max. Qty.(Kg))!
             if is_egg:
                 depot_map[depot_key]["orders"][ord_key]["total_pkt"] += egg_pcs
                 depot_map[depot_key]["orders"][ord_key]["total_kg"] = 0.0
@@ -1313,10 +1309,10 @@ def import_poloxy_orders():
                 depot_map[depot_key]["total_pkts"] += egg_pcs
                 depot_map[depot_key]["total_kg"] = 0.0
             else:
-                depot_map[depot_key]["orders"][ord_key]["total_pkt"] += q_bag_num
-                depot_map[depot_key]["orders"][ord_key]["total_kg"] += q_kg_num
-                depot_map[depot_key]["total_pkts"] += q_bag_num
-                depot_map[depot_key]["total_kg"] += q_kg_num
+                depot_map[depot_key]["orders"][ord_key]["total_pkt"] += qty_bag
+                depot_map[depot_key]["orders"][ord_key]["total_kg"] += qty_kg
+                depot_map[depot_key]["total_pkts"] += qty_bag
+                depot_map[depot_key]["total_kg"] += qty_kg
 
         # Fetch route mappings, fleet vehicles, and crew for each depot to enable 1-click smart dispatch
         conn = get_db()
@@ -1399,6 +1395,15 @@ def import_poloxy_orders():
             })
             
         conn.close()
+        
+        if explicit_depot_id:
+            try:
+                exp_id = int(explicit_depot_id)
+                depots_result.sort(key=lambda d: 0 if d["depot_id"] == exp_id else 1)
+            except Exception:
+                depots_result.sort(key=lambda d: d["total_outlets"], reverse=True)
+        else:
+            depots_result.sort(key=lambda d: d["total_outlets"], reverse=True)
         
         return jsonify({
             "success": True,
