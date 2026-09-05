@@ -1297,18 +1297,26 @@ def import_poloxy_orders():
             
             depot_map[depot_key]["orders"][ord_key]["items"].append({
                 "item": item,
-                "rate_unit": rate_unit,
+                "rate_unit": "Pcs" if is_egg else rate_unit,
                 "rate": r_num,
                 "qty_pkt": q_bag_num,
-                "qty_kg": q_kg_num,
+                "qty_kg": 0.0 if is_egg else q_kg_num,
                 "amount": item_line_amount
             })
             
-            depot_map[depot_key]["orders"][ord_key]["total_pkt"] += q_bag_num
-            depot_map[depot_key]["orders"][ord_key]["total_kg"] += q_kg_num
-            
-            depot_map[depot_key]["total_pkts"] += q_bag_num
-            depot_map[depot_key]["total_kg"] += q_kg_num
+            # For Eggs: Quantity (Pcs) is STRICTLY taken from Column L (q_kg_num / Max. Qty.(Kg))!
+            egg_pcs = q_kg_num if q_kg_num > 0 else q_bag_num
+            if is_egg:
+                depot_map[depot_key]["orders"][ord_key]["total_pkt"] += egg_pcs
+                depot_map[depot_key]["orders"][ord_key]["total_kg"] = 0.0
+                depot_map[depot_key]["orders"][ord_key]["rate_unit"] = "Pcs"
+                depot_map[depot_key]["total_pkts"] += egg_pcs
+                depot_map[depot_key]["total_kg"] = 0.0
+            else:
+                depot_map[depot_key]["orders"][ord_key]["total_pkt"] += q_bag_num
+                depot_map[depot_key]["orders"][ord_key]["total_kg"] += q_kg_num
+                depot_map[depot_key]["total_pkts"] += q_bag_num
+                depot_map[depot_key]["total_kg"] += q_kg_num
 
         # Fetch route mappings, fleet vehicles, and crew for each depot to enable 1-click smart dispatch
         conn = get_db()

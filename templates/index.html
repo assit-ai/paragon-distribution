@@ -1728,17 +1728,11 @@
 
                             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <!-- 1-Click Instant ERP Plan Generator Button -->
-                                <button type="button" class="btn btn-primary" onclick="loadSamplePoloxyDataDirectly(true)"
+                                <!-- 1-Click Poloxy ERP Import Button -->
+                                <button type="button" class="btn btn-primary" onclick="openPoloxyImportModal()"
                                     style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 9px 18px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"
-                                    title="Instant 1-Click: Auto-populate and distribute verified Poloxy orders into active delivery vans">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> ⚡ 1-Click Auto-Generate Plan
-                                </button>
-
-                                <!-- 1-Click Direct File Import Modal Opener -->
-                                <button type="button" class="btn btn-outline" onclick="openPoloxyImportModal()"
-                                    style="border-color: #38bdf8; color: #38bdf8; padding: 9px 16px; font-weight: 800; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"
-                                    title="Upload custom Poloxy ERP Sale Order Status Report.xlsx">
-                                    <i class="fa-solid fa-file-excel"></i> 📁 Upload Poloxy Excel
+                                    title="Import Poloxy ERP Sales Orders or Auto-Populate Plan with 1-Click">
+                                    <i class="fa-solid fa-file-import"></i> ⚡ 1-Click Poloxy ERP Import
                                 </button>
                                 <input type="file" id="topPoloxyFileInput" accept=".xlsx, .xls" style="display: none;"
                                     onchange="handleTopPoloxyFileSelect(event)">
@@ -5474,8 +5468,8 @@
                     return {
                         primaryLabel: 'Qty (Pcs)',
                         primaryUnit: 'Pcs',
-                        secondaryLabel: 'Weight (Kg)',
-                        secondaryUnit: 'Kg',
+                        secondaryLabel: '-',
+                        secondaryUnit: '',
                         isEgg: true
                     };
                 }
@@ -5508,7 +5502,15 @@
                     };
                 }
                 // Default: Frozen Food, Processed Chicken & Dry Food
-                     // --- POLOXY ERP 1-CLICK CLIENT-SIDE & SERVER HYBRID PARSER ---
+                return {
+                    primaryLabel: 'Qty (Pkt/Pcs)',
+                    primaryUnit: 'Pkt',
+                    secondaryLabel: 'Weight (Kg)',
+                    secondaryUnit: 'Kg'
+                };
+            }
+
+            // --- POLOXY ERP 1-CLICK CLIENT-SIDE & SERVER HYBRID PARSER ---
             function matchDepotRefJS(branchStr, refStr, orderNoStr) {
                 const b = String(branchStr || '').toUpperCase().trim();
                 const r = String(refStr || '').toUpperCase().trim();
@@ -5709,20 +5711,32 @@
 
                     const itemLineAmount = rate * (qtyKg > 0 ? qtyKg : qtyBag);
 
+                    const isEgg = (depotInfo.id === 9) || (uomInfo && uomInfo.isEgg) || /egg/i.test(item) || /egg/i.test(depotInfo.category);
+                    const eggPcs = (qtyKg > 0 ? qtyKg : qtyBag);
+
                     depotMap[depotKey].orders[ordKey].items.push({
                         item: item,
-                        rate_unit: rateUnit,
+                        rate_unit: isEgg ? 'Pcs' : rateUnit,
                         rate: rate,
-                        qty_pkt: qtyBag,
-                        qty_kg: qtyKg,
+                        qty_pkt: isEgg ? eggPcs : qtyBag,
+                        qty_kg: isEgg ? 0.0 : qtyKg,
                         amount: itemLineAmount
                     });
 
-                    depotMap[depotKey].orders[ordKey].total_pkt += qtyBag;
-                    depotMap[depotKey].orders[ordKey].total_kg += qtyKg;
+                    if (isEgg) {
+                        depotMap[depotKey].orders[ordKey].total_pkt += eggPcs;
+                        depotMap[depotKey].orders[ordKey].total_kg = 0.0;
+                        depotMap[depotKey].orders[ordKey].rate_unit = 'Pcs';
 
-                    depotMap[depotKey].total_pkts += qtyBag;
-                    depotMap[depotKey].total_kg += qtyKg;
+                        depotMap[depotKey].total_pkts += eggPcs;
+                        depotMap[depotKey].total_kg = 0.0;
+                    } else {
+                        depotMap[depotKey].orders[ordKey].total_pkt += qtyBag;
+                        depotMap[depotKey].orders[ordKey].total_kg += qtyKg;
+
+                        depotMap[depotKey].total_pkts += qtyBag;
+                        depotMap[depotKey].total_kg += qtyKg;
+                    }
                 }
 
                 // Final aggregation of invoice totals
@@ -5902,7 +5916,7 @@
                 }
             }
 
-            function loadSamplePoloxyDataDirectly(autoDistributeDirectly = true) {
+            async function loadSamplePoloxyDataDirectly(autoDistributeDirectly = true) {
                 showToast('⚡ 1-Click Auto-Generating Poloxy ERP Delivery Plan...', 'info');
 
                 const sampleData = {
@@ -5915,20 +5929,22 @@
                             depot_id: 9,
                             depot_name: "09. Tejgaon - Fresh Egg",
                             category: "Fresh Eggs",
-                            total_outlets: 56,
-                            total_pkts: 165000,
+                            total_outlets: 10,
+                            total_pkts: 18000,
                             total_kg: 0.0,
-                            total_amount: 1980000.0,
+                            total_amount: 225900.0,
                             primary_uom: "Pcs",
                             orders: [
-                                { order_no: 'SEP26/09SO/01', consignee_name: 'Shwapno Super Shop (Dhanmondi)', delivery_note_id: 'SEP26/09DN/01', branch_category: 'Fresh Eggs', total_pkt: 15000, total_kg: 0.0, total_amount: 180000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-223344', consignee_address: 'Road 27, Dhanmondi', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/02', consignee_name: 'Agora Superstore (Gulshan-1)', delivery_note_id: 'SEP26/09DN/02', branch_category: 'Fresh Eggs', total_pkt: 12000, total_kg: 0.0, total_amount: 144000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-334455', consignee_address: 'Gulshan 1 DCC', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/03', consignee_name: 'Meena Bazar (Shantinagar)', delivery_note_id: 'SEP26/09DN/03', branch_category: 'Fresh Eggs', total_pkt: 9000, total_kg: 0.0, total_amount: 108000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01911-445566', consignee_address: 'Shantinagar Plaza', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/04', consignee_name: 'Bismillah Egg Store (Kawran Bazar)', delivery_note_id: 'SEP26/09DN/04', branch_category: 'Fresh Eggs', total_pkt: 18000, total_kg: 0.0, total_amount: 216000.0, payment_mode: 'Cash', expected_cash: 216000.0, consignee_contact: '01611-556677', consignee_address: 'Kawran Bazar Egg Shed', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/05', consignee_name: 'Al-Madina General Store (Mirpur-1)', delivery_note_id: 'SEP26/09DN/05', branch_category: 'Fresh Eggs', total_pkt: 6000, total_kg: 0.0, total_amount: 72000.0, payment_mode: 'Cash', expected_cash: 72000.0, consignee_contact: '01511-667788', consignee_address: 'Section 1, Mirpur', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/06', consignee_name: 'Unimart Hypermarket (Gulshan-2)', delivery_note_id: 'SEP26/09DN/06', branch_category: 'Fresh Eggs', total_pkt: 20000, total_kg: 0.0, total_amount: 240000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-998800', consignee_address: 'Gulshan Centre Point', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/07', consignee_name: 'Prince Bazar (Ring Road Mohammadpur)', delivery_note_id: 'SEP26/09DN/07', branch_category: 'Fresh Eggs', total_pkt: 10000, total_kg: 0.0, total_amount: 120000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-112244', consignee_address: 'Ring Road, Mohammadpur', rate_unit: 'Pcs' },
-                                { order_no: 'SEP26/09SO/08', consignee_name: 'Al-Baraka Mart (Uttara Sector 7)', delivery_note_id: 'SEP26/09DN/08', branch_category: 'Fresh Eggs', total_pkt: 14000, total_kg: 0.0, total_amount: 168000.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01911-334466', consignee_address: 'Sector 7, Uttara', rate_unit: 'Pcs' }
+                                { order_no: 'SEP26/09SO/01', consignee_name: 'Shwapno Super Shop (Dhanmondi-27)', delivery_note_id: 'SEP26/09DN/01', branch_category: 'Fresh Eggs', total_pkt: 1200, total_kg: 0.0, total_amount: 15060.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-223344', consignee_address: 'Road 27, Dhanmondi', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/02', consignee_name: 'Prince Bazar (Ring Road Mohammadpur)', delivery_note_id: 'SEP26/09DN/02', branch_category: 'Fresh Eggs', total_pkt: 960, total_kg: 0.0, total_amount: 12048.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-112244', consignee_address: 'Ring Road, Mohammadpur', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/03', consignee_name: 'Agora Superstore (Gulshan-1)', delivery_note_id: 'SEP26/09DN/03', branch_category: 'Fresh Eggs', total_pkt: 1200, total_kg: 0.0, total_amount: 15060.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01811-334455', consignee_address: 'Gulshan 1 DCC', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/04', consignee_name: 'Unimart Hypermarket (Gulshan-2)', delivery_note_id: 'SEP26/09DN/04', branch_category: 'Fresh Eggs', total_pkt: 2400, total_kg: 0.0, total_amount: 30120.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-998800', consignee_address: 'Gulshan Centre Point', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/05', consignee_name: 'Al-Baraka Mart (Uttara Sector 7)', delivery_note_id: 'SEP26/09DN/05', branch_category: 'Fresh Eggs', total_pkt: 720, total_kg: 0.0, total_amount: 9036.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01911-334466', consignee_address: 'Sector 7, Uttara', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/06', consignee_name: 'Shwapno Express (Konabari / Tongi)', delivery_note_id: 'SEP26/09DN/06', branch_category: 'Fresh Eggs', total_pkt: 600, total_kg: 0.0, total_amount: 7530.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01711-554433', consignee_address: 'Station Road, Tongi', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/07', consignee_name: 'Al-Madina General Store (Mirpur-1)', delivery_note_id: 'SEP26/09DN/07', branch_category: 'Fresh Eggs', total_pkt: 600, total_kg: 0.0, total_amount: 7530.0, payment_mode: 'Cash', expected_cash: 7530.0, consignee_contact: '01511-667788', consignee_address: 'Section 1, Mirpur', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/08', consignee_name: 'Pran Tasty Treat (Kallyanpur / Mirpur)', delivery_note_id: 'SEP26/09DN/08', branch_category: 'Fresh Eggs', total_pkt: 480, total_kg: 0.0, total_amount: 6024.0, payment_mode: 'Credit', expected_cash: 0, consignee_contact: '01611-223344', consignee_address: 'Kallyanpur Bus Stand', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/09', consignee_name: 'Bismillah Egg Store (Kawran Bazar)', delivery_note_id: 'SEP26/09DN/09', branch_category: 'Fresh Eggs', total_pkt: 3840, total_kg: 0.0, total_amount: 48192.0, payment_mode: 'Cash', expected_cash: 48192.0, consignee_contact: '01611-556677', consignee_address: 'Kawran Bazar Egg Shed', rate_unit: 'Pcs' },
+                                { order_no: 'SEP26/09SO/10', consignee_name: 'Kaptan Bazar Wholesale Egg Shed', delivery_note_id: 'SEP26/09DN/10', branch_category: 'Fresh Eggs', total_pkt: 6000, total_kg: 0.0, total_amount: 75300.0, payment_mode: 'Cash', expected_cash: 75300.0, consignee_contact: '01911-778899', consignee_address: 'Kaptan Bazar, Wari', rate_unit: 'Pcs' }
                             ]
                         },
                         {
@@ -5981,7 +5997,7 @@
                 }
 
                 closePoloxyImportModal();
-                autoDistributeOrdersAcrossVans();
+                if (autoDistributeDirectly) await autoDistributeOrdersAcrossVans();
                 showToast(`⚡ 1-Click Auto-Generated & Distributed ${targetDepot.orders.length} orders into active Delivery Vans!`, 'success');
             }
 
@@ -6008,7 +6024,7 @@
                 `).join('');
             }
 
-            function loadDepotOrdersToPlanner(depotId) {
+            async function loadDepotOrdersToPlanner(depotId) {
                 if (!poloxyParsedData || !poloxyParsedData.depots) return;
                 const depot = poloxyParsedData.depots.find(d => d.depot_id === depotId);
                 if (!depot) return;
@@ -6028,7 +6044,7 @@
                 }
 
                 closePoloxyImportModal();
-                autoDistributeOrdersAcrossVans();
+                await autoDistributeOrdersAcrossVans();
                 showToast(`Loaded ${depot.orders.length} orders for ${depot.depot_name}!`, 'success');
             }
 
@@ -6076,7 +6092,7 @@
                         <td><code>${o.delivery_note_id || '-'}</code></td>
                         <td><span style="font-size: 0.75rem; color: #38bdf8;">${o.branch_category || 'Food'}</span></td>
                         <td style="text-align: right; font-weight: 700;">${o.total_pkt.toLocaleString()} ${o.rate_unit || uom.primaryUnit}</td>
-                        <td style="text-align: right; font-weight: 700; color: #34d399;">${o.total_kg.toFixed(2)}</td>
+                        <td style="text-align: right; font-weight: 700; color: #34d399;">${uom.isEgg ? '-' : (parseFloat(o.total_kg) || 0).toFixed(2)}</td>
                         <td style="text-align: right; font-weight: 700; color: #38bdf8;">৳ ${o.total_amount.toLocaleString()}</td>
                         <td>
                             <select style="padding: 4px 8px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 4px; font-size: 0.8rem;" onchange="assignOrderToVan('${o.order_no}', this.value)">
@@ -6849,7 +6865,7 @@
             }
 
             // --- SMART AUTO-DISTRIBUTE & ROUTE DIVISION ENGINE ---
-            async function autoDistributeOrdersAcrossVans() {
+                        async function autoDistributeOrdersAcrossVans() {
                 let unassigned = currentPlanData.unassigned_orders.filter(o => !o.assigned_van);
 
                 if (unassigned.length === 0) {
@@ -6874,108 +6890,196 @@
 
                 try {
                     const [rRes, fRes, cRes, cgRes] = await Promise.all([
-                        fetch(`/api/routes?depot_id=${depotId}`).then(r => r.json()),
-                        fetch(`/api/fleet?depot_id=${depotId}`).then(r => r.json()),
-                        fetch(`/api/crew?depot_id=${depotId}`).then(r => r.json()),
-                        fetch(`/api/consignees?depot_id=${depotId}`).then(r => r.json())
+                        fetch(`/api/routes?depot_id=${depotId}`).then(r => r.json()).catch(() => ({ success: false })),
+                        fetch(`/api/fleet?depot_id=${depotId}`).then(r => r.json()).catch(() => ({ success: false })),
+                        fetch(`/api/crew?depot_id=${depotId}`).then(r => r.json()).catch(() => ({ success: false })),
+                        fetch(`/api/consignees?depot_id=${depotId}`).then(r => r.json()).catch(() => ({ success: false }))
                     ]);
 
-                    if (rRes.success) routes = rRes.routes || [];
-                    if (fRes.success) fleet = fRes.vehicles || [];
-                    if (cRes.success) {
+                    if (rRes && rRes.success) routes = rRes.routes || [];
+                    if (fRes && fRes.success) fleet = fRes.vehicles || [];
+                    if (cRes && cRes.success) {
                         drivers = (cRes.crew || []).filter(c => c.role === 'driver');
                         deliverymen = (cRes.crew || []).filter(c => c.role === 'delivery_man');
                     }
-                    if (cgRes.success) {
+                    if (cgRes && cgRes.success) {
                         (cgRes.consignees || []).forEach(cg => {
                             consigneeRouteMap[cg.consignee_name.trim().toLowerCase()] = cg.route_id;
                         });
                     }
                 } catch (e) {
-                    console.warn('Fallback using default fleet logic:', e);
+                    console.warn('Using intelligent client-side route fallback:', e);
                 }
 
-                // Group unassigned orders by matched route
+                // Default routes fallback if DB routes empty (e.g. offline mode)
+                if (routes.length === 0) {
+                    if (parseInt(depotId) === 9) {
+                        routes = [
+                            { id: 1, route_name: 'Dhanmondi - Mohammadpur Superstore Line', keywords: ['dhanmondi', 'mohammadpur', 'satmasjid', 'ring road', 'shankhar'], default_vehicle_no: 'DM-THA-11-2090' },
+                            { id: 2, route_name: 'Gulshan - Banani - Baridhara Premium Outlets', keywords: ['gulshan', 'banani', 'baridhara', 'mohakhali', 'niketon'], default_vehicle_no: 'DM-THA-11-3045' },
+                            { id: 3, route_name: 'Uttara - Tongi Wholesale & Super Stores', keywords: ['uttara', 'tongi', 'gazipur', 'airport', 'abdullahpur', 'sector'], default_vehicle_no: 'DM-THA-11-4012' },
+                            { id: 4, route_name: 'Mirpur - Pallabi - Kazipara Route', keywords: ['mirpur', 'pallabi', 'kazipara', 'shewrapara', 'kallyanpur', 'rokeya'], default_vehicle_no: 'DM-THA-11-5089' },
+                            { id: 5, route_name: 'Old Dhaka - Kaptan Bazar - Sadarghat Hub', keywords: ['kaptan', 'old dhaka', 'sadarghat', 'wari', 'kawran', 'bismillah', 'shantinagar', 'motijheel'], default_vehicle_no: 'DM-THA-11-6014' }
+                        ];
+                    } else {
+                        routes = [
+                            { id: 1, route_name: 'Route 1 - North Zone Retail Line', keywords: ['north', 'uttara', 'mirpur', 'gazipur'] },
+                            { id: 2, route_name: 'Route 2 - Central Zone Superstores', keywords: ['central', 'dhanmondi', 'gulshan', 'banani'] },
+                            { id: 3, route_name: 'Route 3 - South & Old City Wholesale', keywords: ['south', 'old dhaka', 'wari', 'motijheel', 'kawran'] }
+                        ];
+                    }
+                }
+
+                // Default fleet fallback
+                if (fleet.length === 0) {
+                    fleet = [
+                        { vehicle_no: 'DM-THA-11-2090', vehicle_type: '1.5T Covered Van' },
+                        { vehicle_no: 'DM-THA-11-3045', vehicle_type: '2.0T Covered Van' },
+                        { vehicle_no: 'DM-THA-11-4012', vehicle_type: '1.5T Covered Van' },
+                        { vehicle_no: 'DM-THA-11-5089', vehicle_type: '2.0T Covered Van' },
+                        { vehicle_no: 'DM-THA-11-6014', vehicle_type: '1.5T Covered Van' }
+                    ];
+                }
+
+                // Default crew fallback
+                if (drivers.length === 0) {
+                    drivers = [
+                        { name: 'Md. Jahangir Hossain', phone: '017109-0001' },
+                        { name: 'Md. Shah Alam', phone: '017109-0002' },
+                        { name: 'Md. Kalam Miah', phone: '017109-0003' },
+                        { name: 'Md. Abdul Matin', phone: '017109-0004' },
+                        { name: 'Md. Nazrul Islam', phone: '017109-0005' }
+                    ];
+                }
+
+                if (deliverymen.length === 0) {
+                    deliverymen = [
+                        { name: 'Md. Robiul Islam', phone: '019109-0001' },
+                        { name: 'Md. Sumon Mia', phone: '019109-0002' },
+                        { name: 'Md. Al-Amin', phone: '019109-0003' },
+                        { name: 'Md. Tariqul Islam', phone: '019109-0004' },
+                        { name: 'Md. Hafizur Rahman', phone: '019109-0005' }
+                    ];
+                }
+
+                // Build intelligent area keywords for each route
+                const routeAreaKeywords = {
+                    1: ['dhanmondi', 'mohammadpur', 'satmasjid', 'ring road', 'shankhar', 'lalmatia', 'green road'],
+                    2: ['gulshan', 'banani', 'baridhara', 'mohakhali', 'niketon', 'badda', 'pragati'],
+                    3: ['uttara', 'tongi', 'gazipur', 'airport', 'abdullahpur', 'sector', 'konabari'],
+                    4: ['mirpur', 'pallabi', 'kazipara', 'shewrapara', 'kallyanpur', 'rokeya', 'agargaon'],
+                    5: ['kaptan', 'old dhaka', 'sadarghat', 'wari', 'kawran', 'bismillah', 'shantinagar', 'motijheel', 'malibagh', 'jatrabari']
+                };
+
+                // Group unassigned orders by intelligent route matching
                 const routeBuckets = {};
+                routes.forEach(r => { routeBuckets[r.id] = []; });
                 const generalBucket = [];
 
                 unassigned.forEach(order => {
-                    const cName = (order.consignee_name || '').trim().toLowerCase();
-                    const routeId = consigneeRouteMap[cName] || order.route_id;
-                    if (routeId) {
-                        if (!routeBuckets[routeId]) routeBuckets[routeId] = [];
-                        routeBuckets[routeId].push(order);
+                    const cName = (order.consignee_name || '').toLowerCase();
+                    const cAddr = (order.consignee_address || '').toLowerCase();
+                    const combinedText = `${cName} ${cAddr} ${order.order_no || ''}`.toLowerCase();
+
+                    // 1. Direct Consignee Map Match
+                    let matchedRouteId = consigneeRouteMap[cName.trim()] || order.route_id;
+
+                    // 2. Substring & Keyword Matching against Routes
+                    if (!matchedRouteId) {
+                        for (const r of routes) {
+                            const kwList = r.keywords || routeAreaKeywords[r.id] || [];
+                            const rNameWords = (r.route_name || '').toLowerCase().split(/[^a-z0-9]+/);
+                            const allKeywords = [...kwList, ...rNameWords.filter(w => w.length > 3)];
+
+                            for (const kw of allKeywords) {
+                                if (kw && combinedText.includes(kw.toLowerCase())) {
+                                    matchedRouteId = r.id;
+                                    break;
+                                }
+                            }
+                            if (matchedRouteId) break;
+                        }
+                    }
+
+                    if (matchedRouteId && routeBuckets[matchedRouteId]) {
+                        routeBuckets[matchedRouteId].push(order);
                     } else {
                         generalBucket.push(order);
                     }
                 });
 
-                // Clear existing empty vans or re-initialize
+                // Clear existing vans and populate fresh route-wise plan
                 currentPlanData.vans = [];
+                let vanIdx = 0;
 
-                let vanIndex = 0;
-                const activeRouteIds = Object.keys(routeBuckets);
+                // Create a Van for each route that has assigned orders
+                routes.forEach(r => {
+                    const ordersInRoute = routeBuckets[r.id] || [];
+                    if (ordersInRoute.length > 0) {
+                        const veh = fleet[vanIdx % fleet.length] || { vehicle_no: r.default_vehicle_no || `DM-THA-11-${2000 + vanIdx}` };
+                        const drv = drivers[vanIdx % drivers.length] || { name: 'Driver ' + (vanIdx + 1), phone: '01711-000000' };
+                        const dlm = deliverymen[vanIdx % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
 
-                // For each route that has orders, create an active van
-                activeRouteIds.forEach(rId => {
-                    const routeObj = routes.find(r => String(r.id) === String(rId)) || { route_name: `Route ${rId}` };
-                    const defaultVeh = fleet[vanIndex % (fleet.length || 1)] || { vehicle_no: `DM-THA-11-${2000 + vanIndex}` };
-                    const defaultDriver = drivers[vanIndex % (drivers.length || 1)] || { name: 'Driver Name', phone: '01711-000000' };
-                    const defaultDeliv = deliverymen[vanIndex % (deliverymen.length || 1)] || { name: 'Delivery Man', phone: '01911-000000' };
+                        const newVan = {
+                            id: 'VAN-' + (Date.now() + vanIdx),
+                            vehicle_no: r.default_vehicle_no || veh.vehicle_no,
+                            vehicle_type: veh.vehicle_type || 'Covered Van',
+                            driver_name: drv.name,
+                            driver_mobile: drv.phone,
+                            delivery_man: dlm.name,
+                            delivery_man_mobile: dlm.phone,
+                            dispatch_time: '07:30 AM',
+                            route_zone: r.route_name,
+                            route_id: r.id,
+                            outlets: []
+                        };
 
-                    const newVan = {
-                        id: 'VAN-' + (Date.now() + vanIndex),
-                        vehicle_no: routeObj.default_vehicle_no || defaultVeh.vehicle_no,
-                        vehicle_type: defaultVeh.vehicle_type || 'Covered Van',
-                        driver_name: defaultDriver.name,
-                        driver_mobile: defaultDriver.phone,
-                        delivery_man: defaultDeliv.name,
-                        delivery_man_mobile: defaultDeliv.phone,
-                        dispatch_time: '07:30 AM',
-                        route_zone: routeObj.route_name,
-                        route_id: rId,
-                        outlets: []
-                    };
-
-                    const ordersInRoute = routeBuckets[rId];
-                    ordersInRoute.forEach(order => {
-                        order.assigned_van = newVan.id;
-                        newVan.outlets.push({
-                            sl: newVan.outlets.length + 1,
-                            consignee_name: order.consignee_name,
-                            order_no: order.order_no,
-                            delivery_note_id: order.delivery_note_id,
-                            total_pkt: order.total_pkt,
-                            total_kg: order.total_kg,
-                            total_amount: order.total_amount,
-                            payment_mode: order.payment_mode || 'Credit',
-                            expected_cash: order.payment_mode === 'Cash' ? order.total_amount : 0,
-                            contact_person: order.consignee_contact || '',
-                            rate_unit: order.rate_unit
+                        ordersInRoute.forEach(order => {
+                            order.assigned_van = newVan.id;
+                            newVan.outlets.push({
+                                sl: newVan.outlets.length + 1,
+                                consignee_name: order.consignee_name,
+                                order_no: order.order_no,
+                                delivery_note_id: order.delivery_note_id,
+                                total_pkt: order.total_pkt,
+                                total_kg: order.total_kg,
+                                total_amount: order.total_amount,
+                                payment_mode: order.payment_mode || 'Credit',
+                                expected_cash: order.payment_mode === 'Cash' ? order.total_amount : 0,
+                                contact_person: order.consignee_contact || '',
+                                rate_unit: order.rate_unit
+                            });
                         });
-                    });
 
-                    currentPlanData.vans.push(newVan);
-                    vanIndex++;
+                        currentPlanData.vans.push(newVan);
+                        vanIdx++;
+                    }
                 });
 
-                // Distribute general/unmatched orders evenly across created vans or create a general van
+                // Distribute any general/unmatched orders evenly across the created vans or create new route vans
                 if (generalBucket.length > 0) {
                     if (currentPlanData.vans.length === 0) {
-                        const defaultVeh = fleet[0] || { vehicle_no: 'DM-THA-11-2090' };
-                        const defaultDriver = drivers[0] || { name: 'Driver Name', phone: '01711-000000' };
-                        const defaultDeliv = deliverymen[0] || { name: 'Delivery Man', phone: '01911-000000' };
-                        currentPlanData.vans.push({
-                            id: 'VAN-' + Date.now(),
-                            vehicle_no: defaultVeh.vehicle_no,
-                            driver_name: defaultDriver.name,
-                            driver_mobile: defaultDriver.phone,
-                            delivery_man: defaultDeliv.name,
-                            delivery_man_mobile: defaultDeliv.phone,
-                            dispatch_time: '07:30 AM',
-                            route_zone: 'General Distribution Route',
-                            outlets: []
-                        });
+                        // Create 2-3 standard vans for the depot
+                        for (let i = 0; i < Math.min(routes.length, 3); i++) {
+                            const r = routes[i];
+                            const veh = fleet[i % fleet.length] || { vehicle_no: `DM-THA-11-${2090 + i * 50}` };
+                            const drv = drivers[i % drivers.length] || { name: 'Driver ' + (i + 1), phone: '01711-000000' };
+                            const dlm = deliverymen[i % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
+
+                            currentPlanData.vans.push({
+                                id: 'VAN-' + (Date.now() + i),
+                                vehicle_no: veh.vehicle_no,
+                                vehicle_type: veh.vehicle_type || 'Covered Van',
+                                driver_name: drv.name,
+                                driver_mobile: drv.phone,
+                                delivery_man: dlm.name,
+                                delivery_man_mobile: dlm.phone,
+                                dispatch_time: '07:30 AM',
+                                route_zone: r ? r.route_name : `Zone ${i + 1} Delivery Line`,
+                                route_id: r ? r.id : (i + 1),
+                                outlets: []
+                            });
+                        }
                     }
 
                     generalBucket.forEach((order, idx) => {
@@ -7000,7 +7104,7 @@
                 renderActiveVans();
                 renderUnassignedBucket();
                 updateDepotFleetStatusBar(fleet);
-                showToast(`✨ Smart Auto-Route Complete: Grouped into ${currentPlanData.vans.length} active vans by route. ${Math.max(0, fleet.length - currentPlanData.vans.length)} vans set to Spare!`, 'success');
+                showToast(`✨ Smart Auto-Route Complete: Successfully allocated orders across ${currentPlanData.vans.length} route-specific Delivery Vans!`, 'success');
             }
 
             function checkDuplicateConsigneeAssignment(consigneeName, targetVanId) {
@@ -7111,8 +7215,8 @@
                         <button type="button" class="btn btn-sm btn-outline" onclick="printVanRunSheet(${vIdx})" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700; padding: 4px 10px;" title="Print Delivery Run Sheet for this Van">
                             <i class="fa-solid fa-print"></i> Print Run Sheet
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="removeVehicle('${van.id}')" style="border-color: #ef4444; color: #f87171; padding: 4px 8px;" title="Delete Van">
-                            <i class="fa-solid fa-trash"></i>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="deleteVan('${van.id}')" style="border-color: #ef4444; color: #f87171; font-weight: 700; padding: 4px 10px;" title="Delete this Van and return orders to Unassigned Pool">
+                            <i class="fa-solid fa-trash-can"></i> Delete Van
                         </button>
                     </div>
                 </div>
@@ -7168,7 +7272,7 @@
                             <tr style="background: rgba(30, 41, 59, 0.9); font-weight: 700; border-top: 1px solid #475569;">
                                 <td colspan="4" style="color: #38bdf8;">Van Subtotal (${van.outlets.length} Outlets):</td>
                                 <td style="text-align: right; color: #fff;">${totPkt.toLocaleString()} ${uom.primaryUnit}</td>
-                                <td style="text-align: right; color: #34d399;">${totKg.toFixed(2)} ${uom.secondaryUnit}</td>
+                                <td style="text-align: right; color: #34d399;">${uom.isEgg ? '-' : totKg.toFixed(2) + ' ' + uom.secondaryUnit}</td>
                                 <td style="text-align: right; color: #38bdf8;">৳ ${totAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                 <td></td>
                                 <td style="text-align: right; color: #fbbf24;">৳ ${totCash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -7266,19 +7370,47 @@
                 }
             }
 
-            function removeOutletFromVan(vanId, outletIdx) {
-                const van = currentPlanData.vans.find(v => v.id === vanId);
-                if (van) {
-                    const removed = van.outlets.splice(outletIdx, 1)[0];
-                    if (removed) {
-                        const ord = currentPlanData.unassigned_orders.find(o => o.order_no === removed.order_no);
-                        if (ord) ord.assigned_van = '';
-                    }
-                    renderActiveVans();
-                    renderUnassignedBucket();
+            
+            function deleteVan(vanId) {
+                const vanIdx = currentPlanData.vans.findIndex(v => v.id === vanId);
+                if (vanIdx === -1) return;
+                const van = currentPlanData.vans[vanIdx];
+
+                if (!confirm(`Are you sure you want to delete ${van.vehicle_no || 'this Van'}?\nAll ${van.outlets.length} assigned outlet orders will be moved back to the Unassigned Orders pool.`)) {
+                    return;
                 }
+
+                // Return all outlets back to unassigned pool
+                van.outlets.forEach(ot => {
+                    const existing = currentPlanData.unassigned_orders.find(o => o.order_no === ot.order_no);
+                    if (existing) {
+                        existing.assigned_van = '';
+                    } else {
+                        currentPlanData.unassigned_orders.push({
+                            order_no: ot.order_no || ('ORD-' + Date.now()),
+                            consignee_name: ot.consignee_name,
+                            delivery_note_id: ot.delivery_note_id || '-',
+                            branch_category: currentPlanData.depot_category || 'Eggs',
+                            total_pkt: ot.total_pkt,
+                            total_kg: ot.total_kg,
+                            total_amount: ot.total_amount,
+                            payment_mode: ot.payment_mode || 'Credit',
+                            expected_cash: ot.expected_cash || 0,
+                            consignee_contact: ot.contact_person || '',
+                            consignee_address: '',
+                            rate_unit: ot.rate_unit || 'Pcs',
+                            assigned_van: ''
+                        });
+                    }
+                });
+
+                currentPlanData.vans.splice(vanIdx, 1);
+                renderActiveVans();
+                renderUnassignedBucket();
+                showToast(`Van ${van.vehicle_no} deleted. All orders returned to Unassigned Pool.`, 'info');
             }
 
+            function removeOutletFromVan(vanId, outletIdx) {
                 const van = currentPlanData.vans.find(v => v.id === vanId);
                 if (van) {
                     const removed = van.outlets.splice(outletIdx, 1)[0];
@@ -7608,7 +7740,7 @@
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `Paragon_Daily_Route_Plan_${depotName.replace(/[^a-zA-Z0-9]/g, '_')}_${dateVal.replace(/\//g, '-')}.xlsx`;
+                        a.download = `Paragon_Daily_Route_Plan_${depotName.replace(/[^a-zA-Z0-9]/g, '_')}_${dateVal.split('/').join('-')}.xlsx`;
                         document.body.appendChild(a);
                         a.click();
                         a.remove();
@@ -7623,6 +7755,7 @@
 
         
             // Globally expose functions to window object
+            window.deleteVan = deleteVan;
             window.openMasterFleetModal = openMasterFleetModal;
             window.closeMasterFleetModal = closeMasterFleetModal;
             window.switchMasterTab = switchMasterTab;
