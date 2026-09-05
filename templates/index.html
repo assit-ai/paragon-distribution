@@ -4720,12 +4720,15 @@
                 });
             }
 
-            // Register Service Worker
+            // Register & Force Update Service Worker
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/static/sw.js')
-                        .then(reg => console.log('[ServiceWorker] Registered successfully:', reg.scope))
-                        .catch(err => console.log('[ServiceWorker] Registration failed:', err));
+                    navigator.serviceWorker.register('/static/sw.js?v=15.0')
+                        .then(reg => {
+                            reg.update();
+                            console.log('[ServiceWorker v15] Active & Updated:', reg.scope);
+                        })
+                        .catch(err => console.log('[ServiceWorker] Registration error:', err));
                 });
             }
 
