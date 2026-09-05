@@ -249,7 +249,7 @@ def api_login():
     password = data.get('password', '').strip()
     
     conn = get_db()
-    user_row = conn.execute('SELECT * FROM users WHERE LOWER(username) = ? AND password = ?', (username, password)).fetchone()
+    user_row = conn.execute("SELECT * FROM users WHERE REPLACE(LOWER(username), '-', '_') = REPLACE(?, '-', '_') AND password = ?", (username, password)).fetchone()
     conn.close()
     
     if user_row:
@@ -272,6 +272,44 @@ def api_logout():
     return jsonify({"success": True, "message": "Logged out successfully"})
 
 
+
+@app.route('/api/user/change-password', methods=['POST'])
+def change_user_password():
+    data = request.json or {}
+    old_password = data.get('old_password', '').strip()
+    new_password = data.get('new_password', '').strip()
+    username = data.get('username', '').strip().lower()
+    
+    # If user in session and username not sent, get from session
+    sess_user = session.get('user')
+    if sess_user and not username:
+        username = sess_user.get('username', '').lower()
+        
+    if not username:
+        return jsonify({"success": False, "message": "User session not found. Please log in first."}), 401
+        
+    if not new_password or len(new_password) < 4:
+        return jsonify({"success": False, "message": "New password must be at least 4 characters."}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Find user (supports either hyphen or underscore)
+    user_row = cursor.execute("SELECT * FROM users WHERE REPLACE(LOWER(username), '-', '_') = REPLACE(?, '-', '_')", (username,)).fetchone()
+    if not user_row:
+        conn.close()
+        return jsonify({"success": False, "message": f"User account '{username}' not found."}), 404
+        
+    user_dict = dict(user_row)
+    if old_password and user_dict['password'] != old_password:
+        conn.close()
+        return jsonify({"success": False, "message": "Incorrect current password! Please enter your existing password correctly."}), 400
+        
+    cursor.execute('UPDATE users SET password = ? WHERE id = ?', (new_password, user_dict['id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "message": f"Password for {user_dict['display_name']} updated successfully!"})
 
 @app.route('/api/admin/users/reset-password', methods=['POST'])
 def reset_user_password():

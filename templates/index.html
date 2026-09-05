@@ -1428,6 +1428,12 @@
                             &rarr; Sync Now</span>
                     </button>
 
+                    <button type="button" class="btn btn-sm btn-outline" id="btnOpenChangePassword" onclick="openChangePasswordModal()"
+                        style="border-color: #38bdf8; color: #38bdf8; padding: 6px 14px; font-size: 0.85rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); display: inline-flex; align-items: center; gap: 6px;"
+                        title="Change Your Login Password">
+                        <i class="fa-solid fa-key"></i> Change Password
+                    </button>
+
                     <button type="button" class="btn btn-sm" id="btnLogout"
                         style="background:#ef4444; color:#fff; padding:6px 14px; font-size:0.85rem; font-weight:700;">
                         <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -1743,13 +1749,19 @@
                                     title="Open Master Hub to enlist Routes, Consignees, Vehicles, Drivers and Delivery Staff">
                                     <i class="fa-solid fa-sliders"></i> ⚙️ Fleet & Route Master
                                 </button>
+                                 <!-- Auto-Distribute Rebalancer -->
+                                 <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
+                                     style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 800; padding: 9px 16px; border: none; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
+                                     title="Auto assign loaded orders evenly across pre-defined routes and delivery vans">
+                                     <i class="fa-solid fa-wand-magic-sparkles"></i> ✨ Auto-Distribute
+                                 </button>
 
-                                <!-- Auto-Distribute Rebalancer -->
-                                <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
-                                    style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 800; padding: 9px 16px; border: none; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
-                                    title="Auto assign loaded orders evenly across pre-defined routes and delivery vans">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> ✨ Auto-Distribute
-                                </button>
+                                 <!-- Submit & Dispatch Plan Button -->
+                                 <button type="button" class="btn" onclick="submitAndDispatchRoutePlan()"
+                                     style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 800; padding: 9px 18px; border: none; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
+                                     title="Submit Final Delivery Plan to Dispatch & Auto-Populate Daily Entry">
+                                     <i class="fa-solid fa-paper-plane"></i> 🚀 Submit & Dispatch Plan
+                                 </button>
 
                                 <button type="button" class="btn btn-primary" onclick="openRentalVanModal()"
                                     style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 9px 14px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);"
@@ -1927,6 +1939,52 @@
                                 <div id="grandTotalCash"
                                     style="font-size: 1.4rem; font-weight: 800; color: #fbbf24; margin-top: 4px;">৳ 0.00
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FINAL DISPATCH & SUBMISSION ACTION COCKPIT -->
+                    <div class="card"
+                        style="margin-top: 20px; background: linear-gradient(135deg, #0b1329, #1e293b); border: 2px solid #10b981; border-radius: var(--radius-lg); padding: 22px 26px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div
+                                    style="width: 52px; height: 52px; background: rgba(16, 185, 129, 0.2); border: 1.5px solid #10b981; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #10b981;">
+                                    <i class="fa-solid fa-truck-fast"></i>
+                                </div>
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0;">FINAL PLAN DISPATCH & SUBMISSION</h3>
+                                        <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-size: 0.78rem; font-weight: 800; padding: 2px 10px; border-radius: 12px;">
+                                            <i class="fa-solid fa-circle-check"></i> READY FOR DISPATCH
+                                        </span>
+                                    </div>
+                                    <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">
+                                        Click <strong>Submit & Dispatch</strong> to finalize today's delivery plan, lock vehicle challans, and auto-sync into Daily Reconciliation.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-outline" onclick="savePlanAsDraftLocally()"
+                                    style="border-color: #64748b; color: #cbd5e1; padding: 11px 18px; font-weight: 700; font-size: 0.88rem; border-radius: 8px;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Draft
+                                </button>
+
+                                <button type="button" class="btn btn-outline" onclick="printAllVanRunSheets()"
+                                    style="border-color: #f59e0b; color: #fbbf24; padding: 11px 18px; font-weight: 700; font-size: 0.88rem; border-radius: 8px;">
+                                    <i class="fa-solid fa-print"></i> Print Run Sheets
+                                </button>
+
+                                <button type="button" class="btn btn-outline" onclick="transferPlanToDailyEntryForm()"
+                                    style="border-color: #a855f7; color: #c084fc; padding: 11px 18px; font-weight: 700; font-size: 0.88rem; border-radius: 8px;">
+                                    <i class="fa-solid fa-clipboard-list"></i> Transfer to Daily Entry
+                                </button>
+
+                                <button type="button" class="btn" onclick="submitAndDispatchRoutePlan()"
+                                    style="background: linear-gradient(135deg, #10b981, #047857); color: #fff; padding: 12px 28px; font-weight: 900; font-size: 0.95rem; border-radius: 8px; border: none; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45); cursor: pointer; display: inline-flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-paper-plane" style="font-size: 1.1rem;"></i> 🚀 SUBMIT & DISPATCH DELIVERY PLAN
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -28282,12 +28340,401 @@
             }
 
         
+            async function submitAndDispatchRoutePlan() {
+                if (!currentPlanData.vans || currentPlanData.vans.length === 0) {
+                    showToast('No active delivery vans in plan! Please load Poloxy orders or click Auto-Distribute.', 'warning');
+                    return;
+                }
+
+                const totalOutletsAssigned = currentPlanData.vans.reduce((sum, v) => sum + (v.outlets ? v.outlets.length : 0), 0);
+                if (totalOutletsAssigned === 0) {
+                    showToast('Delivery vans have no assigned outlet orders! Please click Auto-Distribute or assign orders.', 'warning');
+                    return;
+                }
+
+                const unassignedCount = currentPlanData.unassigned_orders ? currentPlanData.unassigned_orders.filter(o => !o.assigned_van).length : 0;
+                if (unassignedCount > 0) {
+                    const proceed = confirm(`Notice: You have ${unassignedCount} unassigned orders in the pool.\n\nDo you want to submit and dispatch the ${currentPlanData.vans.length} active vans with ${totalOutletsAssigned} assigned orders?`);
+                    if (!proceed) return;
+                }
+
+                showToast('🚀 Submitting and Dispatching Delivery Plan...', 'info');
+
+                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value ? parseInt(document.getElementById('planDepotSelect').value) : 9);
+                const depotName = currentPlanData.depot_name || (document.getElementById('planDepotSelect')?.options[document.getElementById('planDepotSelect')?.selectedIndex]?.text || 'Depot');
+                const planDate = document.getElementById('planDatePicker')?.value || currentPlanData.date || new Date().toISOString().split('T')[0];
+                const shift = document.getElementById('planShiftSelect')?.value || 'Morning Shift (07:00 AM)';
+                const inchargeName = (currentUser && currentUser.display_name) ? currentUser.display_name : 'Depot Incharge';
+
+                // Assemble Trips from Active Vans
+                const trips = [];
+                const invoices = [];
+                let grossVal = 0;
+                let totalCash = 0;
+                let totalPkts = 0;
+                let totalKg = 0;
+
+                currentPlanData.vans.forEach((van, vIdx) => {
+                    const tripNo = `TRIP-${String(vIdx + 1).padStart(2, '0')}`;
+                    const vanTotKg = van.outlets.reduce((s, o) => s + (parseFloat(o.total_kg) || 0), 0);
+                    const vanTotPkt = van.outlets.reduce((s, o) => s + (parseFloat(o.total_pkt) || 0), 0);
+                    const vanTotVal = van.outlets.reduce((s, o) => s + (parseFloat(o.total_amount) || 0), 0);
+                    const vanCapacity = parseFloat(van.capacity_kg) || (vanTotKg > 0 ? Math.max(1500, vanTotKg * 1.2) : 1500);
+
+                    trips.push({
+                        trip_no: tripNo,
+                        vehicle_no: van.vehicle_no || `DM-VAN-${vIdx + 1}`,
+                        vehicle_type: van.vehicle_type || '1.5T Covered Van',
+                        driver_name: van.driver_name || 'Driver Name',
+                        delivery_man: van.delivery_man || 'Delivery Staff',
+                        route_name: van.route_zone || `Route Zone ${vIdx + 1}`,
+                        capacity_kg: vanCapacity,
+                        loaded_kg: vanTotKg,
+                        reefer_temp: van.reefer_temp || '-18°C',
+                        planned_invoices: van.outlets.length,
+                        gate_pass_no: `GP-${planDate.replace(/-/g, '').slice(-4)}-${vIdx + 1}`
+                    });
+
+                    van.outlets.forEach((ot, oIdx) => {
+                        const otVal = parseFloat(ot.total_amount) || 0;
+                        const otCash = (ot.payment_mode === 'Cash') ? (parseFloat(ot.expected_cash) || otVal) : 0;
+                        const otCredit = (ot.payment_mode === 'Credit') ? otVal : 0;
+                        const otPkt = parseFloat(ot.total_pkt) || 0;
+                        const otKg = parseFloat(ot.total_kg) || 0;
+
+                        grossVal += otVal;
+                        totalCash += otCash;
+                        totalPkts += otPkt;
+                        totalKg += otKg;
+
+                        invoices.push({
+                            invoice_no: ot.order_no || `INV-${vIdx + 1}-${oIdx + 1}`,
+                            customer_name: ot.consignee_name,
+                            customer_address: ot.consignee_address || '',
+                            trip_no: tripNo,
+                            product_category: currentPlanData.depot_category || 'Food Products',
+                            sku_uom: ot.rate_unit || (depotId === 9 ? 'Pcs' : 'Pkt'),
+                            dispatched_qty: otPkt,
+                            dispatched_val: otVal,
+                            delivery_status: 'Delivered',
+                            delivered_qty: otPkt,
+                            delivered_val: otVal,
+                            returned_qty: 0,
+                            returned_val: 0,
+                            return_reason: 'None',
+                            collection_mode: ot.payment_mode || 'Credit',
+                            amount_collected: otCash,
+                            credit_amount: otCredit,
+                            shortage_amount: 0,
+                            reconciliation_status: '100% Reconciled'
+                        });
+                    });
+                });
+
+                const payload = {
+                    depot_id: depotId,
+                    report_date: planDate,
+                    incharge_name: inchargeName,
+                    contact: '01711-000000',
+                    shift: shift,
+                    total_vehicles: trips.length,
+                    total_invoices: invoices.length,
+                    dispatched_gross_val: grossVal,
+                    delivered_net_val: grossVal,
+                    trips: trips,
+                    invoices: invoices
+                };
+
+                // Save to LocalStorage as last dispatched plan
+                try {
+                    localStorage.setItem(`paragon_dispatched_plan_${depotId}`, JSON.stringify({
+                        savedAt: new Date().toISOString(),
+                        planData: currentPlanData,
+                        payload: payload
+                    }));
+                } catch (e) { }
+
+                // Auto-Populate Tab 2 (Daily Entry Form) so it is ready for real-time adjustments
+                transferPlanToDailyEntryForm(false);
+
+                let submittedServer = false;
+                if (navigator.onLine) {
+                    try {
+                        const res = await fetch('/api/reports/submit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            submittedServer = true;
+                            if (currentUser && currentUser.depot_id) loadDepotMyReports(currentUser.depot_id);
+                        }
+                    } catch (err) {
+                        console.warn('Server submission failed, saving locally:', err);
+                    }
+                }
+
+                if (!submittedServer) {
+                    if (typeof saveReportOffline === 'function') {
+                        await saveReportOffline(payload);
+                    }
+                }
+
+                // Show beautiful dispatch confirmation modal
+                openPlanDispatchModal({
+                    depotName: depotName,
+                    depotId: depotId,
+                    date: planDate,
+                    shift: shift,
+                    vansCount: trips.length,
+                    outletsCount: invoices.length,
+                    totalPkts: totalPkts,
+                    totalKg: totalKg,
+                    grossVal: grossVal,
+                    totalCash: totalCash,
+                    isEgg: (depotId === 9),
+                    vans: currentPlanData.vans
+                });
+
+                showToast(`🎉 Delivery Plan Successfully Dispatched for ${depotName}! (${trips.length} Vans, ${invoices.length} Outlets, ৳ ${grossVal.toLocaleString()})`, 'success');
+            }
+
+            function transferPlanToDailyEntryForm(autoSwitchTab = true) {
+                if (!currentPlanData.vans || currentPlanData.vans.length === 0) {
+                    showToast('No vans available in Route Plan to transfer!', 'warning');
+                    return;
+                }
+
+                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const planDate = document.getElementById('planDatePicker')?.value || currentPlanData.date || new Date().toISOString().split('T')[0];
+
+                // Set Date and Depot in Entry Form
+                const dateInput = document.getElementById('reportDate') || document.getElementById('entryDate');
+                if (dateInput) dateInput.value = planDate;
+
+                const depotSelect = document.getElementById('entryDepot');
+                if (depotSelect) {
+                    for (let i = 0; i < depotSelect.options.length; i++) {
+                        if (parseInt(depotSelect.options[i].value) === parseInt(depotId)) {
+                            depotSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                // Clear and fill Section A (Trips)
+                const tripsTbody = document.getElementById('tripsTbody');
+                if (tripsTbody) tripsTbody.innerHTML = '';
+                tripCounter = 0;
+
+                // Clear and fill Section B (Invoices)
+                const invoicesTbody = document.getElementById('invoicesTbody');
+                if (invoicesTbody) invoicesTbody.innerHTML = '';
+                invoiceCounter = 0;
+
+                currentPlanData.vans.forEach((van, vIdx) => {
+                    const tripNo = `TRIP-${String(vIdx + 1).padStart(2, '0')}`;
+                    const vanTotKg = van.outlets.reduce((s, o) => s + (parseFloat(o.total_kg) || 0), 0);
+                    const vanCapacity = parseFloat(van.capacity_kg) || (vanTotKg > 0 ? Math.max(1500, vanTotKg * 1.2) : 1500);
+
+                    addTripRow({
+                        trip_no: tripNo,
+                        vehicle_no: van.vehicle_no,
+                        vehicle_type: van.vehicle_type || '1.5T Reefer Van',
+                        driver_name: van.driver_name,
+                        delivery_man: van.delivery_man,
+                        route_name: van.route_zone,
+                        capacity_kg: vanCapacity,
+                        loaded_kg: vanTotKg,
+                        reefer_temp: van.reefer_temp || '-18°C'
+                    });
+
+                    van.outlets.forEach(ot => {
+                        const otVal = parseFloat(ot.total_amount) || 0;
+                        const otCash = (ot.payment_mode === 'Cash') ? (parseFloat(ot.expected_cash) || otVal) : 0;
+                        const otPkt = parseFloat(ot.total_pkt) || 0;
+
+                        addInvoiceRow({
+                            invoice_no: ot.order_no || 'INV-001',
+                            customer_name: ot.consignee_name,
+                            trip_no: tripNo,
+                            product_category: currentPlanData.depot_category || (depotId === 9 ? 'Fresh Eggs' : 'Frozen Food'),
+                            sku_uom: ot.rate_unit || (depotId === 9 ? 'Pcs' : 'Pkt'),
+                            dispatched_qty: otPkt,
+                            dispatched_val: otVal,
+                            delivery_status: 'Delivered',
+                            delivered_qty: otPkt,
+                            delivered_val: otVal,
+                            returned_qty: 0,
+                            returned_val: 0,
+                            return_reason: 'None',
+                            collection_mode: ot.payment_mode || 'Credit',
+                            amount_collected: otCash
+                        });
+                    });
+                });
+
+                if (typeof recalculateEntryForm === 'function') recalculateEntryForm();
+
+                if (autoSwitchTab) {
+                    document.querySelector('.nav-tab[data-tab="entry-tab"]')?.click();
+                    showToast('📋 Transferred all Delivery Vans & Invoices to Daily Entry Form successfully!', 'success');
+                }
+            }
+
+            function savePlanAsDraftLocally() {
+                if (!currentPlanData.vans || currentPlanData.vans.length === 0) {
+                    showToast('No active vans configured to save.', 'warning');
+                    return;
+                }
+                const depotId = currentPlanData.depot_id || 9;
+                try {
+                    localStorage.setItem(`paragon_draft_plan_${depotId}`, JSON.stringify({
+                        savedAt: new Date().toISOString(),
+                        planData: currentPlanData
+                    }));
+                    showToast('💾 Delivery Plan Draft saved to local storage!', 'success');
+                } catch (e) {
+                    showToast('Failed to save draft locally: ' + e.message, 'error');
+                }
+            }
+
+            function openPlanDispatchModal(summary) {
+                const modal = document.getElementById('planDispatchSuccessModal');
+                if (!modal) return;
+
+                const uom = getDepotUOMInfo(summary.depotId, currentPlanData.depot_category);
+
+                document.getElementById('modalDispatchSubtitle').innerText = `${summary.depotName} • ${summary.date} • ${summary.shift}`;
+                document.getElementById('modalDispatchedVansCount').innerText = `${summary.vansCount} Vans`;
+                document.getElementById('modalDispatchedOutletsCount').innerText = `${summary.outletsCount} Outlets`;
+                document.getElementById('modalDispatchedQty').innerText = summary.isEgg 
+                    ? `${summary.totalPkts.toLocaleString()} Pcs` 
+                    : `${summary.totalPkts.toLocaleString()} ${uom.primaryUnit} (${summary.totalKg.toFixed(2)} ${uom.secondaryUnit})`;
+                document.getElementById('modalDispatchedValue').innerText = `৳ ${summary.grossVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+                modal.style.display = 'flex';
+            }
+
+            function openChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (!modal) return;
+
+                const userAccountEl = document.getElementById('changePassUserAccount');
+                if (userAccountEl) {
+                    const uName = currentUser.display_name || currentUser.username || 'User';
+                    const uId = currentUser.username || (currentUser.role === 'admin' ? 'admin' : 'depot_user');
+                    userAccountEl.textContent = `${uName} (User ID: ${uId})`;
+                }
+
+                const oldPass = document.getElementById('oldPasswordInput');
+                const newPass = document.getElementById('newPasswordInput');
+                const confPass = document.getElementById('confirmPasswordInput');
+                const matchMsg = document.getElementById('passwordMatchMessage');
+
+                if (oldPass) oldPass.value = '';
+                if (newPass) newPass.value = '';
+                if (confPass) confPass.value = '';
+                if (matchMsg) matchMsg.style.display = 'none';
+
+                modal.style.display = 'flex';
+            }
+
+            function closeChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) modal.style.display = 'none';
+            }
+
+            function togglePasswordVisibility(inputId, btn) {
+                const input = document.getElementById(inputId);
+                if (!input) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    if (btn) btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+                } else {
+                    input.type = 'password';
+                    if (btn) btn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+                }
+            }
+
+            async function submitChangePassword() {
+                const oldPassword = document.getElementById('oldPasswordInput').value.trim();
+                const newPassword = document.getElementById('newPasswordInput').value.trim();
+                const confirmPassword = document.getElementById('confirmPasswordInput').value.trim();
+
+                if (!oldPassword || !newPassword || !confirmPassword) {
+                    showToast('Please fill in all password fields!', 'error');
+                    return;
+                }
+
+                if (newPassword.length < 4) {
+                    showToast('New password must be at least 4 characters long!', 'error');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    showToast('New passwords do not match! Please check and retry.', 'error');
+                    return;
+                }
+
+                const username = currentUser.username || (currentUser.role === 'admin' ? 'admin' : '');
+
+                showToast('Updating account password...', 'info');
+
+                let serverSuccess = false;
+                if (navigator.onLine) {
+                    try {
+                        const res = await fetch('/api/user/change-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: username,
+                                old_password: oldPassword,
+                                new_password: newPassword
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            serverSuccess = true;
+                            showToast(`✅ ${data.message}`, 'success');
+                        } else {
+                            showToast(data.message || 'Failed to update password.', 'error');
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('Network error during password update, falling back to local sync:', err);
+                    }
+                }
+
+                // Always update local cache for offline persistence
+                try {
+                    const customPasswords = JSON.parse(localStorage.getItem('paragon_custom_passwords') || '{}');
+                    if (username) customPasswords[username.toLowerCase()] = newPassword;
+                    localStorage.setItem('paragon_custom_passwords', JSON.stringify(customPasswords));
+                    if (!serverSuccess) {
+                        showToast('✅ Password updated successfully! (Saved for Offline & Online Use)', 'success');
+                    }
+                } catch (e) { }
+
+                closeChangePasswordModal();
+            }
+
             // Globally expose functions to window object
             window.deleteVan = deleteVan;
             window.openMasterFleetModal = openMasterFleetModal;
             window.closeMasterFleetModal = closeMasterFleetModal;
             window.switchMasterTab = switchMasterTab;
             window.autoDistributeOrdersAcrossVans = autoDistributeOrdersAcrossVans;
+            window.submitAndDispatchRoutePlan = submitAndDispatchRoutePlan;
+            window.transferPlanToDailyEntryForm = transferPlanToDailyEntryForm;
+            window.savePlanAsDraftLocally = savePlanAsDraftLocally;
+            window.openPlanDispatchModal = openPlanDispatchModal;
+            window.closePlanDispatchModal = closePlanDispatchModal;
+            window.openChangePasswordModal = openChangePasswordModal;
+            window.closeChangePasswordModal = closeChangePasswordModal;
+            window.togglePasswordVisibility = togglePasswordVisibility;
+            window.submitChangePassword = submitChangePassword;
             window.openRentalVanModal = openRentalVanModal;
             window.closeRentalVanModal = closeRentalVanModal;
             window.submitRentalVan = submitRentalVan;
@@ -28302,6 +28749,153 @@
             window.showDuplicateAlert = showDuplicateAlert;
             window.closeDuplicateAlertModal = closeDuplicateAlertModal;
 </script>
+
+        <!-- MODAL: CHANGE USER PASSWORD -->
+        <div id="changePasswordModal"
+            style="display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); backdrop-filter: blur(10px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+            <div
+                style="background: #0f172a; border: 2px solid rgba(56, 189, 248, 0.5); border-radius: var(--radius-lg); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 26px; box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85);">
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 14px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div
+                            style="width: 44px; height: 44px; border-radius: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #38bdf8;">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <div>
+                            <h2 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-bottom: 2px;">Change Password</h2>
+                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;">Update your account credentials</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline" onclick="closeChangePasswordModal()"
+                        style="border-radius: 50%; width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">&times;</button>
+                </div>
+
+                <form id="changePasswordForm" onsubmit="event.preventDefault(); submitChangePassword();">
+                    <!-- Current User Info Badge -->
+                    <div
+                        style="background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-circle-user text-cyan" style="font-size: 1.2rem;"></i>
+                        <div>
+                            <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">LOGGED IN ACCOUNT:</div>
+                            <div id="changePassUserAccount" style="font-size: 0.92rem; font-weight: 800; color: #f8fafc;">Depot Incharge</div>
+                        </div>
+                    </div>
+
+                    <!-- Current Password -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                            Current Password <span style="color: #ef4444;">*</span>
+                        </label>
+                        <div style="position: relative;">
+                            <input type="password" id="oldPasswordInput" placeholder="Enter current password" required
+                                style="width: 100%; padding: 10px 40px 10px 14px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.9rem;">
+                            <button type="button" onclick="togglePasswordVisibility('oldPasswordInput', this)"
+                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #64748b; cursor: pointer;">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- New Password -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                            New Password <span style="color: #ef4444;">*</span>
+                        </label>
+                        <div style="position: relative;">
+                            <input type="password" id="newPasswordInput" placeholder="Enter new password (min. 4 chars)" required minlength="4"
+                                style="width: 100%; padding: 10px 40px 10px 14px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.9rem;">
+                            <button type="button" onclick="togglePasswordVisibility('newPasswordInput', this)"
+                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #64748b; cursor: pointer;">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirm New Password -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                            Confirm New Password <span style="color: #ef4444;">*</span>
+                        </label>
+                        <div style="position: relative;">
+                            <input type="password" id="confirmPasswordInput" placeholder="Re-type new password" required minlength="4"
+                                style="width: 100%; padding: 10px 40px 10px 14px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.9rem;">
+                            <button type="button" onclick="togglePasswordVisibility('confirmPasswordInput', this)"
+                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #64748b; cursor: pointer;">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="passwordMatchMessage" style="font-size: 0.78rem; margin-top: 5px; display: none;"></div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid #334155; padding-top: 16px;">
+                        <button type="button" class="btn btn-outline" onclick="closeChangePasswordModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary"
+                            style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; font-weight: 700; padding: 10px 22px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+                            <i class="fa-solid fa-lock"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: DELIVERY PLAN DISPATCH SUCCESS & CONFIRMATION -->
+        <div id="planDispatchSuccessModal"
+            style="display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); backdrop-filter: blur(12px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: #0f172a; border: 2px solid #10b981; border-radius: var(--radius-lg); width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto; padding: 28px; box-shadow: 0 25px 60px -10px rgba(16, 185, 129, 0.4);">
+                <div style="text-align: center; margin-bottom: 22px;">
+                    <div style="width: 68px; height: 68px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); color: #10b981; display: inline-flex; align-items: center; justify-content: center; font-size: 34px; border: 2px solid #10b981; margin-bottom: 12px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h2 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin-bottom: 4px;">Delivery Plan Successfully Dispatched!</h2>
+                    <p id="modalDispatchSubtitle" style="font-size: 0.88rem; color: #94a3b8; margin: 0;">Plan submitted and synchronized into Daily Reconciliation.</p>
+                </div>
+
+                <!-- KPI Grid Summary -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; padding: 16px; border-radius: 10px;">
+                    <div>
+                        <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">DISPATCHED VANS:</span>
+                        <div id="modalDispatchedVansCount" style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;">0 Vans</div>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">TOTAL OUTLETS:</span>
+                        <div id="modalDispatchedOutletsCount" style="font-size: 1.25rem; font-weight: 800; color: #f8fafc;">0 Outlets</div>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">TOTAL DISPATCHED QTY:</span>
+                        <div id="modalDispatchedQty" style="font-size: 1.25rem; font-weight: 800; color: #a78bfa;">0</div>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">GROSS INVOICE VALUE:</span>
+                        <div id="modalDispatchedValue" style="font-size: 1.25rem; font-weight: 800; color: #34d399;">৳ 0.00</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button type="button" class="btn" onclick="printAllVanRunSheets(); closePlanDispatchModal();"
+                        style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; padding: 12px; font-weight: 800; font-size: 0.92rem; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-print"></i> 🖨️ Print All Driver Run Sheets & Gate Passes
+                    </button>
+
+                    <button type="button" class="btn" onclick="document.querySelector('.nav-tab[data-tab=\'entry-tab\']')?.click(); closePlanDispatchModal();"
+                        style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; padding: 12px; font-weight: 800; font-size: 0.92rem; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-clipboard-check"></i> 📝 Open Daily Entry & Return Reconciliation
+                    </button>
+
+                    <button type="button" class="btn" onclick="document.querySelector('.nav-tab[data-tab=\'reports-tab\']')?.click(); closePlanDispatchModal();"
+                        style="background: rgba(30, 41, 59, 0.8); color: #cbd5e1; border: 1px solid #475569; padding: 10px; font-weight: 700; font-size: 0.88rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-line"></i> 📊 View Live Daily Reports & Dashboard
+                    </button>
+
+                    <button type="button" class="btn btn-outline" onclick="closePlanDispatchModal()"
+                        style="border-color: #64748b; color: #94a3b8; padding: 9px; font-weight: 600; font-size: 0.85rem; border-radius: 8px;">
+                        ✕ Close
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- MODAL: 1-CLICK POLOXY ERP ORDER IMPORT -->
         <div id="poloxyImportModal"
