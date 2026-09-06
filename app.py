@@ -2450,6 +2450,255 @@ def export_van_runsheet_excel():
     )
 
 # ==============================================================================
+# ROUTE PLAN PERSISTENCE & HISTORICAL VIEWER API
+# ==============================================================================
+
+@app.route('/api/distribution/save-plan', methods=['POST'])
+def save_distribution_plan():
+    data = request.json or {}
+    depot_id = data.get('depot_id')
+    plan_date = data.get('date') or datetime.date.today().strftime('%Y-%m-%d')
+    shift = data.get('shift', 'Morning Shift')
+    shift_time = data.get('shift_time', '07:00')
+    plan_data = data.get('plan_data') or {}
+    
+    if not depot_id:
+        return jsonify({"success": False, "message": "Missing depot_id"}), 400
+        
+    vans = plan_data.get('vans', [])
+    tot_outlets = sum(len(v.get('outlets', [])) for v in vans)
+    tot_pkts = sum(sum(float(o.get('total_pkt', 0)) for o in v.get('outlets', [])) for v in vans)
+    tot_kg = sum(sum(float(o.get('total_kg', 0)) for o in v.get('outlets', [])) for v in vans)
+    gross_val = sum(sum(float(o.get('total_amount', 0)) for o in v.get('outlets', [])) for v in vans)
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS saved_route_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        depot_id INTEGER NOT NULL,
+        plan_date TEXT NOT NULL,
+        shift TEXT,
+        shift_time TEXT,
+        total_vans INTEGER DEFAULT 0,
+        total_outlets INTEGER DEFAULT 0,
+        total_pkts REAL DEFAULT 0,
+        total_kg REAL DEFAULT 0,
+        gross_value REAL DEFAULT 0,
+        plan_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(depot_id, plan_date)
+    )
+    ''')
+    
+    plan_json_str = json.dumps(plan_data)
+    cursor.execute('''
+    INSERT INTO saved_route_plans (
+        depot_id, plan_date, shift, shift_time, total_vans, total_outlets, total_pkts, total_kg, gross_value, plan_json, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(depot_id, plan_date) DO UPDATE SET
+        shift = excluded.shift,
+        shift_time = excluded.shift_time,
+        total_vans = excluded.total_vans,
+        total_outlets = excluded.total_outlets,
+        total_pkts = excluded.total_pkts,
+        total_kg = excluded.total_kg,
+        gross_value = excluded.gross_value,
+        plan_json = excluded.plan_json,
+        updated_at = CURRENT_TIMESTAMP
+    ''', (depot_id, plan_date, shift, shift_time, len(vans), tot_outlets, tot_pkts, tot_kg, gross_val, plan_json_str))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": f"Route plan for {plan_date} saved successfully!"})
+
+@app.route('/api/distribution/get-plan', methods=['GET'])
+def get_distribution_plan():
+    depot_id = request.args.get('depot_id')
+    plan_date = request.args.get('date') or datetime.date.today().strftime('%Y-%m-%d')
+    
+    if not depot_id:
+        return jsonify({"success": False, "message": "Missing depot_id"}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS saved_route_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        depot_id INTEGER NOT NULL,
+        plan_date TEXT NOT NULL,
+        shift TEXT,
+        shift_time TEXT,
+        total_vans INTEGER DEFAULT 0,
+        total_outlets INTEGER DEFAULT 0,
+        total_pkts REAL DEFAULT 0,
+        total_kg REAL DEFAULT 0,
+        gross_value REAL DEFAULT 0,
+        plan_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(depot_id, plan_date)
+    )
+    ''')
+    
+    cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? AND plan_date = ?', (depot_id, plan_date))
+    row = cursor.fetchone()
+    
+    if row:
+        plan_dict = dict(row)
+        plan_data = json.loads(plan_dict['plan_json'])
+        conn.close()
+        return jsonify({
+            "success": True,
+            "exists": True,
+            "depot_id": int(depot_id),
+            "date": plan_date,
+            "shift": plan_dict['shift'],
+            "shift_time": plan_dict['shift_time'],
+            "total_vans": plan_dict['total_vans'],
+            "total_outlets": plan_dict['total_outlets'],
+            "total_pkts": plan_dict['total_pkts'],
+            "total_kg": plan_dict['total_kg'],
+            "gross_value": plan_dict['gross_value'],
+            "plan_data": plan_data
+        })
+        
+    # If not in saved_route_plans, check daily_reports + trips + invoices for fallback
+    cursor.execute('SELECT id, incharge_name, shift, dispatched_gross_val FROM daily_reports WHERE depot_id = ? AND report_date = ?', (depot_id, plan_date))
+    rep = cursor.fetchone()
+    if rep:
+        rep_dict = dict(rep)
+        rep_id = rep_dict['id']
+        cursor.execute('SELECT * FROM trips WHERE report_id = ?', (rep_id,))
+        trips = [dict(t) for t in cursor.fetchall()]
+        cursor.execute('SELECT * FROM invoices WHERE report_id = ?', (rep_id,))
+        invoices = [dict(i) for i in cursor.fetchall()]
+        
+        # Reconstruct vans and outlets
+        vans = []
+        for t in trips:
+            v_trip = t.get('trip_no')
+            v_invs = [i for i in invoices if i.get('trip_no') == v_trip]
+            outlets = []
+            for inv in v_invs:
+                outlets.append({
+                    "order_no": inv.get('invoice_no'),
+                    "consignee_name": inv.get('customer_name'),
+                    "delivery_note_id": "",
+                    "total_pkt": inv.get('dispatched_qty', 0),
+                    "total_kg": 0.0,
+                    "total_amount": inv.get('dispatched_val', 0),
+                    "payment_mode": inv.get('collection_mode', 'Credit'),
+                    "expected_cash": inv.get('amount_collected', 0) if inv.get('collection_mode') == 'Cash' else 0
+                })
+            vans.append({
+                "vehicle_no": t.get('vehicle_no'),
+                "vehicle_type": t.get('vehicle_type', '1.5T Covered Van'),
+                "driver_name": t.get('driver_name', 'Driver'),
+                "delivery_man": t.get('delivery_man', 'Staff'),
+                "route_zone": t.get('route_name', 'Route Zone'),
+                "capacity_kg": t.get('capacity_kg', 1500),
+                "loaded_kg": t.get('loaded_kg', 0),
+                "reefer_temp": t.get('reefer_temp', '-18°C'),
+                "outlets": outlets
+            })
+        
+        conn.close()
+        return jsonify({
+            "success": True,
+            "exists": True,
+            "source": "daily_reports",
+            "depot_id": int(depot_id),
+            "date": plan_date,
+            "shift": rep_dict.get('shift', 'Morning Shift'),
+            "shift_time": "07:00",
+            "total_vans": len(vans),
+            "total_outlets": len(invoices),
+            "total_pkts": sum(i.get('dispatched_qty', 0) for i in invoices),
+            "total_kg": 0.0,
+            "gross_value": rep_dict.get('dispatched_gross_val', 0),
+            "plan_data": {
+                "depot_id": int(depot_id),
+                "date": plan_date,
+                "vans": vans,
+                "unassigned_orders": []
+            }
+        })
+        
+    conn.close()
+    return jsonify({"success": True, "exists": False, "message": "No saved plan found for this date."})
+
+@app.route('/api/distribution/plan-history', methods=['GET'])
+def get_distribution_plan_history():
+    depot_id = request.args.get('depot_id')
+    if not depot_id:
+        return jsonify({"success": False, "message": "Missing depot_id"}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS saved_route_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        depot_id INTEGER NOT NULL,
+        plan_date TEXT NOT NULL,
+        shift TEXT,
+        shift_time TEXT,
+        total_vans INTEGER DEFAULT 0,
+        total_outlets INTEGER DEFAULT 0,
+        total_pkts REAL DEFAULT 0,
+        total_kg REAL DEFAULT 0,
+        gross_value REAL DEFAULT 0,
+        plan_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(depot_id, plan_date)
+    )
+    ''')
+    
+    cursor.execute('''
+    SELECT id, depot_id, plan_date, shift, shift_time, total_vans, total_outlets, total_pkts, total_kg, gross_value, updated_at
+    FROM saved_route_plans
+    WHERE depot_id = ?
+    ORDER BY plan_date DESC
+    ''', (depot_id,))
+    history = [dict(r) for r in cursor.fetchall()]
+    
+    # Also fetch distinct dates from daily_reports if not in saved_route_plans
+    existing_dates = set(h['plan_date'] for h in history)
+    cursor.execute('''
+    SELECT id, depot_id, report_date, total_vehicles, total_invoices, dispatched_gross_val, created_at
+    FROM daily_reports
+    WHERE depot_id = ?
+    ORDER BY report_date DESC
+    ''', (depot_id,))
+    for rep in cursor.fetchall():
+        rep_dict = dict(rep)
+        r_date = rep_dict['report_date']
+        if r_date not in existing_dates:
+            history.append({
+                "id": rep_dict['id'],
+                "depot_id": rep_dict['depot_id'],
+                "plan_date": r_date,
+                "shift": "Dispatched Report",
+                "shift_time": "07:00",
+                "total_vans": rep_dict['total_vehicles'],
+                "total_outlets": rep_dict['total_invoices'],
+                "total_pkts": 0,
+                "total_kg": 0.0,
+                "gross_value": rep_dict['dispatched_gross_val'],
+                "updated_at": rep_dict['created_at']
+            })
+            existing_dates.add(r_date)
+            
+    history.sort(key=lambda x: x['plan_date'], reverse=True)
+    conn.close()
+    return jsonify({"success": True, "history": history})
+
+# ==============================================================================
 # POLOXY ERP BATCH PARSER WITH ROUTE & FLEET AUTO-MAPPING
 # ==============================================================================
 
