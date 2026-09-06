@@ -28791,7 +28791,7 @@
                     return;
                 }
 
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = parseInt(currentPlanData.depot_id) || (document.getElementById('planDepotSelect') ? parseInt(document.getElementById('planDepotSelect').value) : 9);
                 const planDate = document.getElementById('planDatePicker')?.value || currentPlanData.date || new Date().toISOString().split('T')[0];
 
                 // Set Date and Depot in Entry Form
@@ -28800,13 +28800,13 @@
 
                 const depotSelect = document.getElementById('entryDepot');
                 if (depotSelect) {
-                    for (let i = 0; i < depotSelect.options.length; i++) {
-                        if (parseInt(depotSelect.options[i].value) === parseInt(depotId)) {
-                            depotSelect.selectedIndex = i;
-                            break;
-                        }
-                    }
+                    depotSelect.value = String(depotId);
                 }
+
+                const foundDepot = (typeof currentDepots !== 'undefined') ? currentDepots.find(d => d.id === depotId) : null;
+                const isEgg = (depotId === 9 || (foundDepot && (foundDepot.name.includes('Egg') || foundDepot.category === 'Fresh Eggs' || foundDepot.category === 'Eggs')));
+                const defaultCat = isEgg ? 'Fresh Eggs' : (foundDepot && foundDepot.category ? foundDepot.category : (currentPlanData.depot_category || 'Frozen Food'));
+                const defaultUOM = isEgg ? 'Pcs' : (CATEGORY_UOM_MAP[defaultCat] || 'Pkt');
 
                 // Clear and fill Section A (Trips)
                 const tripsTbody = document.getElementById('tripsTbody');
@@ -28826,26 +28826,28 @@
                     addTripRow({
                         trip_no: tripNo,
                         vehicle_no: van.vehicle_no,
-                        vehicle_type: van.vehicle_type || '1.5T Reefer Van',
+                        vehicle_type: van.vehicle_type || (isEgg ? '1.5T Covered Van' : '1.5T Reefer Van'),
                         driver_name: van.driver_name,
                         delivery_man: van.delivery_man,
                         route_name: van.route_zone,
                         capacity_kg: vanCapacity,
                         loaded_kg: vanTotKg,
-                        reefer_temp: van.reefer_temp || '-18°C'
+                        reefer_temp: van.reefer_temp || (isEgg ? 'Ambient / Normal' : '-18°C')
                     });
 
                     van.outlets.forEach(ot => {
                         const otVal = parseFloat(ot.total_amount) || 0;
                         const otCash = (ot.payment_mode === 'Cash') ? (parseFloat(ot.expected_cash) || otVal) : 0;
                         const otPkt = parseFloat(ot.total_pkt) || 0;
+                        const otCat = isEgg ? 'Fresh Eggs' : (ot.product_category || ot.branch_category || defaultCat);
+                        const otUom = isEgg ? 'Pcs' : (ot.rate_unit || CATEGORY_UOM_MAP[otCat] || defaultUOM);
 
                         addInvoiceRow({
                             invoice_no: ot.order_no || 'INV-001',
                             customer_name: ot.consignee_name,
                             trip_no: tripNo,
-                            product_category: currentPlanData.depot_category || (depotId === 9 ? 'Fresh Eggs' : 'Frozen Food'),
-                            sku_uom: ot.rate_unit || (depotId === 9 ? 'Pcs' : 'Pkt'),
+                            product_category: otCat,
+                            sku_uom: otUom,
                             dispatched_qty: otPkt,
                             dispatched_val: otVal,
                             delivery_status: 'Delivered',
@@ -28860,6 +28862,7 @@
                     });
                 });
 
+                if (typeof recalculateReconciliation === 'function') recalculateReconciliation();
                 if (typeof recalculateEntryForm === 'function') recalculateEntryForm();
 
                 if (autoSwitchTab) {
