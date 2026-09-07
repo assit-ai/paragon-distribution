@@ -1956,67 +1956,102 @@ def update_crew_default_mapping():
 @app.route('/api/template/driver-vehicle-mapping-excel', methods=['GET'])
 def download_driver_vehicle_mapping_template():
     try:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = 'Driver-Vehicle Mapping'
+        output = io.BytesIO()
+        wb = xlsxwriter.Workbook(output, {'in_memory': True})
+        ws = wb.add_worksheet('Driver-Vehicle Mapping')
         
-        # Style Definitions
-        header_fill = openpyxl.styles.PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-        header_font = openpyxl.styles.Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        sub_fill = openpyxl.styles.PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
-        border = openpyxl.styles.Border(
-            left=openpyxl.styles.Side(style='thin', color='CBD5E1'),
-            right=openpyxl.styles.Side(style='thin', color='CBD5E1'),
-            top=openpyxl.styles.Side(style='thin', color='CBD5E1'),
-            bottom=openpyxl.styles.Side(style='thin', color='CBD5E1')
-        )
+        # Styles
+        hdr_fmt = wb.add_format({
+            'bold': True, 'font_size': 11, 'font_color': '#FFFFFF',
+            'bg_color': '#0284C7', 'align': 'center', 'valign': 'vcenter', 'border': 1
+        })
+        tip_fmt = wb.add_format({
+            'font_size': 9, 'font_color': '#64748B', 'italic': True
+        })
+        th_fmt = wb.add_format({
+            'bold': True, 'font_size': 9.5, 'font_color': '#FFFFFF',
+            'bg_color': '#0F172A', 'align': 'center', 'valign': 'vcenter',
+            'border': 1, 'text_wrap': True
+        })
+        td_fmt = wb.add_format({
+            'font_size': 9, 'color': '#1E293B', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
+        })
+        td_center = wb.add_format({
+            'font_size': 9, 'color': '#1E293B', 'align': 'center', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
+        })
+        td_right = wb.add_format({
+            'font_size': 9, 'color': '#1E293B', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter', 'num_format': '#,##0'
+        })
+        zebra_fmt = wb.add_format({
+            'font_size': 9, 'color': '#1E293B', 'bg_color': '#F8FAFC', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
+        })
+        zebra_center = wb.add_format({
+            'font_size': 9, 'color': '#1E293B', 'bg_color': '#F8FAFC', 'align': 'center', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
+        })
+        zebra_right = wb.add_format({
+            'font_size': 9, 'color': '#1E293B', 'bg_color': '#F8FAFC', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter', 'num_format': '#,##0'
+        })
+        
+        # Column Widths
+        ws.set_column(0, 0, 6)   # SL
+        ws.set_column(1, 1, 20)  # Driver Name
+        ws.set_column(2, 2, 16)  # Contact No
+        ws.set_column(3, 3, 24)  # Default Vehicle Reg No
+        ws.set_column(4, 4, 24)  # Secondary / Backup Vehicle
+        ws.set_column(5, 5, 24)  # Default Route Name
+        ws.set_column(6, 6, 26)  # Category / Product Type
+        ws.set_column(7, 7, 14)  # Unit
+        ws.set_column(8, 8, 22)  # Vehicle Max Capacity
+        ws.set_column(9, 9, 18)  # Admin / User Editable
+        
+        # Header Banner
+        ws.merge_range('A1:J1', 'PARAGON AGRO LIMITED - DEFAULT DRIVER-VEHICLE MAPPING & CATEGORY CAPACITIES TEMPLATE', hdr_fmt)
+        ws.merge_range('A2:J2', 'Instructions: Specify Driver Name, Contact No, Default Vehicle Reg No, Category/Product Type, Unit, and Max Capacity. Units: Frozen/Chicken (Kg), Egg (Pcs), Dairy (Liter), Dry Goods (Ctn).', tip_fmt)
+        ws.set_row(0, 25)
+        ws.set_row(1, 16)
         
         headers = [
-            'Driver Name', 'Contact No', 'Default Vehicle Reg No', 
+            'SL', 'Driver Name *', 'Contact No *', 'Default Vehicle Reg No *', 
             'Secondary / Backup Vehicle', 'Default Route Name', 
-            'Category / Product Type', 'Unit', 'Vehicle Max Capacity', 'Admin / User Editable'
+            'Category / Product Type *', 'Unit (Kg/Pcs/Liter/Ctn) *', 'Vehicle Max Capacity *', 'Admin / User Editable'
         ]
-        ws.append(headers)
-        for col_num in range(1, len(headers) + 1):
-            cell = ws.cell(row=1, column=col_num)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center", wrap_text=True)
-            cell.border = border
-            
+        for col, h in enumerate(headers):
+            ws.write(3, col, h, th_fmt)
+        ws.set_row(3, 24)
+        
         sample_rows = [
-            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Frozen Foods / Chicken', 'Kg', 1500, 'Yes'],
-            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Egg', 'Pcs', 30000, 'Yes'],
-            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Dairy', 'Liter', 1000, 'Yes'],
-            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Dry Goods / Box Items', 'Ctn', 500, 'Yes'],
-            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Frozen Foods / Chicken', 'Kg', 2000, 'Yes'],
-            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Egg', 'Pcs', 45000, 'Yes'],
-            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Dairy', 'Liter', 1500, 'Yes'],
-            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Dry Goods / Box Items', 'Ctn', 750, 'Yes']
+            (1, 'Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Frozen Foods / Chicken', 'Kg', 1500, 'Yes'),
+            (2, 'Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Egg', 'Pcs', 30000, 'Yes'),
+            (3, 'Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Dairy', 'Liter', 1000, 'Yes'),
+            (4, 'Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Dry Goods / Box Items', 'Ctn', 500, 'Yes'),
+            (5, 'Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Frozen Foods / Chicken', 'Kg', 2000, 'Yes'),
+            (6, 'Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Egg', 'Pcs', 45000, 'Yes'),
+            (7, 'Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Dairy', 'Liter', 1500, 'Yes'),
+            (8, 'Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Dry Goods / Box Items', 'Ctn', 750, 'Yes')
         ]
         
-        for r_idx, row_data in enumerate(sample_rows, 2):
-            ws.append(row_data)
-            for c_idx in range(1, len(row_data) + 1):
-                c = ws.cell(row=r_idx, column=c_idx)
-                c.border = border
-                if r_idx % 2 == 1:
-                    c.fill = sub_fill
-                if c_idx in [2, 3, 4, 7, 9]:
-                    c.alignment = openpyxl.styles.Alignment(horizontal="center")
-                elif c_idx == 8:
-                    c.alignment = openpyxl.styles.Alignment(horizontal="right")
-                    
-        # Column widths
-        col_widths = {'A': 22, 'B': 16, 'C': 26, 'D': 26, 'E': 24, 'F': 26, 'G': 12, 'H': 22, 'I': 20}
-        for col_letter, width in col_widths.items():
-            ws.column_dimensions[col_letter].width = width
+        for r_idx, row_data in enumerate(sample_rows, 4):
+            is_zebra = (r_idx % 2 == 1)
+            f_norm = zebra_fmt if is_zebra else td_fmt
+            f_center = zebra_center if is_zebra else td_center
+            f_right = zebra_right if is_zebra else td_right
             
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
+            ws.write(r_idx, 0, row_data[0], f_center)
+            ws.write(r_idx, 1, row_data[1], f_norm)
+            ws.write(r_idx, 2, row_data[2], f_center)
+            ws.write(r_idx, 3, row_data[3], f_center)
+            ws.write(r_idx, 4, row_data[4], f_center)
+            ws.write(r_idx, 5, row_data[5], f_norm)
+            ws.write(r_idx, 6, row_data[6], f_norm)
+            ws.write(r_idx, 7, row_data[7], f_center)
+            ws.write(r_idx, 8, row_data[8], f_right)
+            ws.write(r_idx, 9, row_data[9], f_center)
+            ws.set_row(r_idx, 19)
+            
+        wb.close()
+        output.seek(0)
         return send_file(
-            buf,
+            output,
             as_attachment=True,
             download_name='Paragon_Driver_Vehicle_Mapping_Master_Template.xlsx',
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -2047,17 +2082,32 @@ def bulk_upload_driver_vehicle_mapping():
             if not row or not any(row):
                 continue
             r_str = " ".join([str(c) for c in row if c is not None]).upper()
-            if "DRIVER NAME" in r_str or "PRODUCT TYPE" in r_str or "INSTRUCTIONS" in r_str:
+            if "DRIVER NAME" in r_str or "PRODUCT TYPE" in r_str or "INSTRUCTIONS" in r_str or "PARAGON AGRO" in r_str:
                 continue
                 
-            drv_name = str(row[0] if len(row) > 0 and row[0] else '').strip()
-            contact = str(row[1] if len(row) > 1 and row[1] else '').strip()
-            def_veh = str(row[2] if len(row) > 2 and row[2] else '').strip().upper()
-            backup_veh = str(row[3] if len(row) > 3 and row[3] else '').strip().upper()
-            route_name = str(row[4] if len(row) > 4 and row[4] else '').strip()
-            cat_type = str(row[5] if len(row) > 5 and row[5] else '').strip()
-            unit = str(row[6] if len(row) > 6 and row[6] else '').strip()
-            cap_val_raw = row[7] if len(row) > 7 else None
+            first_val = str(row[0] if len(row) > 0 and row[0] is not None else '').strip()
+            second_val = str(row[1] if len(row) > 1 and row[1] is not None else '').strip()
+            
+            if first_val.isdigit() and second_val:
+                # Column 0 is SL, Column 1 is Driver Name
+                drv_name = second_val
+                contact = str(row[2] if len(row) > 2 and row[2] is not None else '').strip()
+                def_veh = str(row[3] if len(row) > 3 and row[3] is not None else '').strip().upper()
+                backup_veh = str(row[4] if len(row) > 4 and row[4] is not None else '').strip().upper()
+                route_name = str(row[5] if len(row) > 5 and row[5] is not None else '').strip()
+                cat_type = str(row[6] if len(row) > 6 and row[6] is not None else '').strip()
+                unit = str(row[7] if len(row) > 7 and row[7] is not None else '').strip()
+                cap_val_raw = row[8] if len(row) > 8 else None
+            else:
+                # Column 0 is Driver Name
+                drv_name = first_val
+                contact = second_val
+                def_veh = str(row[2] if len(row) > 2 and row[2] is not None else '').strip().upper()
+                backup_veh = str(row[3] if len(row) > 3 and row[3] is not None else '').strip().upper()
+                route_name = str(row[4] if len(row) > 4 and row[4] is not None else '').strip()
+                cat_type = str(row[5] if len(row) > 5 and row[5] is not None else '').strip()
+                unit = str(row[6] if len(row) > 6 and row[6] is not None else '').strip()
+                cap_val_raw = row[7] if len(row) > 7 else None
             
             try:
                 cap_val = float(str(cap_val_raw).replace(',', '')) if cap_val_raw is not None else 0.0
