@@ -27786,18 +27786,105 @@
                 }
             }
 
+            async function returnBorrowedVehicle(vehId, vehNo) {
+                const confirmed = confirm(`Are you sure you want to return borrowed vehicle "${vehNo}" back to its home depot?`);
+                if (!confirmed) return;
+                
+                const depotId = getSelectedMasterDepotId();
+                try {
+                    if (vehId && !String(vehId).startsWith('VAN-BORROW')) {
+                        await fetch(`/api/fleet/return-vehicle/${vehId}`, { method: 'POST' });
+                    }
+                } catch (e) {
+                    console.warn('Offline return:', e);
+                }
+
+                // Purge from active planning session
+                const baseNo = (vehNo || '').replace(' (Borrowed)', '').trim();
+                if (currentPlanData && currentPlanData.vans) {
+                    currentPlanData.vans = currentPlanData.vans.filter(v => {
+                        if (v.id === vehId) return false;
+                        const vNo = (v.vehicle_no || '').replace(' (Borrowed)', '').trim();
+                        if (vNo === baseNo && (v.is_borrowed || (v.vehicle_no && v.vehicle_no.includes('Borrowed')))) return false;
+                        return true;
+                    });
+                }
+
+                masterBorrowedCache = masterBorrowedCache.filter(v => v.id != vehId && v.vehicle_no != vehNo);
+
+                renderActiveVans();
+                updateDayGrandTotals();
+                updateDepotFleetStatusBar();
+                renderActiveBorrowedTable(masterBorrowedCache);
+                loadBorrowableFleet(depotId);
+                loadFleetMaster(depotId);
+                showToast(`🤝 Vehicle "${vehNo}" returned to home depot successfully!`, 'success');
+            }
+
+            async function clearBorrowedFleet() {
+                const depotId = getSelectedMasterDepotId();
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+
+                const confirmed = confirm(`Are you sure you want to return/clear all borrowed vehicles for:\n👉 ${depotObj.name}?\n\nThis will remove all borrowed vans from today's fleet.`);
+                if (!confirmed) return;
+
+                try {
+                    await fetch('/api/fleet/clear-borrowed', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ depot_id: depotId })
+                    });
+                } catch (e) {
+                    console.warn('Offline clear-borrowed:', e);
+                }
+
+                // Purge from active planning session
+                if (currentPlanData && currentPlanData.vans) {
+                    currentPlanData.vans = currentPlanData.vans.filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
+                }
+                masterBorrowedCache = [];
+
+                renderActiveVans();
+                updateDayGrandTotals();
+                updateDepotFleetStatusBar();
+                renderActiveBorrowedTable([]);
+                loadBorrowableFleet(depotId);
+                loadFleetMaster(depotId);
+                showToast('🧹 All borrowed vehicles returned and cleared successfully!', 'success');
+            }
+
             async function loadBorrowableFleet(depotId) {
                 // 1. Fetch currently borrowed vehicles for this depot
                 try {
                     const resB = await fetch(`/api/fleet/borrowed-vehicles?depot_id=${depotId}`);
                     const dataB = await resB.json();
-                    if (dataB.success && dataB.borrowed_vehicles) {
+                    if (dataB.success && Array.isArray(dataB.borrowed_vehicles)) {
                         masterBorrowedCache = dataB.borrowed_vehicles;
                     }
                 } catch (e) {
                     // Fallback to active planning session vans
-                    masterBorrowedCache = (currentPlanData && currentPlanData.vans) ? currentPlanData.vans.filter(v => v.is_borrowed) : [];
+                    masterBorrowedCache = (currentPlanData && currentPlanData.vans) ? currentPlanData.vans.filter(v => v.is_borrowed || (v.vehicle_no && v.vehicle_no.includes('Borrowed'))) : [];
                 }
+                
+                // Also sync with active planning session vans if any borrowed van is present in memory
+                if (currentPlanData && currentPlanData.vans) {
+                    const sessionBorrowed = currentPlanData.vans.filter(v => v.is_borrowed || (v.vehicle_no && v.vehicle_no.includes('Borrowed')));
+                    sessionBorrowed.forEach(sv => {
+                        const svNo = (sv.vehicle_no || '').replace(' (Borrowed)', '').trim();
+                        if (!masterBorrowedCache.some(bv => (bv.vehicle_no || '').replace(' (Borrowed)', '').trim() === svNo)) {
+                            masterBorrowedCache.push({
+                                id: sv.id,
+                                vehicle_no: sv.vehicle_no,
+                                vehicle_type: 'Covered Van',
+                                capacity_kg: 1500,
+                                lending_depot_name: sv.lending_depot_name || 'Neighbor Depot',
+                                status: 'Active'
+                            });
+                        }
+                    });
+                }
+                
                 renderActiveBorrowedTable(masterBorrowedCache);
 
                 // 2. Fetch available spare vehicles across other depots
@@ -27826,7 +27913,7 @@
                 if (!tbody) return;
 
                 if (!borrowedList || borrowedList.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 14px;">No borrowed vehicles active in this depot right now.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 14px;">No borrowed vehicles active in this depot right now.</td></tr>';
                     return;
                 }
 
@@ -27838,6 +27925,11 @@
                         <td><strong style="color: #34d399;">${v.capacity_kg || 1500} Kg</strong></td>
                         <td><span style="color: #38bdf8; font-weight: 600;">${v.lending_depot_name || 'Neighbor Depot'}</span></td>
                         <td><span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">Active in Fleet</span></td>
+                        <td style="text-align: center;">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="returnBorrowedVehicle('${v.id}', '${v.vehicle_no}')" style="border-color: #ef4444; color: #f87171; font-size: 0.75rem; padding: 3px 8px; font-weight: 700;" title="Return vehicle to lending home depot">
+                                <i class="fa-solid fa-arrow-rotate-left"></i> Return Van
+                            </button>
+                        </td>
                     </tr>
                 `).join('');
             }
@@ -29451,6 +29543,8 @@
             window.submitNewCrewMaster = submitNewCrewMaster;
             window.deleteCrewMaster = deleteCrewMaster;
             window.handleBulkUpload = handleBulkUpload;
+            window.returnBorrowedVehicle = returnBorrowedVehicle;
+            window.clearBorrowedFleet = clearBorrowedFleet;
 </script>
 
         <!-- MODAL: CHANGE USER PASSWORD -->
@@ -30214,9 +30308,14 @@
                                 <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 700; margin-bottom: 2px;"><i class="fa-solid fa-handshake"></i> Inter-Depot Fleet Borrowing System</h4>
                                 <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">If order volume is high and your depot runs short of vans, you can borrow idle/spare vehicles from neighboring Paragon depots with 1-click authorization.</p>
                             </div>
-                            <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('borrow')" style="border-color: #ef4444; color: #f87171; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Admin Only: Clear borrowed vehicles & history">
-                                <i class="fa-solid fa-trash-can"></i> Clear Borrowed Fleet
-                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="clearBorrowedFleet()" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Return and clear all active borrowed vehicles for this depot">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i> Return All Borrowed
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('borrow')" style="border-color: #ef4444; color: #f87171; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Admin Only: Clear borrowed vehicles & history">
+                                    <i class="fa-solid fa-trash-can"></i> Purge All Borrow DB
+                                </button>
+                            </div>
                         </div>
 
                         <!-- CURRENTLY BORROWED VEHICLES BY THIS DEPOT -->
@@ -30237,10 +30336,11 @@
                                             <th>Capacity</th>
                                             <th>Lending Home Depot</th>
                                             <th>Status</th>
+                                            <th style="text-align: center;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="masterActiveBorrowedTbody">
-                                        <tr><td colspan="6" style="text-align: center; color: #64748b; padding: 12px;">No borrowed vehicles active in this depot right now.</td></tr>
+                                        <tr><td colspan="7" style="text-align: center; color: #64748b; padding: 12px;">No borrowed vehicles active in this depot right now.</td></tr>
                                     </tbody>
                                 </table>
                             </div>

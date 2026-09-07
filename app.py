@@ -1759,9 +1759,46 @@ def create_borrow_request():
     conn.close()
     return jsonify({"success": True, "message": "Vehicle borrowed and added to your depot fleet successfully!"})
 
+@app.route('/api/fleet/return-vehicle/<int:vid>', methods=['POST', 'DELETE'])
+@app.route('/api/fleet/borrow/<int:vid>', methods=['DELETE'])
+def return_borrowed_vehicle(vid):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT depot_id, vehicle_no, home_depot_id FROM fleet_vehicles WHERE id = ?', (vid,))
+    veh = cursor.fetchone()
+    if veh:
+        cursor.execute('DELETE FROM fleet_vehicles WHERE id = ?', (vid,))
+        base_no = veh['vehicle_no'].replace(' (Borrowed)', '').strip()
+        cursor.execute('''
+            DELETE FROM inter_depot_vehicle_requests 
+            WHERE requesting_depot_id = ? AND vehicle_id IN (SELECT id FROM fleet_vehicles WHERE vehicle_no = ?)
+        ''', (veh['depot_id'], base_no))
+    else:
+        cursor.execute('DELETE FROM fleet_vehicles WHERE id = ?', (vid,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Borrowed vehicle returned to home depot successfully!"})
+
+@app.route('/api/fleet/clear-borrowed', methods=['POST'])
+def clear_depot_borrowed_vehicles():
+    data = request.json or {}
+    depot_id = data.get('depot_id')
+    conn = get_db()
+    cursor = conn.cursor()
+    if depot_id and str(depot_id) != 'all':
+        cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
+        cursor.execute('DELETE FROM fleet_vehicles WHERE (depot_id = ? OR home_depot_id = ?) AND (ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%")', (depot_id, depot_id))
+    else:
+        cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+        cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%"')
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Borrowed fleet cleared successfully!"})
+
 # ==============================================================================
 # BLANK EXCEL TEMPLATES & BULK UPLOAD REST APIS
 # ==============================================================================
+
 
 @app.route('/api/template/routes-blank-template')
 def download_routes_blank_template():
@@ -2754,10 +2791,10 @@ def admin_clear_master_data():
     elif clear_type == 'borrow':
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
-            cursor.execute('DELETE FROM fleet_vehicles WHERE (depot_id = ? OR home_depot_id = ?) AND ownership = "Borrowed"', (depot_id, depot_id))
+            cursor.execute('DELETE FROM fleet_vehicles WHERE (depot_id = ? OR home_depot_id = ?) AND (ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%")', (depot_id, depot_id))
         else:
             cursor.execute('DELETE FROM inter_depot_vehicle_requests')
-            cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed"')
+            cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%"')
         msg = "All borrowed vehicles and borrowing requests cleared successfully!"
         
     elif clear_type == 'all':
