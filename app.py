@@ -1,5 +1,6 @@
 import os
 import io
+import json
 import sqlite3
 import datetime
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
@@ -221,6 +222,59 @@ else:
     if c.fetchone()[0] == 0:
         init_db()
     conn.close()
+
+def get_default_category_capacities(cap_val=1500, veh_type='Covered Van'):
+    try:
+        base_kg = float(cap_val or 1500)
+    except (ValueError, TypeError):
+        base_kg = 1500.0
+    ratio = base_kg / 1500.0 if base_kg > 0 else 1.0
+    return {
+        "Frozen Foods / Chicken": {"capacity": round(base_kg, 1), "unit": "Kg"},
+        "Egg": {"capacity": round(30000 * ratio), "unit": "Pcs"},
+        "Dairy": {"capacity": round(1000 * ratio), "unit": "Liter"},
+        "Dry Goods / Box Items": {"capacity": round(500 * ratio), "unit": "Ctn"}
+    }
+
+def ensure_schema_migrations():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("PRAGMA table_info(depot_crew)")
+        cols = [r[1] for r in c.fetchall()]
+        if 'assigned_vehicle_no' not in cols:
+            c.execute("ALTER TABLE depot_crew ADD COLUMN assigned_vehicle_no TEXT")
+        if 'assigned_vehicle_id' not in cols:
+            c.execute("ALTER TABLE depot_crew ADD COLUMN assigned_vehicle_id INTEGER")
+        if 'secondary_vehicle_no' not in cols:
+            c.execute("ALTER TABLE depot_crew ADD COLUMN secondary_vehicle_no TEXT")
+        if 'default_route_name' not in cols:
+            c.execute("ALTER TABLE depot_crew ADD COLUMN default_route_name TEXT")
+        if 'driver_id_code' not in cols:
+            c.execute("ALTER TABLE depot_crew ADD COLUMN driver_id_code TEXT")
+            
+        c.execute("PRAGMA table_info(fleet_vehicles)")
+        f_cols = [r[1] for r in c.fetchall()]
+        if 'capacity_units' not in f_cols:
+            c.execute("ALTER TABLE fleet_vehicles ADD COLUMN capacity_units TEXT DEFAULT 'Kg'")
+        if 'category_capacities' not in f_cols:
+            c.execute("ALTER TABLE fleet_vehicles ADD COLUMN category_capacities TEXT")
+            
+        # Backfill category capacities for existing vehicles
+        c.execute("SELECT id, vehicle_no, vehicle_type, capacity_kg, category_capacities FROM fleet_vehicles")
+        rows = c.fetchall()
+        for r in rows:
+            vid, vno, vtype, cap_kg, cat_caps = r[0], r[1], r[2], r[3], r[4]
+            if not cat_caps or str(cat_caps).strip() == '':
+                default_caps = json.dumps(get_default_category_capacities(cap_kg or 1500, vtype))
+                c.execute("UPDATE fleet_vehicles SET category_capacities = ? WHERE id = ?", (default_caps, vid))
+            
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Schema migration error:", e)
+
+ensure_schema_migrations()
 
 # ----------------- AUTHENTICATION ROUTES -----------------
 @app.route('/api/current-user')
@@ -1603,7 +1657,18 @@ def get_fleet():
         params.append(depot_id)
     query += ' ORDER BY fv.ownership ASC, fv.id ASC'
     cursor.execute(query, tuple(params))
-    vehicles = [dict(row) for row in cursor.fetchall()]
+    vehicles = []
+    for row in cursor.fetchall():
+        v = dict(row)
+        cat_caps = v.get('category_capacities')
+        if cat_caps:
+            try:
+                v['category_capacities'] = json.loads(cat_caps)
+            except Exception:
+                v['category_capacities'] = get_default_category_capacities(v.get('capacity_kg', 1500), v.get('vehicle_type'))
+        else:
+            v['category_capacities'] = get_default_category_capacities(v.get('capacity_kg', 1500), v.get('vehicle_type'))
+        vehicles.append(v)
     conn.close()
     return jsonify({"success": True, "vehicles": vehicles})
 
@@ -1614,11 +1679,19 @@ def save_fleet_vehicle():
     depot_id = data.get('depot_id', 9)
     vehicle_no = data.get('vehicle_no', '').strip().upper()
     vehicle_type = data.get('vehicle_type', 'Covered Van').strip()
-    capacity_kg = float(data.get('capacity_kg', 1500))
-    capacity_units = data.get('capacity_units', 'Pcs').strip()
+    try:
+        capacity_kg = float(data.get('capacity_kg', 1500))
+    except (ValueError, TypeError):
+        capacity_kg = 1500.0
+    capacity_units = data.get('capacity_units', 'Kg').strip()
+    default_driver_id = data.get('default_driver_id') or None
+    default_deliveryman_id = data.get('default_deliveryman_id') or None
     ownership = data.get('ownership', 'Owned').strip()
     rental_vendor = data.get('rental_vendor', '').strip()
-    rental_cost_per_day = float(data.get('rental_cost_per_day', 0))
+    try:
+        rental_cost_per_day = float(data.get('rental_cost_per_day', 0))
+    except (ValueError, TypeError):
+        rental_cost_per_day = 0.0
     status = data.get('status', 'Active').strip()
     
     if not vehicle_no:
@@ -1628,18 +1701,46 @@ def save_fleet_vehicle():
     cursor = conn.cursor()
     if vid:
         cursor.execute('''
-            UPDATE fleet_vehicles SET vehicle_no=?, vehicle_type=?, capacity_kg=?, capacity_units=?, ownership=?, rental_vendor=?, rental_cost_per_day=?, status=?
+            UPDATE fleet_vehicles 
+            SET vehicle_no=?, vehicle_type=?, capacity_kg=?, capacity_units=?, default_driver_id=?, default_deliveryman_id=?, ownership=?, rental_vendor=?, rental_cost_per_day=?, status=?
             WHERE id=?
-        ''', (vehicle_no, vehicle_type, capacity_kg, capacity_units, ownership, rental_vendor, rental_cost_per_day, status, vid))
+        ''', (vehicle_no, vehicle_type, capacity_kg, capacity_units, default_driver_id, default_deliveryman_id, ownership, rental_vendor, rental_cost_per_day, status, vid))
+        veh_id = vid
     else:
         cursor.execute('''
-            INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, ownership, rental_vendor, rental_cost_per_day, home_depot_id, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, ownership, rental_vendor, rental_cost_per_day, depot_id, status))
+            INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, default_driver_id, default_deliveryman_id, ownership, rental_vendor, rental_cost_per_day, home_depot_id, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, default_driver_id, default_deliveryman_id, ownership, rental_vendor, rental_cost_per_day, depot_id, status))
+        veh_id = cursor.lastrowid
+        
+    # Sync assigned vehicle to driver
+    if default_driver_id:
+        cursor.execute('UPDATE depot_crew SET assigned_vehicle_no = ? WHERE id = ?', (vehicle_no, default_driver_id))
         
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": f"Vehicle {vehicle_no} saved successfully!"})
+    return jsonify({"success": True, "message": f"Vehicle {vehicle_no} (Capacity: {capacity_kg} {capacity_units}) saved successfully!"})
+
+@app.route('/api/fleet/vehicle/<int:vid>/capacity', methods=['POST', 'PATCH'])
+@app.route('/api/fleet/vehicle/capacity', methods=['POST', 'PATCH'])
+def update_fleet_vehicle_capacity(vid=None):
+    data = request.json or {}
+    target_vid = vid or data.get('id') or data.get('vehicle_id')
+    try:
+        capacity_kg = float(data.get('capacity_kg', 1500))
+    except (ValueError, TypeError):
+        capacity_kg = 1500.0
+    capacity_units = data.get('capacity_units', 'Kg').strip()
+    
+    if not target_vid:
+        return jsonify({"success": False, "message": "Vehicle ID is required"}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE fleet_vehicles SET capacity_kg = ?, capacity_units = ? WHERE id = ?', (capacity_kg, capacity_units, target_vid))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": f"Vehicle capacity updated to {capacity_kg} {capacity_units}!"})
 
 @app.route('/api/fleet/vehicle/<int:vid>', methods=['DELETE'])
 def delete_fleet_vehicle(vid):
@@ -1660,17 +1761,27 @@ def handle_crew():
     if request.method == 'GET':
         depot_id = request.args.get('depot_id')
         role = request.args.get('role')
-        query = 'SELECT * FROM depot_crew WHERE 1=1'
+        query = '''
+            SELECT dc.*, fv.vehicle_no as linked_vehicle_no, fv.vehicle_type as linked_vehicle_type
+            FROM depot_crew dc
+            LEFT JOIN fleet_vehicles fv ON dc.id = fv.default_driver_id AND fv.depot_id = dc.depot_id
+            WHERE 1=1
+        '''
         params = []
         if depot_id and str(depot_id) != 'all':
-            query += ' AND depot_id = ?'
+            query += ' AND dc.depot_id = ?'
             params.append(depot_id)
         if role:
-            query += ' AND role = ?'
+            query += ' AND dc.role = ?'
             params.append(role)
-        query += ' ORDER BY role ASC, name ASC'
+        query += ' ORDER BY dc.role ASC, dc.name ASC'
         cursor.execute(query, tuple(params))
-        crew = [dict(row) for row in cursor.fetchall()]
+        crew = []
+        for row in cursor.fetchall():
+            d = dict(row)
+            if not d.get('assigned_vehicle_no') and d.get('linked_vehicle_no'):
+                d['assigned_vehicle_no'] = d['linked_vehicle_no']
+            crew.append(d)
         conn.close()
         return jsonify({"success": True, "crew": crew})
         
@@ -1682,6 +1793,10 @@ def handle_crew():
         name = data.get('name', '').strip()
         phone = data.get('phone', '').strip()
         license_no = data.get('license_no', '').strip()
+        assigned_vehicle_no = data.get('assigned_vehicle_no', '').strip().upper() if role == 'driver' else ''
+        secondary_vehicle_no = data.get('secondary_vehicle_no', '').strip().upper() if role == 'driver' else ''
+        default_route_name = data.get('default_route_name', '').strip() if role == 'driver' else ''
+        driver_id_code = data.get('driver_id_code', '').strip()
         status = data.get('status', 'Active').strip()
         
         if not name or not phone:
@@ -1690,27 +1805,350 @@ def handle_crew():
             
         if cid:
             cursor.execute('''
-                UPDATE depot_crew SET role=?, name=?, phone=?, license_no=?, status=?
+                UPDATE depot_crew 
+                SET role=?, name=?, phone=?, license_no=?, status=?, assigned_vehicle_no=?,
+                    secondary_vehicle_no=?, default_route_name=?, driver_id_code=?
                 WHERE id=?
-            ''', (role, name, phone, license_no, status, cid))
+            ''', (role, name, phone, license_no, status, assigned_vehicle_no, secondary_vehicle_no, default_route_name, driver_id_code, cid))
+            crew_id = cid
         else:
             cursor.execute('''
-                INSERT INTO depot_crew (depot_id, role, name, phone, license_no, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (depot_id, role, name, phone, license_no, status))
+                INSERT INTO depot_crew (depot_id, role, name, phone, license_no, status, assigned_vehicle_no, secondary_vehicle_no, default_route_name, driver_id_code)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (depot_id, role, name, phone, license_no, status, assigned_vehicle_no, secondary_vehicle_no, default_route_name, driver_id_code))
+            crew_id = cursor.lastrowid
+            
+        # If Driver has assigned vehicle, link it in fleet_vehicles
+        if role == 'driver' and assigned_vehicle_no:
+            cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?',
+                           (crew_id, depot_id, assigned_vehicle_no))
             
         conn.commit()
         conn.close()
-        return jsonify({"success": True, "message": f"{role.title()} {name} saved successfully!"})
+        veh_msg = f" (Assigned Van: {assigned_vehicle_no})" if assigned_vehicle_no else ""
+        return jsonify({"success": True, "message": f"{role.title()} {name}{veh_msg} saved successfully!"})
 
 @app.route('/api/crew/<int:cid>', methods=['DELETE'])
 def delete_crew(cid):
     conn = get_db()
     cursor = conn.cursor()
+    cursor.execute('UPDATE fleet_vehicles SET default_driver_id = NULL WHERE default_driver_id = ?', (cid,))
+    cursor.execute('UPDATE fleet_vehicles SET default_deliveryman_id = NULL WHERE default_deliveryman_id = ?', (cid,))
     cursor.execute('DELETE FROM depot_crew WHERE id = ?', (cid,))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Staff record deleted successfully!"})
+
+# ----------------- MULTI-CATEGORY CAPACITY & DEFAULT MAPPING APIS -----------------
+
+@app.route('/api/fleet/capacities', methods=['GET'])
+def get_fleet_capacities():
+    depot_id = request.args.get('depot_id')
+    conn = get_db()
+    cursor = conn.cursor()
+    query = '''
+        SELECT fv.id, fv.depot_id, fv.vehicle_no, fv.vehicle_type, fv.capacity_kg, fv.capacity_units,
+               fv.category_capacities, fv.status,
+               drv.id as driver_id, drv.name as default_driver_name, drv.phone as default_driver_phone,
+               drv.secondary_vehicle_no, drv.default_route_name
+        FROM fleet_vehicles fv
+        LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
+        WHERE 1=1
+    '''
+    params = []
+    if depot_id and str(depot_id) != 'all':
+        query += ' AND fv.depot_id = ?'
+        params.append(depot_id)
+    query += ' ORDER BY fv.id ASC'
+    cursor.execute(query, tuple(params))
+    vehicles = []
+    for row in cursor.fetchall():
+        v = dict(row)
+        cat_caps = v.get('category_capacities')
+        if cat_caps:
+            try:
+                v['category_capacities'] = json.loads(cat_caps)
+            except Exception:
+                v['category_capacities'] = get_default_category_capacities(v.get('capacity_kg', 1500), v.get('vehicle_type'))
+        else:
+            v['category_capacities'] = get_default_category_capacities(v.get('capacity_kg', 1500), v.get('vehicle_type'))
+        vehicles.append(v)
+    conn.close()
+    return jsonify({"success": True, "vehicles": vehicles})
+
+@app.route('/api/fleet/capacities/update', methods=['POST'])
+def update_fleet_capacities():
+    data = request.json or {}
+    vid = data.get('vehicle_id') or data.get('id')
+    vehicle_no = data.get('vehicle_no', '').strip().upper()
+    category_capacities = data.get('category_capacities')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if not vid and vehicle_no:
+        row = cursor.execute("SELECT id FROM fleet_vehicles WHERE UPPER(vehicle_no) = ?", (vehicle_no,)).fetchone()
+        if row:
+            vid = row[0]
+            
+    if not vid:
+        conn.close()
+        return jsonify({"success": False, "message": "Vehicle ID or valid registration number required"}), 400
+        
+    caps_json = json.dumps(category_capacities) if isinstance(category_capacities, dict) else str(category_capacities or '{}')
+    
+    # Also update capacity_kg and capacity_units from primary Frozen or Egg category
+    frozen_cap = 1500.0
+    if isinstance(category_capacities, dict):
+        if 'Frozen Foods / Chicken' in category_capacities:
+            try: frozen_cap = float(category_capacities['Frozen Foods / Chicken'].get('capacity', 1500))
+            except: pass
+        elif 'Chicken' in category_capacities:
+            try: frozen_cap = float(category_capacities['Chicken'].get('capacity', 1500))
+            except: pass
+            
+    cursor.execute('UPDATE fleet_vehicles SET category_capacities = ?, capacity_kg = ? WHERE id = ?', (caps_json, frozen_cap, vid))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": f"Multi-category capacities updated for vehicle successfully!"})
+
+@app.route('/api/crew/default-mapping', methods=['POST'])
+def update_crew_default_mapping():
+    data = request.json or {}
+    cid = data.get('id') or data.get('driver_id')
+    driver_name = data.get('driver_name', '').strip()
+    depot_id = data.get('depot_id', 9)
+    phone = data.get('phone', '').strip()
+    default_vehicle_no = data.get('default_vehicle_no', '').strip().upper()
+    secondary_vehicle_no = data.get('secondary_vehicle_no', '').strip().upper()
+    default_route_name = data.get('default_route_name', '').strip()
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if not cid and driver_name:
+        row = cursor.execute("SELECT id FROM depot_crew WHERE role='driver' AND LOWER(name)=LOWER(?) AND depot_id=?", (driver_name, depot_id)).fetchone()
+        if row:
+            cid = row[0]
+        else:
+            cursor.execute('''
+                INSERT INTO depot_crew (depot_id, role, name, phone, assigned_vehicle_no, secondary_vehicle_no, default_route_name, status)
+                VALUES (?, 'driver', ?, ?, ?, ?, ?, 'Active')
+            ''', (depot_id, driver_name, phone or '01711-000000', default_vehicle_no, secondary_vehicle_no, default_route_name))
+            cid = cursor.lastrowid
+            
+    if cid:
+        cursor.execute('''
+            UPDATE depot_crew
+            SET assigned_vehicle_no = ?, secondary_vehicle_no = ?, default_route_name = ?,
+                phone = CASE WHEN ? != '' THEN ? ELSE phone END
+            WHERE id = ?
+        ''', (default_vehicle_no, secondary_vehicle_no, default_route_name, phone, phone, cid))
+        
+        # Link default vehicle in fleet_vehicles
+        if default_vehicle_no:
+            cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?', (cid, depot_id, default_vehicle_no))
+            
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": f"Default mapping saved for Driver {driver_name or cid}!"})
+
+@app.route('/api/template/driver-vehicle-mapping-excel', methods=['GET'])
+def download_driver_vehicle_mapping_template():
+    try:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Driver-Vehicle Mapping'
+        
+        # Style Definitions
+        header_fill = openpyxl.styles.PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+        header_font = openpyxl.styles.Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        sub_fill = openpyxl.styles.PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+        border = openpyxl.styles.Border(
+            left=openpyxl.styles.Side(style='thin', color='CBD5E1'),
+            right=openpyxl.styles.Side(style='thin', color='CBD5E1'),
+            top=openpyxl.styles.Side(style='thin', color='CBD5E1'),
+            bottom=openpyxl.styles.Side(style='thin', color='CBD5E1')
+        )
+        
+        headers = [
+            'Driver Name', 'Contact No', 'Default Vehicle Reg No', 
+            'Secondary / Backup Vehicle', 'Default Route Name', 
+            'Category / Product Type', 'Unit', 'Vehicle Max Capacity', 'Admin / User Editable'
+        ]
+        ws.append(headers)
+        for col_num in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = border
+            
+        sample_rows = [
+            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Frozen Foods / Chicken', 'Kg', 1500, 'Yes'],
+            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Egg', 'Pcs', 30000, 'Yes'],
+            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Dairy', 'Liter', 1000, 'Yes'],
+            ['Md Shohel Mia', '01877-871342', 'DH M Sha-11-5419', 'DH M Sha-11-9988', 'Dhaka East Route', 'Dry Goods / Box Items', 'Ctn', 500, 'Yes'],
+            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Frozen Foods / Chicken', 'Kg', 2000, 'Yes'],
+            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Egg', 'Pcs', 45000, 'Yes'],
+            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Dairy', 'Liter', 1500, 'Yes'],
+            ['Md Hridoy', '01954-769520', 'DH M Sha-11-5441', 'DH M Sha-11-3045', 'North Zone Line', 'Dry Goods / Box Items', 'Ctn', 750, 'Yes']
+        ]
+        
+        for r_idx, row_data in enumerate(sample_rows, 2):
+            ws.append(row_data)
+            for c_idx in range(1, len(row_data) + 1):
+                c = ws.cell(row=r_idx, column=c_idx)
+                c.border = border
+                if r_idx % 2 == 1:
+                    c.fill = sub_fill
+                if c_idx in [2, 3, 4, 7, 9]:
+                    c.alignment = openpyxl.styles.Alignment(horizontal="center")
+                elif c_idx == 8:
+                    c.alignment = openpyxl.styles.Alignment(horizontal="right")
+                    
+        # Column widths
+        col_widths = {'A': 22, 'B': 16, 'C': 26, 'D': 26, 'E': 24, 'F': 26, 'G': 12, 'H': 22, 'I': 20}
+        for col_letter, width in col_widths.items():
+            ws.column_dimensions[col_letter].width = width
+            
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name='Paragon_Driver_Vehicle_Mapping_Master_Template.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Template creation error: {str(e)}"}), 500
+
+@app.route('/api/crew/mapping-bulk-upload', methods=['POST'])
+def bulk_upload_driver_vehicle_mapping():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No Excel file uploaded'}), 400
+    file = request.files['file']
+    depot_id = request.form.get('depot_id', 9)
+    try: depot_id = int(depot_id)
+    except: depot_id = 9
+    
+    try:
+        wb = openpyxl.load_workbook(file, data_only=True)
+        ws = wb.active
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Track drivers and vehicles to update
+        drivers_map = {} # driver_name -> {phone, default_veh, backup_veh, default_route}
+        vehicle_capacities = {} # veh_no -> {category: {capacity, unit}}
+        
+        for row in ws.iter_rows(values_only=True):
+            if not row or not any(row):
+                continue
+            r_str = " ".join([str(c) for c in row if c is not None]).upper()
+            if "DRIVER NAME" in r_str or "PRODUCT TYPE" in r_str or "INSTRUCTIONS" in r_str:
+                continue
+                
+            drv_name = str(row[0] if len(row) > 0 and row[0] else '').strip()
+            contact = str(row[1] if len(row) > 1 and row[1] else '').strip()
+            def_veh = str(row[2] if len(row) > 2 and row[2] else '').strip().upper()
+            backup_veh = str(row[3] if len(row) > 3 and row[3] else '').strip().upper()
+            route_name = str(row[4] if len(row) > 4 and row[4] else '').strip()
+            cat_type = str(row[5] if len(row) > 5 and row[5] else '').strip()
+            unit = str(row[6] if len(row) > 6 and row[6] else '').strip()
+            cap_val_raw = row[7] if len(row) > 7 else None
+            
+            try:
+                cap_val = float(str(cap_val_raw).replace(',', '')) if cap_val_raw is not None else 0.0
+            except:
+                cap_val = 0.0
+                
+            if drv_name:
+                if drv_name not in drivers_map:
+                    drivers_map[drv_name] = {
+                        'phone': contact,
+                        'default_veh': def_veh,
+                        'backup_veh': backup_veh,
+                        'route_name': route_name
+                    }
+                else:
+                    if contact and not drivers_map[drv_name]['phone']:
+                        drivers_map[drv_name]['phone'] = contact
+                    if def_veh and not drivers_map[drv_name]['default_veh']:
+                        drivers_map[drv_name]['default_veh'] = def_veh
+                    if backup_veh and not drivers_map[drv_name]['backup_veh']:
+                        drivers_map[drv_name]['backup_veh'] = backup_veh
+                    if route_name and not drivers_map[drv_name]['route_name']:
+                        drivers_map[drv_name]['route_name'] = route_name
+                        
+            if def_veh:
+                if def_veh not in vehicle_capacities:
+                    vehicle_capacities[def_veh] = {}
+                if cat_type and cap_val > 0:
+                    vehicle_capacities[def_veh][cat_type] = {
+                        'capacity': cap_val,
+                        'unit': unit or ('Pcs' if 'egg' in cat_type.lower() else ('Liter' if 'dairy' in cat_type.lower() else 'Kg'))
+                    }
+                    
+        # Update drivers in database
+        updated_drivers = 0
+        for drv_name, d_info in drivers_map.items():
+            existing = cursor.execute("SELECT id FROM depot_crew WHERE role='driver' AND LOWER(name)=LOWER(?) AND depot_id=?", (drv_name, depot_id)).fetchone()
+            if existing:
+                cid = existing[0]
+                cursor.execute('''
+                    UPDATE depot_crew
+                    SET assigned_vehicle_no = ?, secondary_vehicle_no = ?, default_route_name = ?,
+                        phone = CASE WHEN ? != '' THEN ? ELSE phone END
+                    WHERE id = ?
+                ''', (d_info['default_veh'], d_info['backup_veh'], d_info['route_name'], d_info['phone'], d_info['phone'], cid))
+            else:
+                cursor.execute('''
+                    INSERT INTO depot_crew (depot_id, role, name, phone, assigned_vehicle_no, secondary_vehicle_no, default_route_name, status)
+                    VALUES (?, 'driver', ?, ?, ?, ?, ?, 'Active')
+                ''', (depot_id, drv_name, d_info['phone'] or '01711-000000', d_info['default_veh'], d_info['backup_veh'], d_info['route_name']))
+                cid = cursor.lastrowid
+                
+            if d_info['default_veh']:
+                cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?',
+                               (cid, depot_id, d_info['default_veh']))
+            updated_drivers += 1
+            
+        # Update vehicles and multi-category capacities in database
+        updated_vehicles = 0
+        for veh_no, cats in vehicle_capacities.items():
+            if not cats:
+                cats = get_default_category_capacities(1500)
+            caps_json = json.dumps(cats)
+            frozen_cap = 1500.0
+            for c_name, c_data in cats.items():
+                if 'chicken' in c_name.lower() or 'frozen' in c_name.lower():
+                    frozen_cap = float(c_data.get('capacity', 1500))
+                    break
+                    
+            existing_veh = cursor.execute("SELECT id FROM fleet_vehicles WHERE UPPER(vehicle_no) = ? AND depot_id = ?", (veh_no, depot_id)).fetchone()
+            matched_driver = cursor.execute("SELECT id FROM depot_crew WHERE role='driver' AND UPPER(assigned_vehicle_no) = ? AND depot_id = ?", (veh_no, depot_id)).fetchone()
+            def_driver_id = matched_driver[0] if matched_driver else None
+            
+            if existing_veh:
+                cursor.execute('UPDATE fleet_vehicles SET category_capacities = ?, capacity_kg = ?, default_driver_id = COALESCE(?, default_driver_id) WHERE id = ?', (caps_json, frozen_cap, def_driver_id, existing_veh[0]))
+            else:
+                cursor.execute('''
+                    INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, category_capacities, default_driver_id, ownership, status)
+                    VALUES (?, ?, 'Covered Van', ?, 'Kg', ?, ?, 'Owned', 'Active')
+                ''', (depot_id, veh_no, frozen_cap, caps_json, def_driver_id))
+            updated_vehicles += 1
+            
+        conn.commit()
+        conn.close()
+        return jsonify({
+            'success': True,
+            'message': f'Successfully imported and mapped {updated_drivers} Drivers & updated {updated_vehicles} Vehicles with multi-category capacities!'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error uploading driver-vehicle mapping: {str(e)}'}), 500
+
 
 # ----------------- INTER-DEPOT VEHICLE BORROWING APIS -----------------
 
@@ -1903,23 +2341,24 @@ def download_crew_blank_template():
     ws.set_column(2, 2, 28)  # Full Name
     ws.set_column(3, 3, 18)  # Mobile Phone
     ws.set_column(4, 4, 22)  # Driving License No
-    ws.set_column(5, 5, 14)  # Status
+    ws.set_column(5, 5, 28)  # Assigned Vehicle Reg No (Drivers Only)
+    ws.set_column(6, 6, 14)  # Status
 
-    ws.merge_range('A1:F1', 'PARAGON AGRO LIMITED - DEPOT DRIVERS & CREW IMPORT TEMPLATE', hdr_fmt)
-    ws.merge_range('A2:F2', 'Instructions: Role should be "Driver" or "Delivery Man". Mobile phone is required for live route communication.', tip_fmt)
+    ws.merge_range('A1:G1', 'PARAGON AGRO LIMITED - DEPOT DRIVERS & CREW IMPORT TEMPLATE', hdr_fmt)
+    ws.merge_range('A2:G2', 'Instructions: Role should be "Driver" or "Delivery Man". For Drivers only, specify "Assigned Vehicle Reg No" (e.g. DM-THA-11-2090) to link vehicle automatically.', tip_fmt)
     ws.set_row(0, 24)
     ws.set_row(1, 16)
 
-    headers = ['SL', 'Role (Driver/Delivery Man) *', 'Staff Full Name *', 'Mobile Phone No *', 'Driving License No', 'Status (Active/Inactive)']
+    headers = ['SL', 'Role (Driver/Delivery Man) *', 'Staff Full Name *', 'Mobile Phone No *', 'Driving License No', 'Assigned Vehicle Reg No (Drivers Only)', 'Status (Active/Inactive)']
     for col, h in enumerate(headers):
         ws.write(3, col, h, th_fmt)
     ws.set_row(3, 22)
 
     sample_data = [
-        (1, 'Driver', 'Md. Rafiqul Islam', '01711-100001', 'DL-DHAKA-112233', 'Active'),
-        (2, 'Delivery Man', 'Md. Kamal Hossain', '01711-200001', '-', 'Active'),
-        (3, 'Driver', 'Md. Jahangir Alam', '01811-100002', 'DL-DHAKA-445566', 'Active'),
-        (4, 'Delivery Man', 'Md. Rubel Miah', '01811-200002', '-', 'Active')
+        (1, 'Driver', 'Md. Rafiqul Islam', '01711-100001', 'DL-DHAKA-112233', 'DM-THA-11-2090', 'Active'),
+        (2, 'Delivery Man', 'Md. Kamal Hossain', '01711-200001', '-', '-', 'Active'),
+        (3, 'Driver', 'Md. Jahangir Alam', '01811-100002', 'DL-DHAKA-445566', 'DM-THA-11-3045', 'Active'),
+        (4, 'Delivery Man', 'Md. Rubel Miah', '01811-200002', '-', '-', 'Active')
     ]
     for r_idx, row in enumerate(sample_data, 4):
         for c_idx, val in enumerate(row):
@@ -1944,26 +2383,27 @@ def download_fleet_blank_template():
     ws.set_column(0, 0, 8)   # SL
     ws.set_column(1, 1, 24)  # Vehicle No
     ws.set_column(2, 2, 22)  # Vehicle Type
-    ws.set_column(3, 3, 16)  # Capacity Kg
-    ws.set_column(4, 4, 16)  # Capacity Units
-    ws.set_column(5, 5, 18)  # Ownership
-    ws.set_column(6, 6, 26)  # Rental Vendor
-    ws.set_column(7, 7, 18)  # Daily Rate
+    ws.set_column(3, 3, 16)  # Capacity Value
+    ws.set_column(4, 4, 18)  # Capacity Unit (Pcs/Kg/Ltr/Carton)
+    ws.set_column(5, 5, 26)  # Assigned Driver Name / Mobile
+    ws.set_column(6, 6, 18)  # Ownership
+    ws.set_column(7, 7, 26)  # Rental Vendor
+    ws.set_column(8, 8, 18)  # Daily Rate
 
-    ws.merge_range('A1:H1', 'PARAGON AGRO LIMITED - DEPOT FLEET VEHICLES IMPORT TEMPLATE', hdr_fmt)
-    ws.merge_range('A2:H2', 'Instructions: Vehicle Reg No is required. Ownership: "Owned" or "Rental". For rental vans specify vendor and rate.', tip_fmt)
+    ws.merge_range('A1:I1', 'PARAGON AGRO LIMITED - DEPOT FLEET VEHICLES IMPORT TEMPLATE', hdr_fmt)
+    ws.merge_range('A2:I2', 'Instructions: Capacity Units by Category: Egg = "Pcs", Chicken/Meat/Frozen = "Kg", Dairy = "Ltr", Dry Food = "Carton/Pkt". Ownership: "Owned" or "Rental".', tip_fmt)
     ws.set_row(0, 24)
     ws.set_row(1, 16)
 
-    headers = ['SL', 'Vehicle Reg No *', 'Vehicle Type', 'Capacity (Kg) *', 'Capacity Units', 'Ownership (Owned/Rental)', 'Rental Vendor Name', 'Daily Rent Cost (৳)']
+    headers = ['SL', 'Vehicle Reg No *', 'Vehicle Type', 'Capacity Value *', 'Capacity Unit (Pcs/Kg/Ltr/Carton/Trays/Crates) *', 'Assigned Driver Name/Phone', 'Ownership (Owned/Rental)', 'Rental Vendor Name', 'Daily Rent Cost (৳)']
     for col, h in enumerate(headers):
         ws.write(3, col, h, th_fmt)
     ws.set_row(3, 22)
 
     sample_data = [
-        (1, 'DM-THA-11-2090', 'Ventilated Egg Van', 1500, 'Pcs', 'Owned', '-', 0),
-        (2, 'DM-THA-11-3045', 'Covered Van', 2000, 'Pcs', 'Owned', '-', 0),
-        (3, 'DM-U-12-8899', 'Covered Van (Rental)', 2500, 'Pcs', 'Rental', 'Bhai Bhai Transport Ltd', 3500)
+        (1, 'DM-THA-11-2090', 'Ventilated Egg Van', 25000, 'Pcs', 'Md. Rafiqul Islam (01711-100001)', 'Owned', '-', 0),
+        (2, 'DM-THA-11-3045', 'Reefer Van (-18°C)', 2000, 'Kg', 'Md. Jahangir Alam (01811-100002)', 'Owned', '-', 0),
+        (3, 'DM-U-12-8899', 'Insulated Milk Van', 1800, 'Ltr', 'Md. Driver Dairy (01711-300003)', 'Rental', 'Green Line Transport', 3500)
     ]
     for r_idx, row in enumerate(sample_data, 4):
         for c_idx, val in enumerate(row):
@@ -2109,25 +2549,39 @@ def bulk_upload_crew():
             name = str(row[2] if len(row) > 2 and row[2] else '').strip()
             phone = str(row[3] if len(row) > 3 and row[3] else '').strip()
             license_no = str(row[4] if len(row) > 4 and row[4] else '').strip()
-            status = str(row[5] if len(row) > 5 and row[5] else 'Active').strip()
+            assigned_veh = str(row[5] if len(row) > 5 and row[5] else '').strip().upper()
+            status = str(row[6] if len(row) > 6 and row[6] else (row[5] if len(row) > 5 and str(row[5]).strip() in ['Active', 'Inactive', 'On_Leave'] else 'Active')).strip()
             
             if not name or name.lower() in ['sl', 'staff full name']:
                 continue
                 
             role = 'driver' if 'driver' in raw_role else 'delivery_man'
-            
+            if role != 'driver' or assigned_veh in ['-', 'N/A', 'NONE', 'ACTIVE', 'INACTIVE']:
+                if role != 'driver':
+                    assigned_veh = ''
+                elif assigned_veh in ['ACTIVE', 'INACTIVE']:
+                    assigned_veh = ''
+                    
             cursor.execute('SELECT id FROM depot_crew WHERE depot_id = ? AND name = ? AND role = ?', (depot_id, name, role))
             exist = cursor.fetchone()
             if exist:
-                cursor.execute('UPDATE depot_crew SET phone=?, license_no=?, status=? WHERE id=?', (phone, license_no, status, exist['id']))
+                crew_id = exist['id']
+                cursor.execute('UPDATE depot_crew SET phone=?, license_no=?, status=?, assigned_vehicle_no=? WHERE id=?',
+                               (phone, license_no, status, assigned_veh, crew_id))
             else:
-                cursor.execute('INSERT INTO depot_crew (depot_id, role, name, phone, license_no, status) VALUES (?, ?, ?, ?, ?, ?)',
-                               (depot_id, role, name, phone, license_no, status))
+                cursor.execute('INSERT INTO depot_crew (depot_id, role, name, phone, license_no, status, assigned_vehicle_no) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                               (depot_id, role, name, phone, license_no, status, assigned_veh))
+                crew_id = cursor.lastrowid
+                
+            if role == 'driver' and assigned_veh:
+                cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?',
+                               (crew_id, depot_id, assigned_veh))
+                               
             imported_count += 1
             
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': f'Successfully imported {imported_count} staff/crew members from Excel!'})
+        return jsonify({'success': True, 'message': f'Successfully imported {imported_count} staff/crew members with assigned vehicles!'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error uploading crew: {str(e)}'}), 500
 
@@ -2145,6 +2599,12 @@ def bulk_upload_fleet():
         conn = get_db()
         cursor = conn.cursor()
         
+        # Determine depot default UOM / category
+        cursor.execute('SELECT category, default_uom FROM depots WHERE id = ?', (depot_id,))
+        depot_row = cursor.fetchone()
+        depot_cat = depot_row['category'] if depot_row else 'Food'
+        default_unit = 'Pcs' if ('egg' in depot_cat.lower() or int(depot_id) == 9) else ('Ltr' if ('dairy' in depot_cat.lower() or int(depot_id) in [4, 11]) else 'Kg')
+        
         imported_count = 0
         for row in ws.iter_rows(values_only=True):
             if not row or not any(row):
@@ -2159,32 +2619,60 @@ def bulk_upload_fleet():
                 cap_kg = float(row[3]) if len(row) > 3 and row[3] is not None else 1500.0
             except:
                 cap_kg = 1500.0
-            cap_uom = str(row[4] if len(row) > 4 and row[4] else 'Pcs').strip()
-            ownership = str(row[5] if len(row) > 5 and row[5] else 'Owned').strip()
-            vendor = str(row[6] if len(row) > 6 and row[6] else '').strip()
+                
+            cap_uom = str(row[4] if len(row) > 4 and row[4] else '').strip()
+            if not cap_uom or cap_uom in ['-', 'N/A', 'NONE']:
+                cap_uom = default_unit
+                
+            driver_info = str(row[5] if len(row) > 5 and row[5] else '').strip()
+            ownership = str(row[6] if len(row) > 6 and row[6] else (row[5] if len(row) > 5 and str(row[5]).strip() in ['Owned', 'Rental', 'Borrowed'] else 'Owned')).strip()
+            if ownership not in ['Owned', 'Rental', 'Borrowed']:
+                ownership = 'Owned'
+                
+            vendor = str(row[7] if len(row) > 7 and row[7] else (row[6] if len(row) > 6 and ownership == 'Rental' else '')).strip()
             try:
-                rent_cost = float(row[7]) if len(row) > 7 and row[7] is not None else 0.0
+                rent_cost = float(row[8] if len(row) > 8 and row[8] is not None else (row[7] if len(row) > 7 and row[7] is not None else 0.0))
             except:
                 rent_cost = 0.0
                 
             if not v_no or v_no.lower() in ['sl', 'vehicle reg no']:
                 continue
                 
+            # Find driver if driver_info provided
+            default_driver_id = None
+            if driver_info and driver_info not in ['-', 'N/A', 'NONE', 'Owned', 'Rental']:
+                cursor.execute('SELECT id FROM depot_crew WHERE depot_id = ? AND role = "driver" AND (name LIKE ? OR phone LIKE ?)',
+                               (depot_id, f"%{driver_info[:15]}%", f"%{driver_info[-11:]}%"))
+                dr_match = cursor.fetchone()
+                if dr_match:
+                    default_driver_id = dr_match['id']
+                    
             cursor.execute('SELECT id FROM fleet_vehicles WHERE depot_id = ? AND vehicle_no = ?', (depot_id, v_no))
             exist = cursor.fetchone()
             if exist:
-                cursor.execute('UPDATE fleet_vehicles SET vehicle_type=?, capacity_kg=?, capacity_units=?, ownership=?, rental_vendor=?, rental_cost_per_day=? WHERE id=?',
-                               (v_type, cap_kg, cap_uom, ownership, vendor, rent_cost, exist['id']))
+                veh_id = exist['id']
+                cursor.execute('''
+                    UPDATE fleet_vehicles
+                    SET vehicle_type=?, capacity_kg=?, capacity_units=?, ownership=?, rental_vendor=?, rental_cost_per_day=?,
+                        default_driver_id=COALESCE(?, default_driver_id)
+                    WHERE id=?
+                ''', (v_type, cap_kg, cap_uom, ownership, vendor, rent_cost, default_driver_id, veh_id))
             else:
                 cursor.execute('''
-                    INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, ownership, rental_vendor, rental_cost_per_day, home_depot_id, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')
-                ''', (depot_id, v_no, v_type, cap_kg, cap_uom, ownership, vendor, rent_cost, depot_id))
+                    INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, ownership, rental_vendor, rental_cost_per_day, home_depot_id, default_driver_id, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')
+                ''', (depot_id, v_no, v_type, cap_kg, cap_uom, ownership, vendor, rent_cost, depot_id, default_driver_id))
+                veh_id = cursor.lastrowid
+                
+            # Also update depot_crew assigned_vehicle_no if driver found
+            if default_driver_id:
+                cursor.execute('UPDATE depot_crew SET assigned_vehicle_no = ? WHERE id = ?', (v_no, default_driver_id))
+                
             imported_count += 1
             
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': f'Successfully imported {imported_count} fleet vehicles from Excel!'})
+        return jsonify({'success': True, 'message': f'Successfully imported {imported_count} fleet vehicles with category-based capacity ({default_unit}) and driver assignments!'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error uploading fleet: {str(e)}'}), 500
 
@@ -2838,7 +3326,7 @@ def get_borrowed_vehicles():
 @app.route('/api/admin/clear-route-plan', methods=['POST', 'DELETE'])
 def admin_clear_route_plan():
     data = request.json or {}
-    role = session.get('role') or data.get('role')
+    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
     if role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
 

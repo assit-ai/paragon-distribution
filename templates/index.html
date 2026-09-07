@@ -5675,7 +5675,7 @@
                                             title="Print Run Sheets for this date">
                                             <i class="fa-solid fa-print"></i>
                                         </button>
-                                        ${(currentUser && currentUser.role === 'admin') ? `
+                                        ${((!currentUser) || (currentUser && currentUser.role === 'admin')) ? `
                                         <button type="button" class="btn btn-sm admin-only-btn" onclick="adminDeleteSavedRoutePlan('${item.plan_date}', ${depotId})"
                                             style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; font-weight: 700; font-size: 0.78rem; padding: 4px 8px; border-radius: 4px; cursor: pointer;"
                                             title="Admin Only: Delete saved route plan and run sheets for this date">
@@ -27565,8 +27565,18 @@
                     <tr>
                         <td>${idx + 1}</td>
                         <td><strong style="color: #38bdf8; font-size: 0.95rem;">${v.vehicle_no}</strong></td>
-                        <td>${v.vehicle_type}</td>
-                        <td><strong style="color: #34d399;">${v.capacity_kg} Kg</strong></td>
+                        <td>${v.vehicle_type || 'Covered Van'}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <strong style="color: #34d399; font-size: 0.95rem;">${v.capacity_kg || 1500}</strong>
+                                <span style="font-size: 0.75rem; color: #a7f3d0; font-weight: 700; background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); padding: 1px 6px; border-radius: 4px;">
+                                    ${v.capacity_units || 'Kg'}
+                                </span>
+                                <button type="button" onclick="quickEditVehicleCapacity(${v.id}, '${v.vehicle_no}', ${v.capacity_kg || 1500}, '${v.capacity_units || 'Kg'}')" style="background: transparent; border: none; color: #38bdf8; cursor: pointer; padding: 2px 4px; font-size: 0.8rem;" title="Quick update capacity">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                            </div>
+                        </td>
                         <td>
                             <span style="background: ${v.ownership === 'Rental' ? '#d97706' : (v.ownership === 'Borrowed' ? '#0891b2' : '#1e3a8a')}; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700;">
                                 ${v.ownership} ${v.rental_vendor ? '(' + v.rental_vendor + ' - ৳' + v.rental_cost_per_day + '/day)' : ''}
@@ -27579,8 +27589,11 @@
                                 ${v.status}
                             </span>
                         </td>
-                        <td style="text-align: center;">
-                            <button type="button" onclick="deleteFleetVehicleMaster(${v.id})" style="background: transparent; border: none; color: #f87171; cursor: pointer;" title="Delete Vehicle">
+                        <td style="text-align: center; white-space: nowrap;">
+                            <button type="button" onclick="editFleetVehicleMaster(${v.id})" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin-right: 4px;" title="Edit Vehicle & Capacity">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                            <button type="button" onclick="deleteFleetVehicleMaster(${v.id})" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem;" title="Delete Vehicle">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </td>
@@ -27588,43 +27601,212 @@
                 `).join('');
             }
 
-            function openAddFleetVehicleForm() {
+            function openAddFleetVehicleForm(editVeh = null) {
                 const drawer = document.getElementById('addFleetVehicleDrawer');
-                if (drawer) {
-                    drawer.style.display = 'block';
-                    const depotId = getSelectedMasterDepotId();
-                    fetch(`/api/crew?depot_id=${depotId}`).then(r => r.json()).then(d => {
-                        if (d.success) {
-                            const drivers = d.crew.filter(c => c.role === 'driver');
-                            const delivs = d.crew.filter(c => c.role === 'delivery_man');
-                            const drvSel = document.getElementById('newVehDriverSelect');
-                            const delSel = document.getElementById('newVehDelivSelect');
-                            if (drvSel) drvSel.innerHTML = '<option value="">-- Assign Default Driver --</option>' + drivers.map(c => `<option value="${c.id}">${c.name} (${c.phone})</option>`).join('');
-                            if (delSel) delSel.innerHTML = '<option value="">-- Assign Default Deliveryman --</option>' + delivs.map(c => `<option value="${c.id}">${c.name} (${c.phone})</option>`).join('');
-                        }
-                    });
+                if (!drawer) return;
+                
+                drawer.style.display = 'block';
+                const depotId = getSelectedMasterDepotId();
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId);
+                
+                let defaultUnit = 'Kg';
+                let defaultCap = '1500';
+                if (depotObj) {
+                    const cat = (depotObj.category || '').toLowerCase();
+                    if (cat.includes('egg') || depotId == 9) {
+                        defaultUnit = 'Pcs';
+                        defaultCap = '25000';
+                    } else if (cat.includes('dairy') || depotId == 4 || depotId == 11) {
+                        defaultUnit = 'Ltr';
+                        defaultCap = '2000';
+                    } else if (cat.includes('dry')) {
+                        defaultUnit = 'Carton';
+                        defaultCap = '500';
+                    } else {
+                        defaultUnit = 'Kg';
+                        defaultCap = '1500';
+                    }
                 }
+                
+                const titleEl = document.getElementById('fleetDrawerTitle');
+                const btnEl = document.getElementById('saveFleetVehBtn');
+                const editIdInput = document.getElementById('editVehId');
+                const vNoInput = document.getElementById('newVehNo');
+                const vTypeSelect = document.getElementById('newVehType');
+                const capKgInput = document.getElementById('newVehCapKg');
+                const capUnitSelect = document.getElementById('newVehCapUnit');
+
+                if (editVeh) {
+                    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square text-cyan"></i> Edit Vehicle & Capacity (${editVeh.vehicle_no})`;
+                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-check"></i> Update Vehicle & Capacity';
+                    if (editIdInput) editIdInput.value = editVeh.id;
+                    if (vNoInput) vNoInput.value = editVeh.vehicle_no || '';
+                    if (vTypeSelect) vTypeSelect.value = editVeh.vehicle_type || 'Covered Van';
+                    if (capKgInput) capKgInput.value = editVeh.capacity_kg !== undefined ? editVeh.capacity_kg : defaultCap;
+                    if (capUnitSelect) capUnitSelect.value = editVeh.capacity_units || defaultUnit;
+                } else {
+                    if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-truck text-cyan"></i> Register New Vehicle & Set Capacity';
+                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-save"></i> Save Vehicle & Capacity';
+                    if (editIdInput) editIdInput.value = '';
+                    if (vNoInput) vNoInput.value = '';
+                    if (vTypeSelect) vTypeSelect.value = defaultUnit === 'Pcs' ? 'Ventilated Egg Van' : (defaultUnit === 'Ltr' ? 'Insulated Milk Van' : 'Covered Van');
+                    if (capKgInput) capKgInput.value = defaultCap;
+                    if (capUnitSelect) capUnitSelect.value = defaultUnit;
+                }
+
+                fetch(`/api/crew?depot_id=${depotId}`).then(r => r.json()).then(d => {
+                    if (d.success) {
+                        const drivers = (d.crew || []).filter(c => c.role === 'driver');
+                        const delivs = (d.crew || []).filter(c => c.role === 'delivery_man');
+                        const drvSel = document.getElementById('newVehDriverSelect');
+                        const delSel = document.getElementById('newVehDelivSelect');
+                        if (drvSel) {
+                            drvSel.innerHTML = '<option value="">-- Assign Default Driver --</option>' + drivers.map(c => 
+                                `<option value="${c.id}" ${editVeh && editVeh.default_driver_id == c.id ? 'selected' : ''}>${c.name} (${c.phone})</option>`
+                            ).join('');
+                        }
+                        if (delSel) {
+                            delSel.innerHTML = '<option value="">-- Assign Default Deliveryman --</option>' + delivs.map(c => 
+                                `<option value="${c.id}" ${editVeh && editVeh.default_deliveryman_id == c.id ? 'selected' : ''}>${c.name} (${c.phone})</option>`
+                            ).join('');
+                        }
+                    }
+                });
+
+                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            function editFleetVehicleMaster(vehId) {
+                const veh = (masterFleetCache || []).find(v => v.id == vehId);
+                if (veh) {
+                    openAddFleetVehicleForm(veh);
+                } else {
+                    showToast('Vehicle details not found in cache.', 'warning');
+                }
+            }
+
+            function openQuickEditVehicleCapacities(vehId, vehNo, currentCap, currentUnit) {
+                const modal = document.getElementById('editVehicleCapacitiesModal');
+                if (!modal) return;
+                document.getElementById('quickCapVehId').value = vehId;
+                document.getElementById('quickCapVehNo').value = vehNo;
+                document.getElementById('quickCapVehNoLbl').textContent = vehNo;
+
+                // Pre-populate values
+                const veh = (masterFleetCache || []).find(v => v.id == vehId);
+                const capKg = (veh && veh.capacity_kg) ? veh.capacity_kg : (currentCap || 1500);
+                const capUnit = (veh && veh.capacity_units) ? veh.capacity_units : (currentUnit || 'Kg');
+
+                if (capUnit === 'Pcs' || capUnit === 'Tray') {
+                    document.getElementById('quickCapVal_egg').value = capKg;
+                    document.getElementById('quickCapUnit_egg').value = capUnit;
+                    document.getElementById('quickCapVal_frozen').value = '1500';
+                    document.getElementById('quickCapVal_dairy').value = '1000';
+                    document.getElementById('quickCapVal_dry').value = '500';
+                } else if (capUnit === 'Ltr' || capUnit === 'Liter') {
+                    document.getElementById('quickCapVal_dairy').value = capKg;
+                    document.getElementById('quickCapVal_egg').value = '30000';
+                    document.getElementById('quickCapVal_frozen').value = '1500';
+                    document.getElementById('quickCapVal_dry').value = '500';
+                } else if (capUnit === 'Carton' || capUnit === 'Box' || capUnit === 'Ctn') {
+                    document.getElementById('quickCapVal_dry').value = capKg;
+                    document.getElementById('quickCapUnit_dry').value = (capUnit === 'Box' ? 'Box' : 'Ctn');
+                    document.getElementById('quickCapVal_egg').value = '30000';
+                    document.getElementById('quickCapVal_frozen').value = '1500';
+                    document.getElementById('quickCapVal_dairy').value = '1000';
+                } else {
+                    document.getElementById('quickCapVal_frozen').value = capKg;
+                    document.getElementById('quickCapVal_egg').value = '30000';
+                    document.getElementById('quickCapVal_dairy').value = '1000';
+                    document.getElementById('quickCapVal_dry').value = '500';
+                }
+                modal.style.display = 'flex';
+            }
+
+            function closeQuickEditVehicleCapacitiesModal() {
+                const modal = document.getElementById('editVehicleCapacitiesModal');
+                if (modal) modal.style.display = 'none';
+            }
+
+            async function saveQuickEditVehicleCapacities() {
+                const vehId = document.getElementById('quickCapVehId').value;
+                const vehNo = document.getElementById('quickCapVehNo').value;
+                const depotId = getSelectedMasterDepotId();
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId);
+                const cat = (depotObj ? (depotObj.category || '').toLowerCase() : '');
+
+                let chosenCap = 1500;
+                let chosenUnit = 'Kg';
+
+                if (cat.includes('egg') || depotId == 9) {
+                    chosenCap = parseFloat(document.getElementById('quickCapVal_egg').value) || 30000;
+                    chosenUnit = document.getElementById('quickCapUnit_egg').value || 'Pcs';
+                } else if (cat.includes('dairy') || depotId == 4 || depotId == 11) {
+                    chosenCap = parseFloat(document.getElementById('quickCapVal_dairy').value) || 1000;
+                    chosenUnit = 'Ltr';
+                } else if (cat.includes('dry')) {
+                    chosenCap = parseFloat(document.getElementById('quickCapVal_dry').value) || 500;
+                    chosenUnit = document.getElementById('quickCapUnit_dry').value || 'Ctn';
+                } else {
+                    // Default frozen
+                    chosenCap = parseFloat(document.getElementById('quickCapVal_frozen').value) || 1500;
+                    chosenUnit = 'Kg';
+                }
+
+                try {
+                    const res = await fetch(`/api/fleet/vehicle/${vehId}/capacity`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ capacity_kg: chosenCap, capacity_units: chosenUnit })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(`⚖️ Vehicle ${vehNo} capacity updated to ${chosenCap} ${chosenUnit}!`, 'success');
+                        closeQuickEditVehicleCapacitiesModal();
+                        loadFleetMaster(depotId);
+                    } else {
+                        showToast(data.message || 'Error updating capacity.', 'error');
+                    }
+                } catch (e) {
+                    showToast('Network error updating capacity: ' + e.message, 'error');
+                }
+            }
+
+            async function quickEditVehicleCapacity(vehId, vehNo, currentCap, currentUnit) {
+                openQuickEditVehicleCapacities(vehId, vehNo, currentCap, currentUnit);
             }
 
             function closeAddFleetVehicleForm() {
                 const drawer = document.getElementById('addFleetVehicleDrawer');
                 if (drawer) drawer.style.display = 'none';
+                const editIdInput = document.getElementById('editVehId');
+                if (editIdInput) editIdInput.value = '';
+                const vNoInput = document.getElementById('newVehNo');
+                if (vNoInput) vNoInput.value = '';
             }
 
             async function submitNewFleetVehicleMaster() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to register a new vehicle.', 'warning');
+                    showToast('Please select a specific Target Depot above to register or edit a vehicle.', 'warning');
                     return;
                 }
+                const editId = document.getElementById('editVehId')?.value || null;
                 const vNo = document.getElementById('newVehNo')?.value?.trim();
                 const vType = document.getElementById('newVehType')?.value;
                 const capKg = document.getElementById('newVehCapKg')?.value;
+                const capUnit = document.getElementById('newVehCapUnit')?.value || 'Kg';
                 const drvId = document.getElementById('newVehDriverSelect')?.value || null;
                 const delId = document.getElementById('newVehDelivSelect')?.value || null;
 
                 if (!vNo) {
                     showToast('Please enter Vehicle Reg No', 'error');
+                    return;
+                }
+                if (!capKg || isNaN(parseFloat(capKg))) {
+                    showToast('Please enter a valid numeric vehicle capacity', 'error');
                     return;
                 }
 
@@ -27633,10 +27815,12 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            id: editId ? parseInt(editId) : null,
                             depot_id: depotId,
                             vehicle_no: vNo,
                             vehicle_type: vType,
-                            capacity_kg: capKg,
+                            capacity_kg: parseFloat(capKg),
+                            capacity_units: capUnit,
                             default_driver_id: drvId,
                             default_deliveryman_id: delId,
                             ownership: 'Owned',
@@ -27646,9 +27830,9 @@
                     const data = await res.json();
                     if (data.success) {
                         showToast(data.message, 'success');
-                        document.getElementById('newVehNo').value = '';
                         closeAddFleetVehicleForm();
                         loadFleetMaster(depotId);
+                        loadCrewMaster(depotId);
                     }
                 } catch (e) {
                     showToast('Error saving vehicle: ' + e.message, 'error');
@@ -27664,13 +27848,65 @@
                     if (data.success) {
                         showToast(data.message, 'info');
                         loadFleetMaster(depotId);
+                        loadCrewMaster(depotId);
                     }
                 } catch (e) {
                     showToast('Error removing vehicle: ' + e.message, 'error');
                 }
             }
 
+            function onCrewRoleChange() {
+                const role = document.getElementById('newCrewRole')?.value;
+                const group = document.getElementById('crewAssignedVehGroup');
+                if (group) {
+                    group.style.display = (role === 'driver') ? 'block' : 'none';
+                }
+                if (role === 'driver') {
+                    populateCrewVehicleOptions();
+                }
+            }
+
+            function onCrewVehicleSelectChange() {
+                const sel = document.getElementById('newCrewVehicleSelect');
+                const customInput = document.getElementById('newCrewVehicleCustom');
+                if (sel && customInput) {
+                    if (sel.value === '__custom__') {
+                        customInput.style.display = 'block';
+                        customInput.focus();
+                    } else {
+                        customInput.style.display = 'none';
+                        customInput.value = '';
+                    }
+                }
+            }
+
+            function populateCrewVehicleOptions(selectedVehNo = '') {
+                const sel = document.getElementById('newCrewVehicleSelect');
+                if (!sel) return;
+                const depotId = getSelectedMasterDepotId();
+                
+                fetch(`/api/fleet?depot_id=${depotId}`).then(r => r.json()).then(d => {
+                    const vehicles = d.vehicles || [];
+                    let html = '<option value="">-- No Assigned Vehicle (Unassigned) --</option>';
+                    vehicles.forEach(v => {
+                        const isSel = selectedVehNo && selectedVehNo.toUpperCase() === v.vehicle_no.toUpperCase();
+                        html += `<option value="${v.vehicle_no}" ${isSel ? 'selected' : ''}>🚚 ${v.vehicle_no} (${v.vehicle_type} - ${v.capacity_kg} ${v.capacity_units || 'Kg'})</option>`;
+                    });
+                    html += '<option value="__custom__">➕ Enter Custom Vehicle Number...</option>';
+                    sel.innerHTML = html;
+                    if (selectedVehNo && !vehicles.some(v => v.vehicle_no.toUpperCase() === selectedVehNo.toUpperCase())) {
+                        sel.value = '__custom__';
+                        const customInput = document.getElementById('newCrewVehicleCustom');
+                        if (customInput) {
+                            customInput.style.display = 'block';
+                            customInput.value = selectedVehNo;
+                        }
+                    }
+                }).catch(e => console.warn('Fleet fetch error for crew dropdown:', e));
+            }
+
             async function loadCrewMaster(depotId) {
+                populateCrewVehicleOptions();
                 try {
                     const res = await fetch(`/api/crew?depot_id=${depotId}`);
                     const data = await res.json();
@@ -27684,10 +27920,10 @@
                 }
                 if (!masterCrewCache || masterCrewCache.length === 0) {
                     masterCrewCache = [
-                        { id: 1, name: 'Md. Rafiqul Islam', phone: '01711-204101', role: 'driver', license_no: 'DL-882914', status: 'active' },
-                        { id: 2, name: 'Md. Alamgir Hossain', phone: '01811-305202', role: 'driver', license_no: 'DL-991823', status: 'active' },
-                        { id: 3, name: 'Md. Jewel Rana', phone: '01911-401803', role: 'delivery_man', license_no: '', status: 'active' },
-                        { id: 4, name: 'Md. Zahid Hasan', phone: '01611-509904', role: 'delivery_man', license_no: '', status: 'active' }
+                        { id: 1, name: 'Md. Rafiqul Islam', phone: '01711-204101', role: 'driver', assigned_vehicle_no: 'DM-THA-11-2090', license_no: 'DL-882914', status: 'active' },
+                        { id: 2, name: 'Md. Alamgir Hossain', phone: '01811-305202', role: 'driver', assigned_vehicle_no: 'DM-THA-11-3045', license_no: 'DL-991823', status: 'active' },
+                        { id: 3, name: 'Md. Jewel Rana', phone: '01911-401803', role: 'delivery_man', assigned_vehicle_no: '', license_no: '', status: 'active' },
+                        { id: 4, name: 'Md. Zahid Hasan', phone: '01611-509904', role: 'delivery_man', assigned_vehicle_no: '', license_no: '', status: 'active' }
                     ];
                 }
                 renderMasterCrewTable(masterCrewCache);
@@ -27698,11 +27934,20 @@
                 if (!tbody) return;
 
                 if (crew.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 20px;">No drivers or delivery assistants registered for this depot yet.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">No drivers or delivery assistants registered for this depot yet.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = crew.map((c, idx) => `
+                tbody.innerHTML = crew.map((c, idx) => {
+                    const vehBadge = c.role === 'driver' 
+                        ? (c.assigned_vehicle_no 
+                            ? `<span style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-truck"></i> ${c.assigned_vehicle_no}
+                               </span>`
+                            : `<span style="color: #64748b; font-size: 0.78rem;">-- Unassigned --</span>`)
+                        : `<span style="color: #475569; font-size: 0.78rem;">N/A (Delivery Asst)</span>`;
+
+                    return `
                     <tr>
                         <td>${idx + 1}</td>
                         <td>
@@ -27712,6 +27957,7 @@
                         </td>
                         <td><strong style="color: #fff;">${c.name}</strong></td>
                         <td><span style="color: #38bdf8; font-weight: 600;">${c.phone}</span></td>
+                        <td>${vehBadge}</td>
                         <td><code>${c.license_no || '-'}</code></td>
                         <td style="text-align: center;">
                             <button type="button" onclick="deleteCrewMaster(${c.id})" style="background: transparent; border: none; color: #f87171; cursor: pointer;" title="Remove Staff">
@@ -27719,7 +27965,7 @@
                             </button>
                         </td>
                     </tr>
-                `).join('');
+                `}).join('');
             }
 
             async function submitNewCrewMaster() {
@@ -27732,6 +27978,17 @@
                 const name = document.getElementById('newCrewName')?.value?.trim();
                 const phone = document.getElementById('newCrewPhone')?.value?.trim();
                 const license = document.getElementById('newCrewLicense')?.value?.trim();
+                
+                let assignedVeh = '';
+                if (role === 'driver') {
+                    const sel = document.getElementById('newCrewVehicleSelect');
+                    const customInput = document.getElementById('newCrewVehicleCustom');
+                    if (sel && sel.value === '__custom__') {
+                        assignedVeh = (customInput?.value || '').trim().toUpperCase();
+                    } else if (sel && sel.value) {
+                        assignedVeh = sel.value.trim().toUpperCase();
+                    }
+                }
 
                 if (!name || !phone) {
                     showToast('Please enter Name and Mobile Number', 'error');
@@ -27747,7 +28004,8 @@
                             role: role,
                             name: name,
                             phone: phone,
-                            license_no: license
+                            license_no: license,
+                            assigned_vehicle_no: assignedVeh
                         })
                     });
                     const data = await res.json();
@@ -27756,7 +28014,12 @@
                         document.getElementById('newCrewName').value = '';
                         document.getElementById('newCrewPhone').value = '';
                         document.getElementById('newCrewLicense').value = '';
+                        const sel = document.getElementById('newCrewVehicleSelect');
+                        if (sel) sel.value = '';
+                        const customInput = document.getElementById('newCrewVehicleCustom');
+                        if (customInput) { customInput.value = ''; customInput.style.display = 'none'; }
                         loadCrewMaster(depotId);
+                        loadFleetMaster(depotId);
                     }
                 } catch (e) {
                     showToast('Error saving crew: ' + e.message, 'error');
@@ -27771,6 +28034,7 @@
                     if (data.success) {
                         showToast(data.message, 'info');
                         loadCrewMaster(depotId);
+                        loadFleetMaster(depotId);
                     }
                 } catch (e) {
                     showToast('Error deleting staff: ' + e.message, 'error');
@@ -28087,6 +28351,8 @@
                     return;
                 }
 
+                const capUnit = document.getElementById('rentalCapUnit')?.value || 'Kg';
+
                 try {
                     const res = await fetch('/api/fleet/vehicle', {
                         method: 'POST',
@@ -28095,16 +28361,17 @@
                             depot_id: depotId,
                             vehicle_no: vNo,
                             vehicle_type: vType,
-                            capacity_kg: capKg,
+                            capacity_kg: parseFloat(capKg) || 1500,
+                            capacity_units: capUnit,
                             ownership: 'Rental',
                             rental_vendor: vendor,
-                            rental_cost_per_day: cost,
+                            rental_cost_per_day: parseFloat(cost) || 0,
                             status: 'Active'
                         })
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast(`🔑 Rental Van ${vNo} registered successfully!`, 'success');
+                        showToast(`🔑 Rental Van ${vNo} (Capacity: ${capKg} ${capUnit}) registered successfully!`, 'success');
                         closeRentalVanModal();
                         
                         // Add into current active planning vans if same depot
@@ -28121,6 +28388,8 @@
                                 is_rental: true,
                                 rental_vendor: vendor,
                                 rental_cost: parseFloat(cost) || 0,
+                                capacity_kg: parseFloat(capKg) || 1500,
+                                capacity_units: capUnit,
                                 outlets: []
                             });
                             renderActiveVans();
@@ -28331,18 +28600,47 @@
                 routes.forEach(r => {
                     const ordersInRoute = routeBuckets[r.id] || [];
                     if (ordersInRoute.length > 0) {
-                        const veh = fleet[vanIdx % fleet.length] || { vehicle_no: r.default_vehicle_no || `DM-THA-11-${2000 + vanIdx}` };
-                        const drv = drivers[vanIdx % drivers.length] || { name: 'Driver ' + (vanIdx + 1), phone: '01711-000000' };
-                        const dlm = deliverymen[vanIdx % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
+                        let veh = null;
+                        if (r.default_vehicle_no) {
+                            veh = fleet.find(f => f.vehicle_no && f.vehicle_no.toUpperCase() === r.default_vehicle_no.toUpperCase());
+                        }
+                        if (!veh) {
+                            veh = fleet[vanIdx % fleet.length] || { vehicle_no: r.default_vehicle_no || `DM-THA-11-${2000 + vanIdx}`, capacity_kg: 1500, capacity_units: 'Kg' };
+                        }
+                        
+                        let driverName = veh.default_driver_name;
+                        let driverPhone = veh.default_driver_phone;
+                        if (!driverName) {
+                            const matchedCrewDrv = drivers.find(c => c.assigned_vehicle_no && c.assigned_vehicle_no.toUpperCase() === veh.vehicle_no.toUpperCase());
+                            if (matchedCrewDrv) {
+                                driverName = matchedCrewDrv.name;
+                                driverPhone = matchedCrewDrv.phone;
+                            }
+                        }
+                        if (!driverName) {
+                            const drv = drivers[vanIdx % drivers.length] || { name: 'Driver ' + (vanIdx + 1), phone: '01711-000000' };
+                            driverName = drv.name;
+                            driverPhone = drv.phone;
+                        }
+
+                        let delivName = veh.default_deliv_name;
+                        let delivPhone = veh.default_deliv_phone;
+                        if (!delivName) {
+                            const dlm = deliverymen[vanIdx % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
+                            delivName = dlm.name;
+                            delivPhone = dlm.phone;
+                        }
 
                         const newVan = {
                             id: 'VAN-' + (Date.now() + vanIdx),
-                            vehicle_no: r.default_vehicle_no || veh.vehicle_no,
+                            vehicle_no: veh.vehicle_no || r.default_vehicle_no,
                             vehicle_type: veh.vehicle_type || 'Covered Van',
-                            driver_name: drv.name,
-                            driver_mobile: drv.phone,
-                            delivery_man: dlm.name,
-                            delivery_man_mobile: dlm.phone,
+                            capacity_kg: veh.capacity_kg || 1500,
+                            capacity_units: veh.capacity_units || 'Kg',
+                            driver_name: driverName,
+                            driver_mobile: driverPhone,
+                            delivery_man: delivName,
+                            delivery_man_mobile: delivPhone,
                             dispatch_time: '07:30 AM',
                             route_zone: r.route_name,
                             route_id: r.id,
@@ -28377,7 +28675,7 @@
                         // Create 2-3 standard vans for the depot
                         for (let i = 0; i < Math.min(routes.length, 3); i++) {
                             const r = routes[i];
-                            const veh = fleet[i % fleet.length] || { vehicle_no: `DM-THA-11-${2090 + i * 50}` };
+                            const veh = fleet[i % fleet.length] || { vehicle_no: `DM-THA-11-${2090 + i * 50}`, capacity_kg: 1500, capacity_units: 'Kg' };
                             const drv = drivers[i % drivers.length] || { name: 'Driver ' + (i + 1), phone: '01711-000000' };
                             const dlm = deliverymen[i % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
 
@@ -28385,10 +28683,12 @@
                                 id: 'VAN-' + (Date.now() + i),
                                 vehicle_no: veh.vehicle_no,
                                 vehicle_type: veh.vehicle_type || 'Covered Van',
-                                driver_name: drv.name,
-                                driver_mobile: drv.phone,
-                                delivery_man: dlm.name,
-                                delivery_man_mobile: dlm.phone,
+                                capacity_kg: veh.capacity_kg || 1500,
+                                capacity_units: veh.capacity_units || 'Kg',
+                                driver_name: veh.default_driver_name || drv.name,
+                                driver_mobile: veh.default_driver_phone || drv.phone,
+                                delivery_man: veh.default_deliv_name || dlm.name,
+                                delivery_man_mobile: veh.default_deliv_phone || dlm.phone,
                                 dispatch_time: '07:30 AM',
                                 route_zone: r ? r.route_name : `Zone ${i + 1} Delivery Line`,
                                 route_id: r ? r.id : (i + 1),
@@ -29580,6 +29880,11 @@
             window.openAddFleetVehicleForm = openAddFleetVehicleForm;
             window.closeAddFleetVehicleForm = closeAddFleetVehicleForm;
             window.submitNewFleetVehicleMaster = submitNewFleetVehicleMaster;
+            window.editFleetVehicleMaster = editFleetVehicleMaster;
+            window.quickEditVehicleCapacity = quickEditVehicleCapacity;
+            window.openQuickEditVehicleCapacities = openQuickEditVehicleCapacities;
+            window.closeQuickEditVehicleCapacitiesModal = closeQuickEditVehicleCapacitiesModal;
+            window.saveQuickEditVehicleCapacities = saveQuickEditVehicleCapacities;
             window.deleteFleetVehicleMaster = deleteFleetVehicleMaster;
             window.submitNewRouteMaster = submitNewRouteMaster;
             window.deleteRouteMaster = deleteRouteMaster;
@@ -29588,6 +29893,9 @@
             window.filterMasterConsigneesTable = filterMasterConsigneesTable;
             window.submitNewCrewMaster = submitNewCrewMaster;
             window.deleteCrewMaster = deleteCrewMaster;
+            window.onCrewRoleChange = onCrewRoleChange;
+            window.onCrewVehicleSelectChange = onCrewVehicleSelectChange;
+            window.populateCrewVehicleOptions = populateCrewVehicleOptions;
             window.handleBulkUpload = handleBulkUpload;
             window.returnBorrowedVehicle = returnBorrowedVehicle;
             window.clearBorrowedFleet = clearBorrowedFleet;
@@ -30108,6 +30416,9 @@
                     <button type="button" class="btn master-tab-btn" id="btnTabBorrow" onclick="switchMasterTab('borrow')" style="border-radius: 6px; padding: 8px 16px; font-weight: 700; font-size: 0.85rem; background: transparent; color: #94a3b8; border: 1px solid #334155;">
                         <i class="fa-solid fa-handshake"></i> 4. Inter-Depot Borrowing & Spare Pool
                     </button>
+                    <button type="button" class="btn master-tab-btn" id="btnTabMapping" onclick="switchMasterTab('mapping')" style="border-radius: 6px; padding: 8px 16px; font-weight: 700; font-size: 0.85rem; background: transparent; color: #38bdf8; border: 1.5px solid #0284c7; box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);">
+                        <i class="fa-solid fa-id-card-clip"></i> 5. Default Driver-Vehicle Mapping & Capacities
+                    </button>
                 </div>
 
                 <!-- Master Body Container -->
@@ -30244,27 +30555,57 @@
                         </div>
 
                         <!-- Add Vehicle Inline Drawer / Box -->
-                        <div id="addFleetVehicleDrawer" style="display: none; background: #1e293b; border: 1px solid #38bdf8; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                            <h4 style="color: #38bdf8; font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-truck"></i> Register New Vehicle to Depot</h4>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
-                                <input type="text" id="newVehNo" placeholder="Vehicle Reg No (e.g. DM-THA-11-2090)" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                <select id="newVehType" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                    <option value="Covered Van">Covered Van</option>
-                                    <option value="Reefer Van (-18°C)">Reefer Van (-18°C)</option>
-                                    <option value="Ventilated Egg Van">Ventilated Egg Van</option>
-                                    <option value="Open Truck">Open Truck</option>
-                                </select>
-                                <input type="number" id="newVehCapKg" placeholder="Capacity (Kg / Units)" value="1500" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                <select id="newVehDriverSelect" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                    <option value="">-- Assign Default Driver --</option>
-                                </select>
-                                <select id="newVehDelivSelect" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                    <option value="">-- Assign Default Deliveryman --</option>
-                                </select>
+                        <div id="addFleetVehicleDrawer" style="display: none; background: #1e293b; border: 1.5px solid #38bdf8; border-radius: 8px; padding: 18px; margin-bottom: 18px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+                            <input type="hidden" id="editVehId" value="">
+                            <h4 id="fleetDrawerTitle" style="color: #38bdf8; font-size: 0.98rem; font-weight: 800; margin-bottom: 14px;"><i class="fa-solid fa-truck text-cyan"></i> Register New Vehicle & Set Capacity</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 3px;">Vehicle Reg No *</label>
+                                    <input type="text" id="newVehNo" placeholder="e.g. DM-THA-11-2090" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 700; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 3px;">Vehicle Type</label>
+                                    <select id="newVehType" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                        <option value="Covered Van">Covered Van</option>
+                                        <option value="Reefer Van (-18°C)">Reefer Van (-18°C)</option>
+                                        <option value="Ventilated Egg Van">Ventilated Egg Van</option>
+                                        <option value="Insulated Milk Van">Insulated Milk Van</option>
+                                        <option value="Open Truck">Open Truck</option>
+                                        <option value="Pickup 1 Ton">Pickup 1 Ton</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #4ade80; font-weight: 800; display: block; margin-bottom: 3px;">⚖️ Vehicle Capacity *</label>
+                                    <input type="number" id="newVehCapKg" placeholder="e.g. 1500 or 50000" value="1500" class="form-control" style="background: #0b1329; border: 1.5px solid #22c55e; color: #4ade80; font-weight: 800; padding: 7px 10px; border-radius: 4px; font-size: 0.88rem; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #38bdf8; font-weight: 800; display: block; margin-bottom: 3px;">Capacity Unit (UOM)</label>
+                                    <select id="newVehCapUnit" style="background: #0b1329; border: 1.5px solid #0284c7; color: #38bdf8; font-weight: 700; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                        <option value="Kg">Kg (Kilograms - Meat/Dairy)</option>
+                                        <option value="Pcs">Pcs (Egg / Piece Count)</option>
+                                        <option value="Carton">Cartons / Boxes</option>
+                                        <option value="Trays">Trays (Egg Trays)</option>
+                                        <option value="Crates">Crates</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 3px;">Default Driver</label>
+                                    <select id="newVehDriverSelect" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                        <option value="">-- Assign Default Driver --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 3px;">Default Deliveryman</label>
+                                    <select id="newVehDelivSelect" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                        <option value="">-- Assign Default Deliveryman --</option>
+                                    </select>
+                                </div>
                             </div>
                             <div style="display: flex; justify-content: flex-end; gap: 8px;">
                                 <button type="button" class="btn btn-outline btn-sm" onclick="closeAddFleetVehicleForm()">Cancel</button>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="submitNewFleetVehicleMaster()" style="background: #0284c7; border: none; font-weight: 700;">Save Vehicle</button>
+                                <button type="button" id="saveFleetVehBtn" class="btn btn-primary btn-sm" onclick="submitNewFleetVehicleMaster()" style="background: #0284c7; border: none; font-weight: 700;">
+                                    <i class="fa-solid fa-save"></i> Save Vehicle & Capacity
+                                </button>
                             </div>
                         </div>
 
@@ -30310,14 +30651,39 @@
                             <div class="card" style="padding: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 8px;">
                                 <h4 style="color: #38bdf8; font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-user-plus"></i> Register Single Staff Member</h4>
                                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    <select id="newCrewRole" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                        <option value="driver">Driver</option>
-                                        <option value="delivery_man">Delivery Assistant / Man</option>
-                                    </select>
-                                    <input type="text" id="newCrewName" placeholder="Full Name *" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                    <input type="text" id="newCrewPhone" placeholder="Mobile Number (e.g. 01711-234567) *" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                    <input type="text" id="newCrewLicense" placeholder="Driving License No (Optional)" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem;">
-                                    <button type="button" class="btn btn-primary" onclick="submitNewCrewMaster()" style="background: #0284c7; border: none; font-weight: 700; padding: 8px 12px;">
+                                    <div>
+                                        <label style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Staff Role *</label>
+                                        <select id="newCrewRole" onchange="onCrewRoleChange()" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                            <option value="driver">Driver</option>
+                                            <option value="delivery_man">Delivery Assistant / Man</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Full Name *</label>
+                                        <input type="text" id="newCrewName" placeholder="e.g. Md. Rafiqul Islam" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Mobile Phone *</label>
+                                        <input type="text" id="newCrewPhone" placeholder="Mobile (e.g. 01711-234567) *" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Driving License (Optional)</label>
+                                        <input type="text" id="newCrewLicense" placeholder="License No (e.g. DL-DHAKA-112233)" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    </div>
+                                    
+                                    <!-- ASSIGNED VEHICLE (DRIVERS ONLY) -->
+                                    <div id="crewAssignedVehGroup" style="background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 10px;">
+                                        <label style="font-size: 0.78rem; color: #38bdf8; font-weight: 800; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                            <i class="fa-solid fa-truck"></i> Default Assigned Vehicle (Drivers Only)
+                                        </label>
+                                        <select id="newCrewVehicleSelect" onchange="onCrewVehicleSelectChange()" style="background: #0b1329; border: 1.5px solid #0284c7; color: #fbbf24; font-weight: 700; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%; margin-bottom: 6px;">
+                                            <option value="">-- No Assigned Vehicle (Unassigned) --</option>
+                                            <option value="__custom__">➕ Enter Custom Vehicle Number...</option>
+                                        </select>
+                                        <input type="text" id="newCrewVehicleCustom" placeholder="Or type Vehicle Reg No (e.g. DM-THA-11-2090)" class="form-control" style="display: none; background: #0b1329; border: 1.5px solid #f59e0b; color: #fbbf24; font-weight: 700; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    </div>
+
+                                    <button type="button" class="btn btn-primary" onclick="submitNewCrewMaster()" style="background: #0284c7; border: none; font-weight: 700; padding: 8px 12px; margin-top: 4px;">
                                         <i class="fa-solid fa-save"></i> Save Staff Member
                                     </button>
                                 </div>
@@ -30334,6 +30700,7 @@
                                                 <th>Role</th>
                                                 <th>Name</th>
                                                 <th>Mobile Number</th>
+                                                <th>Assigned Vehicle</th>
                                                 <th>License No</th>
                                                 <th style="text-align: center;">Action</th>
                                             </tr>
@@ -30412,6 +30779,122 @@
                         </div>
                     </div>
 
+                    <!-- TAB 5: DEFAULT DRIVER-VEHICLE MAPPING & MULTI-CATEGORY CAPACITIES -->
+                    <div id="masterTabPaneMapping" class="master-tab-pane" style="display: none;">
+                        <!-- Action Bar -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #1e293b; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155;">
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                                <a href="/api/template/driver-vehicle-mapping-excel" class="btn btn-outline btn-sm" style="font-size: 0.82rem; padding: 6px 12px; color: #38bdf8; border-color: #0284c7; text-decoration: none; display: flex; align-items: center; gap: 6px; font-weight: 700;">
+                                    <i class="fa-solid fa-file-excel text-green"></i> 📥 Download Master Mapping Template
+                                </a>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('bulkMappingFileInput').click()" style="font-size: 0.82rem; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #2563eb); border: none; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> 📁 Bulk Upload Mapping Excel
+                                </button>
+                                <input type="file" id="bulkMappingFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleBulkMappingUpload(event)">
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('crew')" style="font-size: 0.82rem; padding: 6px 12px; border-color: #ef4444; color: #f87171; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" title="Admin Only: Clear driver-vehicle mappings">
+                                    <i class="fa-solid fa-trash-can"></i> 🧹 Clear All Mapping Data
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Single Driver-Vehicle Mapping & Capacities Form -->
+                        <div class="card" style="padding: 16px 20px; background: #1e293b; border: 1.5px solid #0284c7; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.15);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 800; margin: 0;">
+                                    <i class="fa-solid fa-id-card-clip"></i> 1. Add / Edit Driver-Vehicle Default Mapping & Category Capacities
+                                </h4>
+                                <span style="font-size: 0.78rem; background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #4ade80; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
+                                    Admin / User Editable: Yes
+                                </span>
+                            </div>
+                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">ড্রাইভার সিলেক্ট করলেই ডিফল্ট গাড়ি, ব্যাকআপ গাড়ি ও রুট স্বয়ংক্রিয়ভাবে ট্যাগ হবে এবং ক্যাটাগরি অনুযায়ী ক্যাপাসিটি ট্র্যাক করা হবে।</p>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Driver Name *</label>
+                                    <input type="text" id="mapDriverName" placeholder="e.g. Md Shohel Mia" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Contact No *</label>
+                                    <input type="text" id="mapDriverPhone" placeholder="e.g. 01877-871342" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Default Vehicle Reg No *</label>
+                                    <input type="text" id="mapDefaultVeh" placeholder="e.g. DH M Sha-11-5419" class="form-control" style="background: #0b1329; border: 1.5px solid #38bdf8; color: #fbbf24; font-weight: 700; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Secondary / Backup Vehicle (Optional)</label>
+                                    <input type="text" id="mapBackupVeh" placeholder="e.g. DH M Sha-11-9988" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #f59e0b; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Default Route Name</label>
+                                    <input type="text" id="mapDefaultRoute" placeholder="e.g. Dhaka East Route" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                </div>
+                            </div>
+
+                            <!-- Multi-Category Capacities Input Grid -->
+                            <div style="background: #0b1329; padding: 12px 14px; border-radius: 6px; border: 1px solid #334155; margin-bottom: 14px;">
+                                <label style="font-size: 0.82rem; font-weight: 800; color: #4ade80; display: block; margin-bottom: 8px;">
+                                    <i class="fa-solid fa-boxes-stacked"></i> Vehicle Max Capacities by Product Category ( ধারণক্ষমতা )
+                                </label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                    <div>
+                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🍗 Frozen Foods / Chicken (Kg):</span>
+                                        <input type="number" id="mapCapFrozen" value="1500" placeholder="1500" style="background: #1e293b; border: 1px solid #475569; color: #fff; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🥚 Egg (Pcs / Tray):</span>
+                                        <input type="number" id="mapCapEgg" value="30000" placeholder="30000" style="background: #1e293b; border: 1px solid #475569; color: #fbbf24; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🥛 Dairy / Liquid (Liter):</span>
+                                        <input type="number" id="mapCapDairy" value="1000" placeholder="1000" style="background: #1e293b; border: 1px solid #475569; color: #38bdf8; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">📦 Dry Goods / Box (Ctn / Box):</span>
+                                        <input type="number" id="mapCapDry" value="500" placeholder="500" style="background: #1e293b; border: 1px solid #475569; color: #a78bfa; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                                <button type="button" class="btn btn-primary" onclick="submitDriverVehicleMappingForm()" style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; font-weight: 800; font-size: 0.85rem; padding: 7px 18px;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Driver-Vehicle Mapping & Capacities
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Master Mapping Layout Table -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <h4 style="color: #cbd5e1; font-size: 0.95rem; font-weight: 700; margin: 0;">
+                                📋 Default Assignment & Capacity Master Table ( প্রস্তাবিত মাস্টার ফরম্যাট )
+                            </h4>
+                            <span style="font-size: 0.78rem; color: #94a3b8;">User & Admin Both Can Edit Anytime</span>
+                        </div>
+                        <div class="table-responsive" style="max-height: 440px; overflow-y: auto;">
+                            <table class="data-table" style="font-size: 0.82rem; width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Driver Name</th>
+                                        <th>Contact No</th>
+                                        <th>Default Vehicle Reg No</th>
+                                        <th>Secondary / Backup Vehicle</th>
+                                        <th>Default Route Name</th>
+                                        <th>Multi-Category Maximum Capacities</th>
+                                        <th style="text-align: center;">Editable</th>
+                                        <th style="text-align: center;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="masterMappingTableBody">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Master Footer -->
@@ -30420,6 +30903,85 @@
                     <button type="button" class="btn btn-primary" onclick="closeMasterFleetModal()" style="padding: 6px 18px; font-weight: 700;">Done / Close</button>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             MODAL: MULTI-CATEGORY VEHICLE CAPACITIES QUICK EDITOR
+             ========================================================================== -->
+        <div id="editVehicleCapacitiesModal" style="display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); backdrop-filter: blur(10px); z-index: 100003; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: var(--bg-card); border: 1.5px solid #0284c7; border-radius: var(--radius-lg); width: 100%; max-width: 580px; padding: 24px; box-shadow: 0 25px 60px -10px rgba(2, 132, 199, 0.4);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 1px solid #0284c7;">
+                        <i class="fa-solid fa-weight-scale"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff; margin: 0;">Multi-Category Vehicle Capacity Editor</h3>
+                        <p style="font-size: 0.82rem; color: #94a3b8; margin: 2px 0 0;">Configure unit-wise max payload limits for <span id="quickCapVehNoLbl" style="color: #fbbf24; font-weight: 700;">Vehicle</span></p>
+                    </div>
+                </div>
+
+                <input type="hidden" id="quickCapVehId">
+                <input type="hidden" id="quickCapVehNo">
+
+                <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center; background: #0b1329; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155;">
+                        <div>
+                            <strong style="color: #cbd5e1; font-size: 0.85rem; display: block;">🍗 Frozen Foods / Chicken</strong>
+                            <span style="font-size: 0.75rem; color: #64748b;">Processed chicken, snacks, meat items</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="number" id="quickCapVal_frozen" placeholder="1500" style="width: 80px; background: #1e293b; border: 1px solid #475569; color: #fff; font-weight: 700; padding: 6px 8px; border-radius: 4px; font-size: 0.85rem;">
+                            <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 700;">Kg</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; background: #0b1329; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155;">
+                        <div>
+                            <strong style="color: #fbbf24; font-size: 0.85rem; display: block;">🥚 Fresh Eggs (ডিম)</strong>
+                            <span style="font-size: 0.75rem; color: #64748b;">Table eggs, crates, and trays</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input type="number" id="quickCapVal_egg" placeholder="30000" style="width: 85px; background: #1e293b; border: 1px solid #475569; color: #fbbf24; font-weight: 700; padding: 6px 8px; border-radius: 4px; font-size: 0.85rem;">
+                            <select id="quickCapUnit_egg" style="background: #1e293b; border: 1px solid #475569; color: #fbbf24; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 6px 4px;">
+                                <option value="Pcs">Pcs</option>
+                                <option value="Tray">Tray</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center; background: #0b1329; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155;">
+                        <div>
+                            <strong style="color: #38bdf8; font-size: 0.85rem; display: block;">🥛 Dairy / Liquid Milk</strong>
+                            <span style="font-size: 0.75rem; color: #64748b;">Pasteurized milk, flavored drinks</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="number" id="quickCapVal_dairy" placeholder="1000" style="width: 80px; background: #1e293b; border: 1px solid #475569; color: #38bdf8; font-weight: 700; padding: 6px 8px; border-radius: 4px; font-size: 0.85rem;">
+                            <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 700;">Liter</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; background: #0b1329; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155;">
+                        <div>
+                            <strong style="color: #c084fc; font-size: 0.85rem; display: block;">📦 Dry Goods / Box Items</strong>
+                            <span style="font-size: 0.75rem; color: #64748b;">Bakery, biscuits, tea packets</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input type="number" id="quickCapVal_dry" placeholder="500" style="width: 85px; background: #1e293b; border: 1px solid #475569; color: #c084fc; font-weight: 700; padding: 6px 8px; border-radius: 4px; font-size: 0.85rem;">
+                            <select id="quickCapUnit_dry" style="background: #1e293b; border: 1px solid #475569; color: #c084fc; font-size: 0.78rem; font-weight: 700; border-radius: 4px; padding: 6px 4px;">
+                                <option value="Ctn">Ctn</option>
+                                <option value="Box">Box</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-outline" onclick="closeQuickEditVehicleCapacitiesModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveQuickEditVehicleCapacities()" style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; font-weight: 800; padding: 7px 18px;">
+                        <i class="fa-solid fa-check-circle"></i> Save Category Capacities
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -30461,17 +31023,30 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div>
-                            <label style="font-size: 0.82rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Capacity (Kg)</label>
-                            <input type="number" id="rentalCapKg" value="2000" class="form-control" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px;">
+                            <label style="font-size: 0.82rem; font-weight: 800; color: #4ade80; display: block; margin-bottom: 4px;">⚖️ Capacity Value *</label>
+                            <input type="number" id="rentalCapKg" value="2000" class="form-control" style="width: 100%; background: #0b1329; border: 1.5px solid #22c55e; color: #4ade80; font-weight: 800; padding: 7px 10px; border-radius: 4px;">
                         </div>
                         <div>
-                            <label style="font-size: 0.82rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Vehicle Type</label>
-                            <select id="rentalVehType" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px;">
-                                <option value="Covered Van">Covered Van</option>
-                                <option value="Reefer Van (-18°C)">Reefer Van</option>
-                                <option value="Ventilated Egg Van">Ventilated Egg Van</option>
+                            <label style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; display: block; margin-bottom: 4px;">Capacity Unit (UOM)</label>
+                            <select id="rentalCapUnit" style="width: 100%; background: #0b1329; border: 1.5px solid #0284c7; color: #38bdf8; font-weight: 700; padding: 7px 10px; border-radius: 4px;">
+                                <option value="Kg">Kg (Kilograms - Meat/Dairy)</option>
+                                <option value="Pcs">Pcs (Eggs / Pieces)</option>
+                                <option value="Carton">Cartons / Boxes</option>
+                                <option value="Trays">Trays</option>
+                                <option value="Crates">Crates</option>
                             </select>
                         </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Vehicle Type</label>
+                        <select id="rentalVehType" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px;">
+                            <option value="Covered Van">Covered Van</option>
+                            <option value="Reefer Van (-18°C)">Reefer Van (-18°C)</option>
+                            <option value="Ventilated Egg Van">Ventilated Egg Van</option>
+                            <option value="Insulated Milk Van">Insulated Milk Van</option>
+                            <option value="Open Truck">Open Truck</option>
+                            <option value="Pickup 1 Ton">Pickup 1 Ton</option>
+                        </select>
                     </div>
                 </div>
 
