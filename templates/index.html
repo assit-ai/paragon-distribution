@@ -2675,15 +2675,16 @@
                     if (planTabBtn) planTabBtn.style.display = 'flex';
 
                     if (currentUser.role === 'incharge' && currentUser.depot_id) {
-                        // Depot Incharge Mode: Direct to Entry Tab & Stop Auto Refresh
+                        // Depot Incharge Mode: Direct to Route Planning & Van Dispatch Tab & Stop Auto Refresh
                         stopAutoRefresh();
                         if (dashTabBtn) dashTabBtn.style.display = 'none';
                         if (settingsTabBtn) settingsTabBtn.style.display = 'none';
                         if (sopTabBtn) sopTabBtn.style.display = 'none';
 
-                        if (entryTabBtn) {
-                            entryTabBtn.style.display = 'flex';
-                            entryTabBtn.click();
+                        if (entryTabBtn) entryTabBtn.style.display = 'flex';
+                        if (planTabBtn) {
+                            planTabBtn.style.display = 'flex';
+                            planTabBtn.click();
                         }
 
                         if (entryDepotSelect) {
@@ -2695,6 +2696,7 @@
                         if (planDepotSelect) {
                             planDepotSelect.value = currentUser.depot_id;
                             planDepotSelect.disabled = true;
+                            planDepotSelect.dispatchEvent(new Event('change'));
                         }
 
                         if (inchargeDownloadBtn) inchargeDownloadBtn.style.display = 'inline-flex';
@@ -2898,7 +2900,7 @@
                         if (currentUser.role === 'admin') {
                             showToast(`Welcome Administrator! Navigating to Executive Dashboard...`, 'success');
                         } else {
-                            showToast(`Welcome ${currentUser.display_name}! Navigating to Daily Entry Form...`, 'success');
+                            showToast(`Welcome ${currentUser.display_name}! Navigating to Route Planning & Van Dispatch...`, 'success');
                         }
                         return;
                     } else {
@@ -2921,7 +2923,7 @@
                             currentUser = { authenticated: true, role: 'incharge', username: foundDepot.slug, depot_id: foundDepot.id, display_name: `${foundDepot.name} (${foundDepot.incharge_name})` };
                             updateUserBadge();
                             applyUserPermissions();
-                            showToast(`Welcome ${currentUser.display_name}! Navigating to Daily Entry Form (Offline Mode)...`, 'success');
+                            showToast(`Welcome ${currentUser.display_name}! Navigating to Route Planning & Van Dispatch (Offline Mode)...`, 'success');
                         } else {
                             showToast('Invalid User ID or Password. Check credentials.', 'error');
                         }
