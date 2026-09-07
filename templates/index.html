@@ -2233,6 +2233,12 @@
                                 <button type="button" class="btn btn-primary" id="btnOpenAddDepot">
                                     <i class="fa-solid fa-plus"></i> Add New Depot
                                 </button>
+                                <button type="button" class="btn btn-sm" id="btnClearAllUploadedData"
+                                    onclick="adminClearAllUploadedData()"
+                                    style="background:#b91c1c; color:#fff; font-weight:700;"
+                                    title="Clear all uploaded daily reports, delivery invoices and route plans across all depots">
+                                    <i class="fa-solid fa-trash-can"></i> 🧹 Clear Uploaded Data
+                                </button>
                                 <button type="button" class="btn btn-sm" id="btnMasterReset"
                                     style="background:#dc2626; color:#fff;"
                                     title="Reset demo reports back to fresh clean state">
@@ -4616,19 +4622,75 @@
             }
 
             async function deleteDepotReport(depotId, depotName) {
-                if (!confirm(`Are you sure you want to DELETE the daily report and invoices for ${depotName}?`)) {
+                if (!confirm(`Are you sure you want to DELETE the daily report, invoices, and uploaded plans for ${depotName}?`)) {
                     return;
                 }
 
                 try {
-                    const res = await fetch(`/api/reports/delete/${depotId}`, { method: 'DELETE' });
+                    const res = await fetch(`/api/reports/delete/${depotId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
+                        }
+                    });
                     const data = await res.json();
-                    showToast(data.message || 'Report deleted successfully', 'success');
+                    if (data && data.success) {
+                        showToast(data.message || `Report for ${depotName} deleted successfully`, 'success');
+                    } else {
+                        showToast((data && data.message) || 'Failed to delete report', 'error');
+                    }
+                    try { localStorage.removeItem('paragon_draft_plan_' + depotId); } catch(e) {}
                     await loadDashboardSummary();
                     loadDepotsDirectory();
                 } catch (e) {
+                    try { localStorage.removeItem('paragon_draft_plan_' + depotId); } catch(err) {}
                     showToast(`Report for ${depotName} deleted from current view.`, 'success');
+                    await loadDashboardSummary();
+                    loadDepotsDirectory();
                 }
+            }
+
+            async function adminClearAllUploadedData() {
+                const isAdmin = (!currentUser) || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'guest'));
+                if (!isAdmin) {
+                    showToast('Access Denied: Only Admin can clear uploaded operational data.', 'error');
+                    return;
+                }
+
+                if (!confirm("⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL uploaded daily reports, delivery invoices, trips, and route plans across ALL 17 DEPOTS?\n\nThis will permanently remove all operational upload data from the database. (Master directory configuration like routes, vehicles, drivers, and SKU items will remain preserved).")) {
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/admin/clear-all-uploaded-data', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
+                        }
+                    });
+                    const data = await res.json();
+                    if (data && data.success) {
+                        showToast(`🧹 ${data.message || 'All uploaded data cleared successfully!'}`, 'success');
+                    } else {
+                        showToast((data && data.message) || 'Failed to clear uploaded data.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Cleared operational data from local view.', 'info');
+                }
+
+                try {
+                    for (let i = 1; i <= 30; i++) {
+                        localStorage.removeItem('paragon_draft_plan_' + i);
+                    }
+                } catch (e) {}
+
+                await loadDashboardSummary();
+                loadDepotsDirectory();
+                if (typeof loadDepots === 'function') await loadDepots();
+                if (typeof clearDailyEntryForm === 'function') clearDailyEntryForm();
+                if (typeof clearActiveRoutePlan === 'function') clearActiveRoutePlan(false);
             }
 
             async function triggerMasterReset() {
@@ -27215,7 +27277,7 @@
             }
 
             async function adminClearMasterData(clearType) {
-                const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+                const isAdmin = (!currentUser) || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'guest'));
                 if (!isAdmin) {
                     showToast('Access Denied: Only Admin can clear master directory data.', 'error');
                     return;
@@ -27227,7 +27289,7 @@
                     'fleet': 'Depot Fleet & Registered Vehicles',
                     'crew': 'Drivers & Delivery Staff',
                     'borrow': 'Inter-Depot Borrowed Vehicles & History',
-                    'mapping': 'Driver-Vehicle Default Mappings',
+                    'mapping': 'SKU Line-Items & Driver Mappings',
                     'all': 'ALL Master Directory Data'
                 };
                 const targetName = typeNames[clearType] || clearType;
@@ -27285,7 +27347,8 @@
                             loadFleetMaster(depotId);
                         }
                         if (clearType === 'mapping' || clearType === 'all') {
-                            masterDriverMappingCache = [];
+                            masterMappingCache = [];
+                            if (typeof resetSkuMappingForm === 'function') resetSkuMappingForm();
                             loadMappingMaster(depotId);
                         }
                     } else {

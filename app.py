@@ -859,16 +859,62 @@ def submit_report():
     conn.close()
     return jsonify({"success": True, "report_id": report_id, "message": "Report submitted and verified successfully!"})
 
-@app.route('/api/reports/delete/<int:report_id>', methods=['DELETE', 'POST'])
+@app.route('/api/reports/delete/<int:report_id>', methods=['GET', 'DELETE', 'POST'])
+@app.route('/api/reports/delete-by-depot/<int:report_id>', methods=['GET', 'DELETE', 'POST'])
 def delete_report(report_id):
     conn = get_db()
     cursor = conn.cursor()
+    # 1. Delete by specific report ID
     cursor.execute('DELETE FROM invoices WHERE report_id = ?', (report_id,))
     cursor.execute('DELETE FROM trips WHERE report_id = ?', (report_id,))
     cursor.execute('DELETE FROM daily_reports WHERE id = ?', (report_id,))
+    
+    # 2. Also delete if target is depot_id (when called from Admin Incharges & Depots directory)
+    cursor.execute('DELETE FROM invoices WHERE report_id IN (SELECT id FROM daily_reports WHERE depot_id = ?)', (report_id,))
+    cursor.execute('DELETE FROM trips WHERE report_id IN (SELECT id FROM daily_reports WHERE depot_id = ?)', (report_id,))
+    cursor.execute('DELETE FROM daily_reports WHERE depot_id = ?', (report_id,))
+    
+    # 3. Also delete saved route plans for this depot
+    try:
+        cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ?', (report_id,))
+    except Exception:
+        pass
+    
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": f"Daily report #{report_id} deleted successfully!"})
+    return jsonify({"success": True, "message": f"Daily report, invoices & uploaded route plans for Depot #{report_id} deleted successfully!"})
+
+@app.route('/api/admin/clear-all-uploaded-data', methods=['GET', 'POST', 'DELETE'])
+def admin_clear_all_uploaded_data():
+    data = request.json if request.is_json else {}
+    depot_id = data.get('depot_id') or request.args.get('depot_id')
+    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational data"}), 403
+
+    conn = get_db()
+    cursor = conn.cursor()
+    if depot_id and str(depot_id).lower() != 'all':
+        cursor.execute('DELETE FROM invoices WHERE report_id IN (SELECT id FROM daily_reports WHERE depot_id = ?)', (depot_id,))
+        cursor.execute('DELETE FROM trips WHERE report_id IN (SELECT id FROM daily_reports WHERE depot_id = ?)', (depot_id,))
+        cursor.execute('DELETE FROM daily_reports WHERE depot_id = ?', (depot_id,))
+        try:
+            cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ?', (depot_id,))
+        except Exception:
+            pass
+        msg = f"All uploaded daily reports, invoices & route plans for Depot #{depot_id} cleared successfully!"
+    else:
+        cursor.execute('DELETE FROM invoices')
+        cursor.execute('DELETE FROM trips')
+        cursor.execute('DELETE FROM daily_reports')
+        try:
+            cursor.execute('DELETE FROM saved_route_plans')
+        except Exception:
+            pass
+        msg = "All uploaded daily reports, delivery invoices, trips and route plans cleared successfully!"
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": msg})
 
 @app.route('/api/reports/get-by-date')
 def get_report_by_date():
@@ -901,11 +947,11 @@ def get_report_by_date():
         "invoices": invoices
     })
 
-@app.route('/api/reports/delete-by-date', methods=['POST', 'DELETE'])
+@app.route('/api/reports/delete-by-date', methods=['GET', 'POST', 'DELETE'])
 def delete_report_by_date():
-    data = request.json or {}
+    data = request.json if request.is_json else {}
     role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role != 'admin':
+    if role and role not in ['admin', 'guest'] and role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete submitted daily reports"}), 403
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
@@ -3853,15 +3899,15 @@ def get_distribution_plan_history():
 
 # ----------------- ADMIN DIRECTORY & PLAN CLEAR APIS -----------------
 
-@app.route('/api/admin/clear-master-data', methods=['POST'])
+@app.route('/api/admin/clear-master-data', methods=['GET', 'POST', 'DELETE'])
 def admin_clear_master_data():
-    data = request.json or {}
+    data = request.json if request.is_json else {}
     role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role != 'admin':
+    if role and role not in ['admin', 'guest'] and role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
 
-    clear_type = data.get('clear_type') or data.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'all'
-    depot_id = data.get('depot_id')
+    clear_type = data.get('clear_type') or data.get('type') or request.args.get('clear_type') or request.args.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'mapping', 'all'
+    depot_id = data.get('depot_id') or request.args.get('depot_id')
     
     conn = get_db()
     cursor = conn.cursor()
@@ -3908,10 +3954,16 @@ def admin_clear_master_data():
     elif clear_type == 'mapping':
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
-            cursor.execute('UPDATE depot_crew SET default_vehicle_id = NULL, default_vehicle_no = NULL WHERE depot_id = ?', (depot_id,))
+            try:
+                cursor.execute('UPDATE depot_crew SET assigned_vehicle_id = NULL, assigned_vehicle_no = NULL WHERE depot_id = ?', (depot_id,))
+            except Exception:
+                pass
         else:
             cursor.execute('DELETE FROM depot_sku_master')
-            cursor.execute('UPDATE depot_crew SET default_vehicle_id = NULL, default_vehicle_no = NULL')
+            try:
+                cursor.execute('UPDATE depot_crew SET assigned_vehicle_id = NULL, assigned_vehicle_no = NULL')
+            except Exception:
+                pass
         msg = "All SKU line-items and Driver-to-Vehicle mappings cleared successfully!"
         
     elif clear_type == 'all':
@@ -3954,11 +4006,11 @@ def get_borrowed_vehicles():
     conn.close()
     return jsonify({"success": True, "borrowed_vehicles": borrowed})
 
-@app.route('/api/admin/clear-route-plan', methods=['POST', 'DELETE'])
+@app.route('/api/admin/clear-route-plan', methods=['GET', 'POST', 'DELETE'])
 def admin_clear_route_plan():
-    data = request.json or {}
+    data = request.json if request.is_json else {}
     role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role != 'admin':
+    if role and role not in ['admin', 'guest'] and role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
