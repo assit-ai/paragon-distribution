@@ -1762,6 +1762,13 @@
                                      <i class="fa-solid fa-paper-plane"></i> 🚀 Submit & Dispatch Plan
                                  </button>
 
+                                 <!-- Clear Plan Data Button -->
+                                 <button type="button" class="btn btn-outline" onclick="clearActiveRoutePlan()"
+                                     style="border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1); padding: 9px 14px; font-weight: 800; font-size: 0.85rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                                     title="Clear active delivery vans, unassigned orders and uploaded Poloxy data">
+                                     <i class="fa-solid fa-trash-can"></i> 🧹 Clear Plan Data
+                                 </button>
+
                                 <button type="button" class="btn" onclick="openPlanHistoryModal()"
                                     style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; padding: 9px 14px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
                                     title="View Previously Uploaded / Dispatched Plans for Today or Past Dates">
@@ -1998,6 +2005,12 @@
                                     <i class="fa-solid fa-clipboard-list"></i> Transfer to Daily Entry
                                 </button>
 
+                                <button type="button" class="btn btn-outline" onclick="clearActiveRoutePlan()"
+                                    style="border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1); padding: 11px 18px; font-weight: 700; font-size: 0.88rem; border-radius: 8px;"
+                                    title="Clear unsubmitted route plan and start fresh">
+                                    <i class="fa-solid fa-trash-can"></i> 🧹 Clear Plan Data
+                                </button>
+
                                 <button type="button" class="btn" onclick="submitAndDispatchRoutePlan()"
                                     style="background: linear-gradient(135deg, #10b981, #047857); color: #fff; padding: 12px 28px; font-weight: 900; font-size: 0.95rem; border-radius: 8px; border: none; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45); cursor: pointer; display: inline-flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-paper-plane" style="font-size: 1.1rem;"></i> 🚀 SUBMIT & DISPATCH DELIVERY PLAN
@@ -2190,8 +2203,10 @@
                             <!-- Form Actions -->
                             <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                                 <div style="display: flex; gap: 10px; align-items: center;">
-                                    <button type="button" class="btn btn-outline" id="resetFormBtn">
-                                        <i class="fa-solid fa-rotate-left"></i> Reset Form
+                                    <button type="button" class="btn btn-outline" id="resetFormBtn" onclick="clearDailyEntryForm()"
+                                        style="border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1); font-weight: 700;"
+                                        title="Clear entered trips and invoices to start fresh">
+                                        <i class="fa-solid fa-trash-can"></i> 🧹 Clear Entry Form Data
                                     </button>
                                     <button type="button" class="btn" id="deleteDayReportBtn"
                                         style="display: none; background: #dc2626; color: #fff; border: none; padding: 10px 18px; font-weight: 700; border-radius: 8px; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);">
@@ -5660,6 +5675,13 @@
                                             title="Print Run Sheets for this date">
                                             <i class="fa-solid fa-print"></i>
                                         </button>
+                                        ${(currentUser && currentUser.role === 'admin') ? `
+                                        <button type="button" class="btn btn-sm admin-only-btn" onclick="adminDeleteSavedRoutePlan('${item.plan_date}', ${depotId})"
+                                            style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; font-weight: 700; font-size: 0.78rem; padding: 4px 8px; border-radius: 4px; cursor: pointer;"
+                                            title="Admin Only: Delete saved route plan and run sheets for this date">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                        ` : ''}
                                     </div>
                                 </td>
                             `;
@@ -26988,6 +27010,12 @@
                     const elD2 = document.getElementById('masterCrewDepotLbl');
                     if (elD1) elD1.textContent = dName;
                     if (elD2) elD2.textContent = dName;
+
+                    // Toggle Admin-only button visibility
+                    const isAdmin = currentUser && currentUser.role === 'admin';
+                    document.querySelectorAll('#masterFleetModal .admin-only-btn').forEach(btn => {
+                        btn.style.display = isAdmin ? 'inline-flex' : 'none';
+                    });
                     
                     switchMasterTab(tabName);
                 }
@@ -26996,6 +27024,126 @@
             function closeMasterFleetModal() {
                 const modal = document.getElementById('masterFleetModal');
                 if (modal) modal.style.display = 'none';
+            }
+
+            async function adminClearMasterData(clearType) {
+                if (!currentUser || currentUser.role !== 'admin') {
+                    showToast('Access Denied: Only Admin can clear master directory data.', 'error');
+                    return;
+                }
+
+                const typeNames = {
+                    'routes': 'Routes & Route Directories',
+                    'consignees': 'Mapped Consignees & Outlets',
+                    'fleet': 'Depot Fleet & Registered Vehicles',
+                    'crew': 'Drivers & Delivery Staff',
+                    'borrow': 'Inter-Depot Borrowed Vehicles & History',
+                    'all': 'ALL Master Directory Data'
+                };
+                const targetName = typeNames[clearType] || clearType;
+                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+
+                const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for this depot?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
+                if (!confirmed) return;
+
+                try {
+                    const res = await fetch('/api/admin/clear-master-data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clear_type: clearType,
+                            depot_id: depotId,
+                            role: currentUser.role
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(`🗑️ ${data.message || 'Master data cleared successfully!'}`, 'success');
+                        
+                        if (clearType === 'routes' || clearType === 'consignees' || clearType === 'all') {
+                            masterRoutesCache = [];
+                            masterConsigneesCache = [];
+                            loadRoutesMaster(depotId);
+                            loadConsigneesMaster(depotId);
+                        }
+                        if (clearType === 'fleet' || clearType === 'all') {
+                            masterFleetCache = [];
+                            loadFleetMaster(depotId);
+                        }
+                        if (clearType === 'crew' || clearType === 'all') {
+                            masterCrewCache = [];
+                            loadCrewMaster(depotId);
+                        }
+                        if (clearType === 'borrow' || clearType === 'all') {
+                            loadBorrowableFleet(depotId);
+                        }
+                    } else {
+                        showToast(data.message || 'Failed to clear master data.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error clearing master data: ' + err.message, 'error');
+                }
+            }
+
+            function clearActiveRoutePlan(showConfirmation = true) {
+                if (showConfirmation) {
+                    const confirmed = confirm('🧹 Are you sure you want to clear all active delivery vans, unassigned orders, and uploaded Poloxy data from the Delivery Route Planner? (This resets unsubmitted plan data)');
+                    if (!confirmed) return;
+                }
+                
+                currentPlanData.vans = [];
+                currentPlanData.unassigned_orders = [];
+                
+                // Clear file input values
+                const topInput = document.getElementById('topPoloxyFileInput');
+                if (topInput) topInput.value = '';
+                const modalInput = document.getElementById('poloxyFileInput');
+                if (modalInput) modalInput.value = '';
+
+                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                try {
+                    localStorage.removeItem('paragon_draft_plan_' + depotId);
+                } catch (e) {}
+
+                renderActiveVans();
+                renderUnassignedBucket();
+                updateDayGrandTotals();
+                updateDepotFleetStatusBar();
+                
+                showToast('🧹 Route Planning data cleared successfully. Ready for fresh entry or file upload!', 'info');
+            }
+
+            async function adminDeleteSavedRoutePlan(planDate, depotId) {
+                if (!currentUser || currentUser.role !== 'admin') {
+                    showToast('Access Denied: Only Admin can delete saved route plans.', 'error');
+                    return;
+                }
+                const confirmed = confirm(`⚠️ Admin Confirmation: Are you sure you want to delete the saved Route Plan and dispatched records for ${planDate} (Depot ID: ${depotId})? This action cannot be undone.`);
+                if (!confirmed) return;
+
+                try {
+                    const res = await fetch('/api/admin/clear-route-plan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            plan_date: planDate,
+                            depot_id: depotId,
+                            role: currentUser.role
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(`🗑️ ${data.message || 'Route plan deleted successfully!'}`, 'success');
+                        openPlanHistoryModal(); // Refresh table
+                        if (currentPlanData && currentPlanData.date === planDate && currentPlanData.depot_id == depotId) {
+                            clearActiveRoutePlan(false);
+                        }
+                    } else {
+                        showToast(data.message || 'Failed to delete route plan.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error deleting route plan: ' + err.message, 'error');
+                }
             }
 
             function switchMasterTab(tabName) {
@@ -29041,6 +29189,28 @@
                 closeChangePasswordModal();
             }
 
+            function clearDailyEntryForm() {
+                const confirmed = confirm('🧹 Are you sure you want to clear all entered trips, invoices, and form data? (This resets unsaved Daily Entry data)');
+                if (!confirmed) return;
+
+                const tripsTbody = document.getElementById('tripsTbody');
+                if (tripsTbody) tripsTbody.innerHTML = '';
+
+                const invTbody = document.getElementById('invoicesTbody');
+                if (invTbody) invTbody.innerHTML = '';
+
+                if (typeof updateReconciliationAndTotals === 'function') {
+                    updateReconciliationAndTotals();
+                } else if (typeof calculateSummaryTotals === 'function') {
+                    calculateSummaryTotals();
+                }
+
+                const bulkFile = document.getElementById('excelBulkFileInput');
+                if (bulkFile) bulkFile.value = '';
+
+                showToast('🧹 Daily Entry form data cleared successfully!', 'info');
+            }
+
             // Globally expose functions to window object
             window.deleteVan = deleteVan;
             window.openMasterFleetModal = openMasterFleetModal;
@@ -29079,6 +29249,10 @@
             window.onPlanShiftChange = onPlanShiftChange;
             window.onPlanDateChange = onPlanDateChange;
             window.onPlanDepotChange = onPlanDepotChange;
+            window.adminClearMasterData = adminClearMasterData;
+            window.clearActiveRoutePlan = clearActiveRoutePlan;
+            window.adminDeleteSavedRoutePlan = adminDeleteSavedRoutePlan;
+            window.clearDailyEntryForm = clearDailyEntryForm;
 </script>
 
         <!-- MODAL: CHANGE USER PASSWORD -->
@@ -29579,22 +29753,25 @@
                 </div>
 
                 <!-- Master Body Container -->
-                <div style="padding: 20px 24px; overflow-y: auto; flex: 1;">
-                    
-                    <!-- TAB 1: ROUTES & CONSIGNEE DIRECTORY -->
+                <div style="padding: 20px 24px; overflow-y: auto; flex-grow: 1;">
+
+                    <!-- TAB 1: ROUTES & CONSIGNEES -->
                     <div id="masterTabPaneRoutes" class="master-tab-pane">
-                        <div style="display: grid; grid-template-columns: 380px 1fr; gap: 20px;">
-                            <!-- Left: Routes List & Add Form -->
+                        <div style="display: grid; grid-template-columns: 320px 1fr; gap: 20px;">
+                            <!-- Left: Routes Management -->
                             <div>
                                 <!-- Routes Bulk Action Bar -->
-                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
                                     <a href="/api/template/routes-blank-template" class="btn btn-outline btn-sm" style="font-size: 0.78rem; padding: 5px 10px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-file-excel text-green"></i> Blank Route Template
+                                        <i class="fa-solid fa-file-excel text-green"></i> Blank Template
                                     </a>
                                     <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('bulkRoutesFileInput').click()" style="font-size: 0.78rem; padding: 5px 10px; background: #0284c7; border: none; font-weight: 700;">
-                                        <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload Routes
+                                        <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload
                                     </button>
                                     <input type="file" id="bulkRoutesFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleBulkUpload('routes', event)">
+                                    <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('routes')" style="font-size: 0.78rem; padding: 5px 10px; border-color: #ef4444; color: #f87171; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Admin Only: Clear all routes for this depot">
+                                        <i class="fa-solid fa-trash-can"></i> Clear All Routes
+                                    </button>
                                 </div>
 
                                 <div class="card" style="padding: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; margin-bottom: 16px;">
@@ -29631,6 +29808,9 @@
                                                 <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload Consignees
                                             </button>
                                             <input type="file" id="bulkConsigneesFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleBulkUpload('consignees', event)">
+                                            <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('consignees')" style="font-size: 0.78rem; padding: 5px 10px; border-color: #ef4444; color: #f87171; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Admin Only: Clear all consignees for this depot">
+                                                <i class="fa-solid fa-trash-can"></i> Clear All Consignees
+                                            </button>
                                             <select id="newConsigneeRouteSelect" style="padding: 6px 10px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 4px; font-size: 0.82rem; font-weight: 600;">
                                                 <!-- Route options -->
                                             </select>
@@ -29693,6 +29873,9 @@
                                     <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload Fleet
                                 </button>
                                 <input type="file" id="bulkFleetFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleBulkUpload('fleet', event)">
+                                <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('fleet')" style="border-color: #ef4444; color: #f87171; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Admin Only: Clear all vehicles for this depot">
+                                    <i class="fa-solid fa-trash-can"></i> Clear All Fleet
+                                </button>
                                 <button type="button" class="btn btn-primary" onclick="openRentalVanModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; font-weight: 800; font-size: 0.85rem;">
                                     <i class="fa-solid fa-key"></i> + Add Rental Van
                                 </button>
@@ -29751,7 +29934,7 @@
 
                     <!-- TAB 3: CREW (DRIVERS & DELIVERYMEN) -->
                     <div id="masterTabPaneCrew" class="master-tab-pane" style="display: none;">
-                        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
                             <a href="/api/template/crew-blank-template" class="btn btn-outline btn-sm" style="font-size: 0.82rem; padding: 6px 12px; color: #a78bfa; border-color: rgba(167, 139, 250, 0.4); text-decoration: none;">
                                 <i class="fa-solid fa-file-excel text-green"></i> Blank Crew Template
                             </a>
@@ -29759,6 +29942,9 @@
                                 <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload Crew
                             </button>
                             <input type="file" id="bulkCrewFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleBulkUpload('crew', event)">
+                            <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('crew')" style="border-color: #ef4444; color: #f87171; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Admin Only: Clear all drivers and delivery assistants for this depot">
+                                <i class="fa-solid fa-trash-can"></i> Clear All Staff
+                            </button>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 360px 1fr; gap: 20px;">
@@ -29805,11 +29991,14 @@
 
                     <!-- TAB 4: INTER-DEPOT VEHICLE BORROWING & SPARE POOL -->
                     <div id="masterTabPaneBorrow" class="master-tab-pane" style="display: none;">
-                        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                             <div>
                                 <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 700; margin-bottom: 2px;"><i class="fa-solid fa-handshake"></i> Inter-Depot Fleet Borrowing System</h4>
                                 <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">If order volume is high and your depot runs short of vans, you can borrow idle/spare vehicles from neighboring Paragon depots with 1-click authorization.</p>
                             </div>
+                            <button type="button" class="btn btn-outline btn-sm admin-only-btn" onclick="adminClearMasterData('borrow')" style="border-color: #ef4444; color: #f87171; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Admin Only: Clear borrowed vehicles & history">
+                                <i class="fa-solid fa-trash-can"></i> Clear Borrowed Fleet
+                            </button>
                         </div>
 
                         <h4 style="color: #cbd5e1; font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;">Available Spare / Idle Vehicles Across Other Depots</h4>

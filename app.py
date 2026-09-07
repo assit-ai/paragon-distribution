@@ -2698,6 +2698,139 @@ def get_distribution_plan_history():
     conn.close()
     return jsonify({"success": True, "history": history})
 
+# ----------------- ADMIN DIRECTORY & PLAN CLEAR APIS -----------------
+
+@app.route('/api/admin/clear-master-data', methods=['POST'])
+def admin_clear_master_data():
+    data = request.json or {}
+    role = session.get('role') or data.get('role')
+    if role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
+
+    clear_type = data.get('clear_type') or data.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'all'
+    depot_id = data.get('depot_id')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if clear_type == 'routes':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
+        else:
+            cursor.execute('DELETE FROM route_consignees')
+            cursor.execute('DELETE FROM routes')
+        msg = "All route master records and mappings cleared successfully!"
+        
+    elif clear_type == 'consignees':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
+        else:
+            cursor.execute('DELETE FROM route_consignees')
+        msg = "All consignee outlet mappings cleared successfully!"
+        
+    elif clear_type == 'fleet':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
+        else:
+            cursor.execute('DELETE FROM fleet_vehicles')
+        msg = "All fleet vehicles and rental entries cleared successfully!"
+        
+    elif clear_type == 'crew':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
+        else:
+            cursor.execute('DELETE FROM depot_crew')
+        msg = "All drivers & delivery staff cleared successfully!"
+        
+    elif clear_type == 'borrow':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
+            cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ? AND ownership = "Borrowed"', (depot_id,))
+        else:
+            cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+            cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed"')
+        msg = "All inter-depot borrow requests and borrowed vehicles cleared successfully!"
+        
+    elif clear_type == 'all':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
+        else:
+            cursor.execute('DELETE FROM route_consignees')
+            cursor.execute('DELETE FROM routes')
+            cursor.execute('DELETE FROM fleet_vehicles')
+            cursor.execute('DELETE FROM depot_crew')
+            cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+        msg = "All Master Directory records for this depot cleared successfully!"
+    else:
+        conn.close()
+        return jsonify({"success": False, "message": "Invalid clear type specified"}), 400
+        
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": msg})
+
+@app.route('/api/admin/clear-route-plan', methods=['POST', 'DELETE'])
+def admin_clear_route_plan():
+    data = request.json or {}
+    role = session.get('role') or data.get('role')
+    if role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
+
+    depot_id = data.get('depot_id') or request.args.get('depot_id')
+    plan_date = data.get('date') or data.get('plan_date') or request.args.get('date') or request.args.get('plan_date')
+    clear_all = data.get('clear_all', False)
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS saved_route_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        depot_id INTEGER NOT NULL,
+        plan_date TEXT NOT NULL,
+        shift TEXT,
+        shift_time TEXT,
+        total_vans INTEGER DEFAULT 0,
+        total_outlets INTEGER DEFAULT 0,
+        total_pkts REAL DEFAULT 0,
+        total_kg REAL DEFAULT 0,
+        gross_value REAL DEFAULT 0,
+        plan_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(depot_id, plan_date)
+    )
+    ''')
+    
+    if clear_all:
+        if depot_id:
+            cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ?', (depot_id,))
+        else:
+            cursor.execute('DELETE FROM saved_route_plans')
+        msg = "All saved route plans deleted successfully!"
+    elif depot_id and plan_date:
+        cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ? AND plan_date = ?', (depot_id, plan_date))
+        # Also if there are daily_reports created for this date that admin wants cleared
+        if data.get('delete_daily_report'):
+            cursor.execute('SELECT id FROM daily_reports WHERE depot_id = ? AND report_date = ?', (depot_id, plan_date))
+            for r in cursor.fetchall():
+                cursor.execute('DELETE FROM invoices WHERE report_id = ?', (r['id'],))
+                cursor.execute('DELETE FROM trips WHERE report_id = ?', (r['id'],))
+            cursor.execute('DELETE FROM daily_reports WHERE depot_id = ? AND report_date = ?', (depot_id, plan_date))
+        msg = f"Saved route plan for {plan_date} deleted successfully!"
+    else:
+        conn.close()
+        return jsonify({"success": False, "message": "Missing depot_id or date"}), 400
+        
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": msg})
+
 # ==============================================================================
 # POLOXY ERP BATCH PARSER WITH ROUTE & FLEET AUTO-MAPPING
 # ==============================================================================
@@ -2910,6 +3043,150 @@ def api_import_poloxy_orders():
         
     except Exception as err:
         return jsonify({'success': False, 'message': f'Error reading Poloxy file: {str(err)}'}), 500
+
+
+# ==============================================================================
+# ADMIN MASTER & ROUTE PLAN CLEAR REST APIS
+# ==============================================================================
+
+@app.route('/api/admin/clear-master-data', methods=['POST'])
+def clear_master_data():
+    data = request.json or {}
+    clear_type = data.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'all'
+    depot_id = data.get('depot_id')  # optional, if provided clears for specific depot, else all or specific depot
+    
+    # Verify Admin permission
+    user = session.get('user', {})
+    is_admin = (user.get('role') == 'admin') or (data.get('role') == 'admin') or (request.headers.get('X-Admin-Role') == 'admin')
+    if not is_admin:
+        return jsonify({'success': False, 'message': 'Unauthorized: Admin privileges required to clear master directory data.'}), 403
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        deleted_count = 0
+        if clear_type == 'routes':
+            if depot_id:
+                cursor.execute('DELETE FROM master_routes WHERE depot_id = ?', (depot_id,))
+            else:
+                cursor.execute('DELETE FROM master_routes')
+            deleted_count = cursor.rowcount
+            msg = f"Cleared {deleted_count} routes from Master Directory."
+        elif clear_type == 'consignees':
+            if depot_id:
+                cursor.execute('DELETE FROM master_consignees WHERE depot_id = ?', (depot_id,))
+            else:
+                cursor.execute('DELETE FROM master_consignees')
+            deleted_count = cursor.rowcount
+            msg = f"Cleared {deleted_count} consignees/outlets from Master Directory."
+        elif clear_type == 'fleet':
+            if depot_id:
+                cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
+            else:
+                cursor.execute('DELETE FROM fleet_vehicles')
+            deleted_count = cursor.rowcount
+            msg = f"Cleared {deleted_count} vehicles from Depot Fleet Master."
+        elif clear_type == 'crew':
+            if depot_id:
+                cursor.execute('DELETE FROM delivery_crew WHERE depot_id = ?', (depot_id,))
+            else:
+                cursor.execute('DELETE FROM delivery_crew')
+            deleted_count = cursor.rowcount
+            msg = f"Cleared {deleted_count} staff members from Drivers & Delivery Crew Master."
+        elif clear_type == 'borrow':
+            if depot_id:
+                cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
+            else:
+                cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+            deleted_count = cursor.rowcount
+            msg = f"Cleared {deleted_count} inter-depot borrowing records."
+        elif clear_type == 'all':
+            if depot_id:
+                cursor.execute('DELETE FROM master_routes WHERE depot_id = ?', (depot_id,))
+                cursor.execute('DELETE FROM master_consignees WHERE depot_id = ?', (depot_id,))
+                cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
+                cursor.execute('DELETE FROM delivery_crew WHERE depot_id = ?', (depot_id,))
+                cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
+            else:
+                cursor.execute('DELETE FROM master_routes')
+                cursor.execute('DELETE FROM master_consignees')
+                cursor.execute('DELETE FROM fleet_vehicles')
+                cursor.execute('DELETE FROM delivery_crew')
+                cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+            msg = "Cleared all Master Directory data successfully."
+        else:
+            conn.close()
+            return jsonify({'success': False, 'message': f'Unknown master data type: {clear_type}'}), 400
+            
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': msg, 'deleted_count': deleted_count})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'success': False, 'message': f'Error clearing master data: {str(e)}'}), 500
+
+
+@app.route('/api/admin/clear-route-plan', methods=['POST', 'DELETE'])
+def clear_saved_route_plan():
+    data = request.json or {}
+    plan_date = data.get('plan_date')
+    depot_id = data.get('depot_id')
+    clear_associated_report = data.get('clear_daily_report', False)
+    
+    # Verify Admin permission
+    user = session.get('user', {})
+    is_admin = (user.get('role') == 'admin') or (data.get('role') == 'admin') or (request.headers.get('X-Admin-Role') == 'admin')
+    if not is_admin:
+        return jsonify({'success': False, 'message': 'Unauthorized: Admin privileges required to clear submitted route plans.'}), 403
+        
+    if not plan_date:
+        return jsonify({'success': False, 'message': 'Plan date is required.'}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Delete saved route plan
+        if depot_id:
+            cursor.execute('DELETE FROM saved_route_plans WHERE plan_date = ? AND depot_id = ?', (plan_date, depot_id))
+        else:
+            cursor.execute('DELETE FROM saved_route_plans WHERE plan_date = ?', (plan_date,))
+        deleted_plans = cursor.rowcount
+        
+        # If requested, also clean up daily reports for that date
+        deleted_reports = 0
+        if clear_associated_report:
+            if depot_id:
+                cursor.execute('SELECT id FROM daily_reports WHERE report_date = ? AND depot_id = ?', (plan_date, depot_id))
+                rep_ids = [r['id'] for r in cursor.fetchall()]
+                for r_id in rep_ids:
+                    cursor.execute('DELETE FROM invoice_entries WHERE report_id = ?', (r_id,))
+                    cursor.execute('DELETE FROM trips WHERE report_id = ?', (r_id,))
+                    cursor.execute('DELETE FROM product_reconciliations WHERE report_id = ?', (r_id,))
+                    cursor.execute('DELETE FROM daily_reports WHERE id = ?', (r_id,))
+                    deleted_reports += 1
+            else:
+                cursor.execute('SELECT id FROM daily_reports WHERE report_date = ?', (plan_date,))
+                rep_ids = [r['id'] for r in cursor.fetchall()]
+                for r_id in rep_ids:
+                    cursor.execute('DELETE FROM invoice_entries WHERE report_id = ?', (r_id,))
+                    cursor.execute('DELETE FROM trips WHERE report_id = ?', (r_id,))
+                    cursor.execute('DELETE FROM product_reconciliations WHERE report_id = ?', (r_id,))
+                    cursor.execute('DELETE FROM daily_reports WHERE id = ?', (r_id,))
+                    deleted_reports += 1
+                    
+        conn.commit()
+        conn.close()
+        return jsonify({
+            'success': True,
+            'message': f"Deleted {deleted_plans} saved route plan(s) for date {plan_date}." + (f" Also deleted {deleted_reports} daily report(s)." if deleted_reports > 0 else "")
+        })
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'success': False, 'message': f'Error clearing route plan: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
