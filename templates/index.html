@@ -2626,6 +2626,7 @@
             }
 
             function updateUserBadge() {
+                window.currentUser = currentUser;
                 const badge = document.getElementById('userRoleBadge');
                 const userDisplay = document.getElementById('userDisplayName');
                 if (badge && userDisplay) {
@@ -27124,6 +27125,60 @@
                 if (modal) modal.style.display = 'none';
             }
 
+            function updateMappingFormCategoryHighlight(depotId) {
+                const depotList = getParagonDepotList();
+                const d = depotList.find(item => item.id == depotId);
+                const dName = (d ? d.name : '').toLowerCase();
+                const dCat = (d ? d.category : '').toLowerCase();
+                
+                let primaryCat = 'frozen';
+                let primaryLabel = 'Frozen Foods / Chicken (Kg)';
+                
+                if (dCat.includes('egg') || dName.includes('egg') || depotId == 9) {
+                    primaryCat = 'egg';
+                    primaryLabel = 'Fresh Egg (Pcs)';
+                } else if (dCat.includes('dairy') || dName.includes('milk') || depotId == 4 || depotId == 11) {
+                    primaryCat = 'dairy';
+                    primaryLabel = 'Dairy / Milk (Liter)';
+                } else if (dCat.includes('dry') || dName.includes('dry') || depotId == 2 || depotId == 14 || depotId == 16) {
+                    primaryCat = 'dry';
+                    primaryLabel = 'Dry Goods / Box (Ctn)';
+                } else if (dCat.includes('tea') || dName.includes('tea') || depotId == 5 || depotId == 10) {
+                    primaryCat = 'frozen';
+                    primaryLabel = 'Tea (Kg)';
+                } else {
+                    primaryCat = 'frozen';
+                    primaryLabel = 'Frozen Foods / Chicken (Kg)';
+                }
+
+                const badge = document.getElementById('mapPrimaryCategoryBadge');
+                if (badge) {
+                    badge.innerHTML = `🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">${primaryLabel}</strong>`;
+                }
+
+                const inputs = {
+                    frozen: document.getElementById('mapCapFrozen'),
+                    egg: document.getElementById('mapCapEgg'),
+                    dairy: document.getElementById('mapCapDairy'),
+                    dry: document.getElementById('mapCapDry')
+                };
+
+                for (const [k, inp] of Object.entries(inputs)) {
+                    if (inp && inp.parentElement) {
+                        if (k === primaryCat) {
+                            inp.style.border = '2px solid #38bdf8';
+                            inp.parentElement.style.background = 'rgba(56, 189, 248, 0.12)';
+                            inp.parentElement.style.borderRadius = '6px';
+                            inp.parentElement.style.padding = '4px 6px';
+                        } else {
+                            inp.style.border = '1px solid #475569';
+                            inp.parentElement.style.background = 'transparent';
+                            inp.parentElement.style.padding = '0';
+                        }
+                    }
+                }
+            }
+
             function onMasterModalDepotChange(reload = true) {
                 const depotId = getSelectedMasterDepotId();
                 const depotList = getParagonDepotList();
@@ -27141,6 +27196,8 @@
                 if (elD2) elD2.textContent = depotName;
                 if (elD3) elD3.textContent = depotName;
                 if (elD4) elD4.textContent = depotName;
+
+                updateMappingFormCategoryHighlight(depotId);
 
                 if (reload) {
                     // Identify which tab is currently active and reload its data
@@ -28128,6 +28185,20 @@
 
             function downloadMasterMappingTemplate() {
                 const depotId = getSelectedMasterDepotId();
+                if (!depotId || depotId === 'all') {
+                    showToast('⚠️ অনুগ্রহ করে প্রথমে উপরের হেডার ড্রপডাউন থেকে নির্দিষ্ট ডিপো (যেমন: Tejgaon Frozen/CK) সিলেক্ট করুন।', 'warning');
+                    const sel = document.getElementById('masterModalDepotSelect');
+                    if (sel) {
+                        sel.focus();
+                        sel.style.boxShadow = '0 0 12px #f59e0b';
+                        setTimeout(() => { if (sel) sel.style.boxShadow = 'none'; }, 2500);
+                    }
+                    return;
+                }
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId);
+                const depotName = depotObj ? depotObj.name : `Depot #${depotId}`;
+                showToast(`📥 ${depotName}-এর জন্য ১-শিট এক্সেল টেমপ্লেট ডাউনলোড হচ্ছে...`, 'info');
                 window.location.href = `/api/template/driver-vehicle-mapping-excel?depot_id=${depotId}`;
             }
 
@@ -28136,14 +28207,24 @@
                 if (!file) return;
 
                 let depotId = getSelectedMasterDepotId();
+                if (!depotId || depotId === 'all') {
+                    showToast('⚠️ এক্সেল আপলোডের পূর্বে অনুগ্রহ করে উপরে নির্দিষ্ট ডিপো সিলেক্ট করুন।', 'warning');
+                    const sel = document.getElementById('masterModalDepotSelect');
+                    if (sel) {
+                        sel.focus();
+                        sel.style.boxShadow = '0 0 12px #f59e0b';
+                        setTimeout(() => { if (sel) sel.style.boxShadow = 'none'; }, 2500);
+                    }
+                    event.target.value = '';
+                    return;
+                }
                 const depotList = getParagonDepotList();
-                const isGlobal = (depotId === 'all');
-                const depotObj = isGlobal ? { name: 'All Depots (Global)' } : (depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` });
+                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('depot_id', depotId);
 
-                showToast(`⏳ Uploading & processing Driver-Vehicle Mapping & Capacities for ${depotObj.name} from Excel...`, 'info');
+                showToast(`⏳ ${depotObj.name}-এর ১-শিট এক্সেল থেকে ড্রাইভার, গাড়ি ও ক্যাপাসিটি আপলোড হচ্ছে...`, 'info');
 
                 try {
                     const res = await fetch('/api/crew/mapping-bulk-upload', {
@@ -31096,9 +31177,14 @@
 
                             <!-- Multi-Category Capacities Input Grid -->
                             <div style="background: #0b1329; padding: 12px 14px; border-radius: 6px; border: 1px solid #334155; margin-bottom: 14px;">
-                                <label style="font-size: 0.82rem; font-weight: 800; color: #4ade80; display: block; margin-bottom: 8px;">
-                                    <i class="fa-solid fa-boxes-stacked"></i> Vehicle Max Capacities by Product Category ( ধারণক্ষমতা )
-                                </label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                                    <label style="font-size: 0.82rem; font-weight: 800; color: #4ade80; margin: 0;">
+                                        <i class="fa-solid fa-boxes-stacked"></i> Vehicle Max Capacities by Product Category ( ধারণক্ষমতা )
+                                    </label>
+                                    <span id="mapPrimaryCategoryBadge" style="font-size: 0.76rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
+                                        🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">Auto-detecting...</strong>
+                                    </span>
+                                </div>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
                                     <div>
                                         <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🍗 Frozen Foods / Chicken (Kg):</span>

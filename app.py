@@ -1958,29 +1958,62 @@ def update_crew_default_mapping():
     conn.close()
     return jsonify({"success": True, "message": f"Default mapping saved for Driver {driver_name or cid}!"})
 
+def get_depot_primary_category_info(depot_row):
+    d_name = (depot_row['name'] if depot_row else '').lower()
+    d_cat = (depot_row['category'] if depot_row else '').lower()
+    d_id = depot_row['id'] if depot_row else 9
+
+    if 'egg' in d_cat or 'egg' in d_name or d_id == 9:
+        return ("Egg", "Vehicle Max Capacity - Fresh Eggs (Pcs) *", "Pcs", 30000.0)
+    elif 'dairy' in d_cat or 'milk' in d_name or d_id in [4, 11]:
+        return ("Dairy", "Vehicle Max Capacity - Dairy / Milk (Liter) *", "Liter", 1000.0)
+    elif 'dry' in d_cat or 'dry' in d_name or d_id in [2, 14, 16]:
+        return ("Dry Goods / Box Items", "Vehicle Max Capacity - Dry Goods / Box (Ctn) *", "Ctn", 500.0)
+    elif 'tea' in d_cat or 'tea' in d_name or d_id in [5, 10]:
+        return ("Tea", "Vehicle Max Capacity - Tea (Kg) *", "Kg", 1200.0)
+    elif 'momo' in d_cat or 'momo' in d_name or d_id == 12:
+        return ("Momo & Snacks", "Vehicle Max Capacity - Momo & Snacks (Kg) *", "Kg", 1500.0)
+    elif 'commerce' in d_cat or 'commerce' in d_name or d_id == 8:
+        return ("e-Commerce", "Vehicle Max Capacity - e-Commerce Goods (Kg) *", "Kg", 1500.0)
+    else:
+        return ("Frozen Foods / Chicken", "Vehicle Max Capacity - Frozen Foods / Chicken (Kg) *", "Kg", 1500.0)
+
 @app.route('/api/template/driver-vehicle-mapping-excel', methods=['GET'])
 def download_driver_vehicle_mapping_template():
     try:
+        user_role = session.get('role')
+        user_depot = session.get('depot_id')
+
         depot_id = request.args.get('depot_id')
-        if depot_id and str(depot_id).lower() in ['all', 'none', '']:
-            depot_id = None
-        elif depot_id:
-            try: depot_id = int(depot_id)
-            except: depot_id = None
+        
+        # If user is incharge (non-admin), enforce their assigned depot
+        if user_role and user_role != 'admin' and user_depot:
+            depot_id = user_depot
+        elif not depot_id or str(depot_id).lower() in ['all', 'none', '']:
+            if user_depot:
+                depot_id = user_depot
+            else:
+                return jsonify({"success": False, "message": "Please select a specific depot from the header to download its mapping template"}), 400
+
+        try: depot_id = int(depot_id)
+        except: depot_id = 9
 
         conn = get_db()
         cursor = conn.cursor()
 
-        depot_name = "ALL DEPOTS (GLOBAL)"
-        if depot_id:
-            d_row = cursor.execute("SELECT name, category FROM depots WHERE id = ?", (depot_id,)).fetchone()
-            if d_row:
-                depot_name = d_row['name']
+        d_row = cursor.execute("SELECT id, name, category, default_uom FROM depots WHERE id = ?", (depot_id,)).fetchone()
+        if not d_row:
+            conn.close()
+            return jsonify({"success": False, "message": f"Depot ID {depot_id} not found"}), 404
+
+        cat_key, col_header, unit, default_cap = get_depot_primary_category_info(d_row)
 
         output = io.BytesIO()
         wb = xlsxwriter.Workbook(output, {'in_memory': True})
         
-        # Styles
+        # EXACTLY 1 SHEET
+        ws = wb.add_worksheet('Driver-Vehicle & Capacity')
+
         hdr_fmt = wb.add_format({
             'bold': True, 'font_size': 11, 'font_color': '#FFFFFF',
             'bg_color': '#0284C7', 'align': 'center', 'valign': 'vcenter', 'border': 1
@@ -2002,207 +2035,88 @@ def download_driver_vehicle_mapping_template():
         td_right = wb.add_format({
             'font_size': 9, 'color': '#1E293B', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter', 'num_format': '#,##0'
         })
-        zebra_fmt = wb.add_format({
-            'font_size': 9, 'color': '#1E293B', 'bg_color': '#F8FAFC', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
-        })
-        zebra_center = wb.add_format({
-            'font_size': 9, 'color': '#1E293B', 'bg_color': '#F8FAFC', 'align': 'center', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
-        })
-        zebra_right = wb.add_format({
-            'font_size': 9, 'color': '#1E293B', 'bg_color': '#F8FAFC', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter', 'num_format': '#,##0'
-        })
 
-        # Query vehicles - for specific depot or all depots
-        if depot_id:
-            rows = cursor.execute('''
-                SELECT fv.id, fv.depot_id, fv.vehicle_no, fv.capacity_kg, fv.capacity_units, fv.category_capacities,
-                       d.name as depot_name,
-                       drv.name as driver_name, drv.phone as driver_phone, drv.secondary_vehicle_no, drv.default_route_name
-                FROM fleet_vehicles fv
-                LEFT JOIN depots d ON fv.depot_id = d.id
-                LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
-                WHERE fv.depot_id = ?
-                ORDER BY fv.id ASC
-            ''', (depot_id,)).fetchall()
-        else:
-            rows = cursor.execute('''
-                SELECT fv.id, fv.depot_id, fv.vehicle_no, fv.capacity_kg, fv.capacity_units, fv.category_capacities,
-                       d.name as depot_name,
-                       drv.name as driver_name, drv.phone as driver_phone, drv.secondary_vehicle_no, drv.default_route_name
-                FROM fleet_vehicles fv
-                LEFT JOIN depots d ON fv.depot_id = d.id
-                LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
-                ORDER BY fv.depot_id ASC, fv.id ASC
-            ''').fetchall()
-        real_vehicles = [dict(r) for r in rows]
+        ws.set_column(0, 0, 6)   # SL
+        ws.set_column(1, 1, 24)  # Driver Name
+        ws.set_column(2, 2, 16)  # Contact No
+        ws.set_column(3, 3, 24)  # Default Vehicle Reg No
+        ws.set_column(4, 4, 24)  # Secondary / Backup Vehicle
+        ws.set_column(5, 5, 24)  # Default Route Name
+        ws.set_column(6, 6, 32)  # Category Capacity
 
-        # =========================================================================
-        # SHEET 1: Driver-Vehicle Mapping (Horizontal Multi-Category Format)
-        # =========================================================================
-        ws1 = wb.add_worksheet('Driver-Vehicle Mapping')
-        ws1.set_column(0, 0, 6)   # SL
-        ws1.set_column(1, 1, 22)  # Depot Name
-        ws1.set_column(2, 2, 24)  # Driver Name
-        ws1.set_column(3, 3, 16)  # Contact No
-        ws1.set_column(4, 4, 24)  # Default Vehicle Reg No
-        ws1.set_column(5, 5, 24)  # Secondary / Backup Vehicle
-        ws1.set_column(6, 6, 22)  # Default Route Name
-        ws1.set_column(7, 7, 18)  # Frozen Foods (Kg)
-        ws1.set_column(8, 8, 18)  # Fresh Egg (Pcs)
-        ws1.set_column(9, 9, 18)  # Dairy / Liquid (Liter)
-        ws1.set_column(10, 10, 18) # Dry Goods (Ctn)
+        title_text = f"PARAGON AGRO LIMITED - DRIVER-VEHICLE & CAPACITY MASTER ({d_row['name'].upper()})"
+        ws.merge_range('A1:G1', title_text, hdr_fmt)
+        ws.merge_range('A2:G2', f"Instructions: Enter driver name, contact, vehicle reg no, backup vehicle, route, and {cat_key} capacity. Upload directly in Tab 5.", tip_fmt)
+        ws.set_row(0, 25)
+        ws.set_row(1, 16)
 
-        title_text = f'PARAGON AGRO LIMITED - DRIVER-VEHICLE DEFAULT MAPPING & CAPACITIES ({depot_name.upper()})'
-        ws1.merge_range('A1:K1', title_text, hdr_fmt)
-        ws1.merge_range('A2:K2', 'Instructions: Enter each vehicle reg no, assigned driver, contact, route, and category capacities. You may edit existing rows or add new ones. Upload this Excel file directly in Tab 5.', tip_fmt)
-        ws1.set_row(0, 25)
-        ws1.set_row(1, 16)
-
-        headers1 = [
-            'SL', 'Depot Name', 'Driver Name *', 'Contact No *', 'Default Vehicle Reg No *', 
-            'Secondary / Backup Vehicle', 'Default Route Name', 
-            'Frozen Foods / Chicken (Kg)', 'Egg (Pcs)', 'Dairy / Milk (Liter)', 'Dry Goods / Box (Ctn)'
+        headers = [
+            'SL',
+            'Driver Name *',
+            'Contact No *',
+            'Default Vehicle Reg No *',
+            'Secondary / Backup Vehicle (Optional)',
+            'Default Route Name',
+            col_header
         ]
-        for col, h in enumerate(headers1):
-            ws1.write(3, col, h, th_fmt)
-        ws1.set_row(3, 24)
+        for col, h in enumerate(headers):
+            ws.write(3, col, h, th_fmt)
+        ws.set_row(3, 24)
+
+        # Query actual registered vehicles for this depot
+        rows = cursor.execute('''
+            SELECT fv.id, fv.vehicle_no, fv.capacity_kg, fv.capacity_units, fv.category_capacities,
+                   drv.name as driver_name, drv.phone as driver_phone, drv.secondary_vehicle_no, drv.default_route_name
+            FROM fleet_vehicles fv
+            LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
+            WHERE fv.depot_id = ?
+            ORDER BY fv.id ASC
+        ''', (depot_id,)).fetchall()
+        real_vehicles = [dict(r) for r in rows]
 
         start_row = 4
         if real_vehicles:
             for idx, v in enumerate(real_vehicles, 1):
                 r_idx = start_row + idx - 1
-                is_zebra = (idx % 2 == 0)
-                f_norm = zebra_fmt if is_zebra else td_fmt
-                f_center = zebra_center if is_zebra else td_center
-                f_right = zebra_right if is_zebra else td_right
-
-                # Extract capacities
                 caps = {}
                 if v.get('category_capacities'):
                     try: caps = json.loads(v['category_capacities'])
                     except: pass
                 
-                fz_cap = (caps.get('Frozen Foods / Chicken') or caps.get('Chicken') or caps.get('Frozen Foods') or {}).get('capacity', v.get('capacity_kg', 1500))
-                egg_cap = (caps.get('Egg') or {}).get('capacity', 30000)
-                dairy_cap = (caps.get('Dairy') or {}).get('capacity', 1000)
-                dry_cap = (caps.get('Dry Goods / Box Items') or caps.get('Dry Food') or {}).get('capacity', 500)
+                cap_val = (caps.get(cat_key) or {}).get('capacity')
+                if not cap_val:
+                    if cat_key == 'Frozen Foods / Chicken':
+                        cap_val = (caps.get('Chicken') or caps.get('Frozen Foods') or {}).get('capacity')
+                    elif cat_key == 'Dry Goods / Box Items':
+                        cap_val = (caps.get('Dry Food') or {}).get('capacity')
+                if not cap_val:
+                    cap_val = v.get('capacity_kg') or default_cap
 
-                ws1.write(r_idx, 0, idx, f_center)
-                ws1.write(r_idx, 1, v.get('depot_name') or f"Depot #{v.get('depot_id')}", f_norm)
-                ws1.write(r_idx, 2, v.get('driver_name') or '', f_norm)
-                ws1.write(r_idx, 3, v.get('driver_phone') or '', f_center)
-                ws1.write(r_idx, 4, v.get('vehicle_no') or '', f_center)
-                ws1.write(r_idx, 5, v.get('secondary_vehicle_no') or '', f_center)
-                ws1.write(r_idx, 6, v.get('default_route_name') or '', f_norm)
-                ws1.write(r_idx, 7, float(fz_cap or 1500), f_right)
-                ws1.write(r_idx, 8, float(egg_cap or 30000), f_right)
-                ws1.write(r_idx, 9, float(dairy_cap or 1000), f_right)
-                ws1.write(r_idx, 10, float(dry_cap or 500), f_right)
-                ws1.set_row(r_idx, 19)
+                ws.write(r_idx, 0, idx, td_center)
+                ws.write(r_idx, 1, v.get('driver_name') or '', td_fmt)
+                ws.write(r_idx, 2, v.get('driver_phone') or '', td_center)
+                ws.write(r_idx, 3, v.get('vehicle_no') or '', td_center)
+                ws.write(r_idx, 4, v.get('secondary_vehicle_no') or '', td_center)
+                ws.write(r_idx, 5, v.get('default_route_name') or '', td_fmt)
+                ws.write(r_idx, 6, float(cap_val), td_right)
+                ws.set_row(r_idx, 19)
         else:
             for idx in range(1, 11):
                 r_idx = start_row + idx - 1
-                is_zebra = (idx % 2 == 0)
-                f_norm = zebra_fmt if is_zebra else td_fmt
-                f_center = zebra_center if is_zebra else td_center
-                f_right = zebra_right if is_zebra else td_right
-                ws1.write(r_idx, 0, idx, f_center)
-                ws1.write(r_idx, 1, depot_name, f_norm)
-                ws1.write(r_idx, 2, '', f_norm)
-                ws1.write(r_idx, 3, '', f_center)
-                ws1.write(r_idx, 4, '', f_center)
-                ws1.write(r_idx, 5, '', f_center)
-                ws1.write(r_idx, 6, '', f_norm)
-                ws1.write(r_idx, 7, 1500, f_right)
-                ws1.write(r_idx, 8, 30000, f_right)
-                ws1.write(r_idx, 9, 1000, f_right)
-                ws1.write(r_idx, 10, 500, f_right)
-                ws1.set_row(r_idx, 19)
+                ws.write(r_idx, 0, idx, td_center)
+                ws.write(r_idx, 1, '', td_fmt)
+                ws.write(r_idx, 2, '', td_center)
+                ws.write(r_idx, 3, '', td_center)
+                ws.write(r_idx, 4, '', td_center)
+                ws.write(r_idx, 5, '', td_fmt)
+                ws.write(r_idx, 6, default_cap, td_right)
+                ws.set_row(r_idx, 19)
 
-        # =========================================================================
-        # SHEET 2: Category-Wise Detailed (Vertical Multi-Category Format)
-        # =========================================================================
-        ws2 = wb.add_worksheet('Category-Wise Detailed')
-        ws2.set_column(0, 0, 6)   # SL
-        ws2.set_column(1, 1, 22)  # Depot Name
-        ws2.set_column(2, 2, 24)  # Driver Name
-        ws2.set_column(3, 3, 16)  # Contact No
-        ws2.set_column(4, 4, 24)  # Default Vehicle Reg No
-        ws2.set_column(5, 5, 24)  # Secondary / Backup Vehicle
-        ws2.set_column(6, 6, 22)  # Default Route Name
-        ws2.set_column(7, 7, 26)  # Category / Product Type
-        ws2.set_column(8, 8, 14)  # Unit
-        ws2.set_column(9, 9, 22)  # Vehicle Max Capacity
-
-        ws2.merge_range('A1:J1', f'PARAGON AGRO LIMITED - CATEGORY-WISE DETAILED MAPPING ({depot_name.upper()})', hdr_fmt)
-        ws2.merge_range('A2:J2', 'Instructions: Specify individual product categories per row. Units: Frozen (Kg), Egg (Pcs), Dairy (Liter), Dry Goods (Ctn).', tip_fmt)
-        ws2.set_row(0, 25)
-        ws2.set_row(1, 16)
-
-        headers2 = [
-            'SL', 'Depot Name', 'Driver Name *', 'Contact No *', 'Default Vehicle Reg No *', 
-            'Secondary / Backup Vehicle', 'Default Route Name', 
-            'Category / Product Type *', 'Unit (Kg/Pcs/Liter/Ctn) *', 'Vehicle Max Capacity *'
-        ]
-        for col, h in enumerate(headers2):
-            ws2.write(3, col, h, th_fmt)
-        ws2.set_row(3, 24)
-
-        if real_vehicles:
-            r_c = 4
-            sl = 1
-            for v in real_vehicles:
-                caps = {}
-                if v.get('category_capacities'):
-                    try: caps = json.loads(v['category_capacities'])
-                    except: pass
-                cat_specs = [
-                    ('Frozen Foods / Chicken', 'Kg', (caps.get('Frozen Foods / Chicken') or caps.get('Chicken') or {}).get('capacity', v.get('capacity_kg', 1500))),
-                    ('Egg', 'Pcs', (caps.get('Egg') or {}).get('capacity', 30000)),
-                    ('Dairy', 'Liter', (caps.get('Dairy') or {}).get('capacity', 1000)),
-                    ('Dry Goods / Box Items', 'Ctn', (caps.get('Dry Goods / Box Items') or caps.get('Dry Food') or {}).get('capacity', 500))
-                ]
-                for cat_name, unit_name, cap_val in cat_specs:
-                    is_zebra = (sl % 2 == 0)
-                    f_norm = zebra_fmt if is_zebra else td_fmt
-                    f_center = zebra_center if is_zebra else td_center
-                    f_right = zebra_right if is_zebra else td_right
-
-                    ws2.write(r_c, 0, sl, f_center)
-                    ws2.write(r_c, 1, v.get('depot_name') or f"Depot #{v.get('depot_id')}", f_norm)
-                    ws2.write(r_c, 2, v.get('driver_name') or '', f_norm)
-                    ws2.write(r_c, 3, v.get('driver_phone') or '', f_center)
-                    ws2.write(r_c, 4, v.get('vehicle_no') or '', f_center)
-                    ws2.write(r_c, 5, v.get('secondary_vehicle_no') or '', f_center)
-                    ws2.write(r_c, 6, v.get('default_route_name') or '', f_norm)
-                    ws2.write(r_c, 7, cat_name, f_norm)
-                    ws2.write(r_c, 8, unit_name, f_center)
-                    ws2.write(r_c, 9, float(cap_val or 0), f_right)
-                    ws2.set_row(r_c, 19)
-                    r_c += 1
-                    sl += 1
-        else:
-            for idx in range(1, 11):
-                r_c = 4 + idx - 1
-                is_zebra = (idx % 2 == 0)
-                f_norm = zebra_fmt if is_zebra else td_fmt
-                f_center = zebra_center if is_zebra else td_center
-                f_right = zebra_right if is_zebra else td_right
-                ws2.write(r_c, 0, idx, f_center)
-                ws2.write(r_c, 1, depot_name, f_norm)
-                ws2.write(r_c, 2, '', f_norm)
-                ws2.write(r_c, 3, '', f_center)
-                ws2.write(r_c, 4, '', f_center)
-                ws2.write(r_c, 5, '', f_center)
-                ws2.write(r_c, 6, '', f_norm)
-                ws2.write(r_c, 7, 'Frozen Foods / Chicken', f_norm)
-                ws2.write(r_c, 8, 'Kg', f_center)
-                ws2.write(r_c, 9, 1500, f_right)
-                ws2.set_row(r_c, 19)
-
+        conn.close()
         wb.close()
         output.seek(0)
-        filename = f"Paragon_Driver_Vehicle_Mapping_{re.sub(r'[^a-zA-Z0-9_-]', '_', depot_name)}.xlsx"
+        clean_depot_name = re.sub(r'[^a-zA-Z0-9_-]', '_', d_row['name'])
+        filename = f"Paragon_{clean_depot_name}_Mapping_Template.xlsx"
         return send_file(
             output,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2217,37 +2131,40 @@ def bulk_upload_driver_vehicle_mapping():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No Excel file uploaded'}), 400
     file = request.files['file']
-    depot_id_param = request.form.get('depot_id', 'all')
-    target_depot_id = None
-    if depot_id_param and str(depot_id_param).lower() not in ['all', 'none', '']:
+    
+    user_role = session.get('role')
+    user_depot = session.get('depot_id')
+
+    depot_id_param = request.form.get('depot_id')
+    
+    # Enforce role-based depot selection
+    if user_role and user_role != 'admin' and user_depot:
+        target_depot_id = user_depot
+    elif depot_id_param and str(depot_id_param).lower() not in ['all', 'none', '']:
         try: target_depot_id = int(depot_id_param)
         except: target_depot_id = None
-    
+    elif user_depot:
+        target_depot_id = user_depot
+    else:
+        target_depot_id = None
+
+    if not target_depot_id:
+        return jsonify({'success': False, 'message': 'Please select a specific target depot before uploading.'}), 400
+
     try:
         wb = openpyxl.load_workbook(file, data_only=True)
-        # Select best sheet: 'Driver-Vehicle Mapping', 'Category-Wise Detailed', or first non-empty sheet
-        ws = None
-        if 'Driver-Vehicle Mapping' in wb.sheetnames:
-            ws = wb['Driver-Vehicle Mapping']
-        elif 'Category-Wise Detailed' in wb.sheetnames:
-            ws = wb['Category-Wise Detailed']
-        else:
-            ws = wb.active
+        ws = wb.active  # Single sheet format
 
         conn = get_db()
         cursor = conn.cursor()
 
-        # Build depot lookup map: id -> dict, name.lower() -> id
-        depot_name_map = {}
-        all_depots = cursor.execute('SELECT id, name, category, default_uom FROM depots').fetchall()
-        for d in all_depots:
-            depot_name_map[str(d['id'])] = d['id']
-            depot_name_map[d['name'].strip().lower()] = d['id']
-            # Clean name without prefixes
-            clean_name = re.sub(r'^(paragon|depot)\s*', '', d['name'].strip().lower()).strip()
-            if clean_name: depot_name_map[clean_name] = d['id']
+        d_row = cursor.execute("SELECT id, name, category, default_uom FROM depots WHERE id = ?", (target_depot_id,)).fetchone()
+        if not d_row:
+            conn.close()
+            return jsonify({'success': False, 'message': f'Depot ID {target_depot_id} not found in database'}), 404
 
-        # Helper to standardize vehicle reg numbers
+        cat_key, col_header, unit, default_cap = get_depot_primary_category_info(d_row)
+
         def clean_vehicle_no(v_str):
             if not v_str: return ''
             s = str(v_str).strip().upper()
@@ -2256,17 +2173,13 @@ def bulk_upload_driver_vehicle_mapping():
             s = re.sub(r'-+', '-', s).strip('-')
             return s
 
-        # 1. Detect header row & map columns using intelligent keyword matcher
         header_row_idx = None
         col_map = {}
 
         for r_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
-            if not row or not any(row):
-                continue
+            if not row or not any(row): continue
             non_empty = [c for c in row if c is not None and str(c).strip() != '']
-            if len(non_empty) < 2:
-                # Skip title banner or instructions rows
-                continue
+            if len(non_empty) < 2: continue
             row_str = " ".join([str(c) for c in non_empty]).lower()
             if 'paragon agro' in row_str or 'instructions' in row_str or 'guidelines' in row_str:
                 continue
@@ -2276,71 +2189,40 @@ def bulk_upload_driver_vehicle_mapping():
                 for c_idx, cell in enumerate(row):
                     if cell is None: continue
                     c_text = str(cell).lower().strip()
-                    
                     if 'capacity' in c_text or 'max' in c_text or 'ধারণক্ষমতা' in c_text:
-                        if 'frozen' in c_text or 'chicken' in c_text or 'মুরগি' in c_text:
-                            candidate_map['frozen'] = c_idx
-                        elif 'egg' in c_text or 'dim' in c_text or 'ডিম' in c_text:
-                            candidate_map['egg'] = c_idx
-                        elif 'dairy' in c_text or 'milk' in c_text or 'liquid' in c_text or 'দুধ' in c_text:
-                            candidate_map['dairy'] = c_idx
-                        elif 'dry' in c_text or 'box' in c_text or 'ctn' in c_text or 'carton' in c_text:
-                            candidate_map['dry'] = c_idx
-                        else:
-                            if 'cap' not in candidate_map:
-                                candidate_map['cap'] = c_idx
-                    elif 'unit' in c_text or 'uom' in c_text or 'একক' in c_text:
-                        candidate_map['unit'] = c_idx
-                    elif 'category' in c_text or 'product' in c_text or 'ক্যাটাগরি' in c_text:
-                        candidate_map['category'] = c_idx
-                    elif 'depot' in c_text or 'branch' in c_text or 'ডিপো' in c_text:
-                        candidate_map['depot'] = c_idx
+                        candidate_map['cap'] = c_idx
+                        if 'frozen' in c_text or 'chicken' in c_text: candidate_map['frozen'] = c_idx
+                        elif 'egg' in c_text or 'dim' in c_text: candidate_map['egg'] = c_idx
+                        elif 'dairy' in c_text or 'milk' in c_text: candidate_map['dairy'] = c_idx
+                        elif 'dry' in c_text or 'box' in c_text: candidate_map['dry'] = c_idx
                     elif 'route' in c_text or 'line' in c_text or 'zone' in c_text or 'রুট' in c_text:
                         candidate_map['route'] = c_idx
                     elif 'backup' in c_text or 'secondary' in c_text:
                         candidate_map['backup_veh'] = c_idx
                     elif ('vehicle' in c_text or 'truck' in c_text or 'van' in c_text or 'reg' in c_text or 'গাড়ি' in c_text) and 'driver' not in c_text:
-                        if 'veh' not in candidate_map:
-                            candidate_map['veh'] = c_idx
-                    elif 'driver' in c_text or 'staff' in c_text or 'চালক' in c_text or (('name' in c_text or 'full name' in c_text) and 'route' not in c_text and 'depot' not in c_text):
-                        if 'driver' not in candidate_map:
-                            candidate_map['driver'] = c_idx
+                        if 'veh' not in candidate_map: candidate_map['veh'] = c_idx
+                    elif 'driver' in c_text or 'staff' in c_text or 'চালক' in c_text or (('name' in c_text or 'full name' in c_text) and 'route' not in c_text):
+                        if 'driver' not in candidate_map: candidate_map['driver'] = c_idx
                     elif 'phone' in c_text or 'contact' in c_text or 'mobile' in c_text or 'cell' in c_text or 'ফোন' in c_text:
                         candidate_map['phone'] = c_idx
-                    elif 'frozen' in c_text or 'chicken' in c_text:
-                        candidate_map['frozen'] = c_idx
-                    elif 'egg' in c_text or 'dim' in c_text:
-                        candidate_map['egg'] = c_idx
-                    elif 'dairy' in c_text or 'milk' in c_text:
-                        candidate_map['dairy'] = c_idx
-                    elif 'dry' in c_text or 'box' in c_text:
-                        candidate_map['dry'] = c_idx
 
-                # Accept header if it has vehicle column or driver column
                 if 'veh' in candidate_map or 'driver' in candidate_map:
                     header_row_idx = r_idx
                     col_map = candidate_map
                     break
 
-        # Fallback column mapping if no explicit header row was identified
         if 'veh' not in col_map and 'driver' not in col_map:
-            col_map = {'depot': 1, 'driver': 2, 'phone': 3, 'veh': 4, 'backup_veh': 5, 'route': 6, 'frozen': 7, 'egg': 8, 'dairy': 9, 'dry': 10}
+            col_map = {'driver': 1, 'phone': 2, 'veh': 3, 'backup_veh': 4, 'route': 5, 'cap': 6}
             header_row_idx = 3
 
-        is_horizontal = any(k in col_map for k in ['frozen', 'egg', 'dairy', 'dry'])
-
-        drivers_map = {}         # (driver_name, depot_id) -> {phone, default_veh, backup_veh, route_name}
-        vehicle_capacities = {}  # veh_no -> {depot_id, cats: {cat_name: {capacity, unit}}}
-        vehicle_driver_map = {}  # veh_no -> driver_name
+        drivers_map = {}
+        vehicle_capacities = {}
 
         for r_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
-            if header_row_idx and r_idx <= header_row_idx:
-                continue
-            if not row or not any(row):
-                continue
+            if header_row_idx and r_idx <= header_row_idx: continue
+            if not row or not any(row): continue
             r_str = " ".join([str(c) for c in row if c is not None]).upper()
-            if "PARAGON AGRO" in r_str or "INSTRUCTIONS" in r_str or "GUIDELINES" in r_str:
-                continue
+            if "PARAGON AGRO" in r_str or "INSTRUCTIONS" in r_str or "GUIDELINES" in r_str: continue
 
             def get_val(key, default=''):
                 idx = col_map.get(key)
@@ -2353,99 +2235,46 @@ def bulk_upload_driver_vehicle_mapping():
             def_veh = clean_vehicle_no(get_val('veh'))
             backup_veh = clean_vehicle_no(get_val('backup_veh'))
             route_name = get_val('route')
-            depot_text = get_val('depot').strip()
 
-            # Skip repeat header texts
             if def_veh in ['DEFAULT VEHICLE REG NO', 'VEHICLE NO', 'VEHICLE REG NO', 'SL', ''] and not drv_name:
                 continue
             if drv_name in ['DRIVER NAME', 'STAFF FULL NAME', 'NAME', 'SL']:
                 continue
 
-            # Determine row depot
-            row_depot_id = target_depot_id
-            if depot_text:
-                d_key = depot_text.lower()
-                if d_key in depot_name_map:
-                    row_depot_id = depot_name_map[d_key]
-                else:
-                    for k, val in depot_name_map.items():
-                        if k in d_key or d_key in k:
-                            row_depot_id = val
-                            break
-
-            # If row depot still unknown and vehicle is given, lookup vehicle in DB to get its home depot
-            if not row_depot_id and def_veh:
-                existing_v_depot = cursor.execute(
-                    "SELECT depot_id FROM fleet_vehicles WHERE REPLACE(REPLACE(UPPER(vehicle_no), ' ', '-'), '--', '-') = ?",
-                    (def_veh,)
-                ).fetchone()
-                if existing_v_depot:
-                    row_depot_id = existing_v_depot[0]
-
-            # Fallback if still unknown
-            if not row_depot_id:
-                row_depot_id = target_depot_id or 9
-
             if drv_name:
-                d_key = (drv_name, row_depot_id)
-                if d_key not in drivers_map:
-                    drivers_map[d_key] = {
-                        'name': drv_name,
-                        'depot_id': row_depot_id,
-                        'phone': phone,
-                        'default_veh': def_veh,
-                        'backup_veh': backup_veh,
-                        'route_name': route_name
-                    }
-                else:
-                    if phone and not drivers_map[d_key]['phone']: drivers_map[d_key]['phone'] = phone
-                    if def_veh and not drivers_map[d_key]['default_veh']: drivers_map[d_key]['default_veh'] = def_veh
-                    if backup_veh and not drivers_map[d_key]['backup_veh']: drivers_map[d_key]['backup_veh'] = backup_veh
-                    if route_name and not drivers_map[d_key]['route_name']: drivers_map[d_key]['route_name'] = route_name
+                drivers_map[drv_name] = {
+                    'name': drv_name,
+                    'phone': phone,
+                    'default_veh': def_veh,
+                    'backup_veh': backup_veh,
+                    'route_name': route_name
+                }
 
             if def_veh:
-                vehicle_driver_map[def_veh] = drv_name
-                if def_veh not in vehicle_capacities:
-                    vehicle_capacities[def_veh] = {
-                        'depot_id': row_depot_id,
-                        'cats': {}
-                    }
-
-                if is_horizontal:
-                    def parse_num(key, default_num):
-                        val_raw = get_val(key, None)
-                        if val_raw:
-                            try: return float(str(val_raw).replace(',', ''))
+                cap_num = None
+                for k in ['cap', 'frozen', 'egg', 'dairy', 'dry']:
+                    if k in col_map:
+                        raw_c = get_val(k)
+                        if raw_c:
+                            try:
+                                cap_num = float(str(raw_c).replace(',', ''))
+                                break
                             except: pass
-                        return default_num
+                if cap_num is None:
+                    cap_num = default_cap
 
-                    vehicle_capacities[def_veh]['cats'] = {
-                        "Frozen Foods / Chicken": {"capacity": parse_num('frozen', 1500.0), "unit": "Kg"},
-                        "Egg": {"capacity": parse_num('egg', 30000.0), "unit": "Pcs"},
-                        "Dairy": {"capacity": parse_num('dairy', 1000.0), "unit": "Liter"},
-                        "Dry Goods / Box Items": {"capacity": parse_num('dry', 500.0), "unit": "Ctn"}
-                    }
-                else:
-                    cat_type = get_val('category')
-                    unit_val = get_val('unit')
-                    cap_raw = get_val('cap')
-                    try: cap_num = float(str(cap_raw).replace(',', ''))
-                    except: cap_num = 0.0
+                vehicle_capacities[def_veh] = {
+                    'primary_cap': cap_num,
+                    'driver_name': drv_name
+                }
 
-                    if cat_type and cap_num > 0:
-                        cat_unit = unit_val or ('Pcs' if 'egg' in cat_type.lower() else ('Liter' if 'dairy' in cat_type.lower() else 'Kg'))
-                        vehicle_capacities[def_veh]['cats'][cat_type] = {
-                            'capacity': cap_num,
-                            'unit': cat_unit
-                        }
-
-        # 2. Database update: update drivers safely without data loss
+        # 1. Update depot_crew
         updated_drivers = 0
-        for (drv_name, d_depot_id), d_info in drivers_map.items():
+        for drv_name, d_info in drivers_map.items():
             if not drv_name: continue
             existing = cursor.execute(
                 "SELECT id FROM depot_crew WHERE role='driver' AND LOWER(TRIM(name))=LOWER(TRIM(?)) AND depot_id=?", 
-                (drv_name, d_depot_id)
+                (drv_name, target_depot_id)
             ).fetchone()
 
             if existing:
@@ -2462,7 +2291,7 @@ def bulk_upload_driver_vehicle_mapping():
                 cursor.execute('''
                     INSERT INTO depot_crew (depot_id, role, name, phone, assigned_vehicle_no, secondary_vehicle_no, default_route_name, status)
                     VALUES (?, 'driver', ?, ?, ?, ?, ?, 'Active')
-                ''', (d_depot_id, drv_name, d_info['phone'] or '01711-000000', d_info['default_veh'], d_info['backup_veh'], d_info['route_name']))
+                ''', (target_depot_id, drv_name, d_info['phone'] or '01711-000000', d_info['default_veh'], d_info['backup_veh'], d_info['route_name']))
                 cid = cursor.lastrowid
             
             if d_info['default_veh']:
@@ -2470,77 +2299,70 @@ def bulk_upload_driver_vehicle_mapping():
                     UPDATE fleet_vehicles 
                     SET default_driver_id = ? 
                     WHERE depot_id = ? AND REPLACE(REPLACE(UPPER(vehicle_no), ' ', '-'), '--', '-') = ?
-                ''', (cid, d_depot_id, d_info['default_veh']))
+                ''', (cid, target_depot_id, d_info['default_veh']))
             updated_drivers += 1
 
-        # 3. Database update: update vehicle capacities non-destructively
+        # 2. Update fleet_vehicles
         updated_vehicles = 0
-        for veh_no, v_data in vehicle_capacities.items():
+        for veh_no, v_info in vehicle_capacities.items():
             if not veh_no: continue
-            v_depot_id = v_data.get('depot_id') or target_depot_id or 9
-            cats = v_data.get('cats')
-            if not cats:
-                cats = get_default_category_capacities(1500)
-            caps_json = json.dumps(cats)
-            
-            # Determine primary capacity
-            primary_cap = 1500.0
-            depot_info = cursor.execute('SELECT category FROM depots WHERE id = ?', (v_depot_id,)).fetchone()
-            d_cat = (depot_info['category'] if depot_info else 'Food').lower()
-            default_unit = 'Pcs' if ('egg' in d_cat or v_depot_id == 9) else ('Liter' if ('dairy' in d_cat or v_depot_id in [4, 11]) else 'Kg')
-
-            for c_name, c_info in cats.items():
-                if 'egg' in d_cat and ('egg' in c_name.lower()):
-                    primary_cap = float(c_info.get('capacity', 30000))
-                    break
-                elif ('dairy' in d_cat) and ('dairy' in c_name.lower() or 'liquid' in c_name.lower()):
-                    primary_cap = float(c_info.get('capacity', 1000))
-                    break
-                elif ('chicken' in c_name.lower() or 'frozen' in c_name.lower()):
-                    primary_cap = float(c_info.get('capacity', 1500))
+            cap_val = v_info['primary_cap']
+            drv_name = v_info['driver_name']
 
             existing_veh = cursor.execute('''
-                SELECT id, depot_id, vehicle_no, default_driver_id 
+                SELECT id, category_capacities, default_driver_id 
                 FROM fleet_vehicles 
-                WHERE REPLACE(REPLACE(UPPER(vehicle_no), ' ', '-'), '--', '-') = ? AND (depot_id = ? OR ? IS NULL)
-            ''', (veh_no, v_depot_id, target_depot_id)).fetchone()
-            
-            # Find assigned driver id if provided
+                WHERE REPLACE(REPLACE(UPPER(vehicle_no), ' ', '-'), '--', '-') = ? AND depot_id = ?
+            ''', (veh_no, target_depot_id)).fetchone()
+
+            caps = {}
+            if existing_veh and existing_veh['category_capacities']:
+                try: caps = json.loads(existing_veh['category_capacities'])
+                except: pass
+
+            if not caps:
+                caps = get_default_category_capacities(cap_val)
+
+            # Update the primary category
+            caps[cat_key] = {"capacity": cap_val, "unit": unit}
+            caps_json = json.dumps(caps)
+
             def_driver_id = None
-            assigned_drv_name = vehicle_driver_map.get(veh_no)
-            if assigned_drv_name:
-                d_row = cursor.execute(
+            if drv_name:
+                d_row_crew = cursor.execute(
                     "SELECT id FROM depot_crew WHERE role='driver' AND LOWER(TRIM(name)) = LOWER(TRIM(?)) AND depot_id = ?", 
-                    (assigned_drv_name, v_depot_id)
+                    (drv_name, target_depot_id)
                 ).fetchone()
-                if d_row: def_driver_id = d_row[0]
+                if d_row_crew: def_driver_id = d_row_crew[0]
             if not def_driver_id:
-                d_row = cursor.execute(
+                d_row_crew = cursor.execute(
                     "SELECT id FROM depot_crew WHERE role='driver' AND REPLACE(REPLACE(UPPER(assigned_vehicle_no), ' ', '-'), '--', '-') = ? AND depot_id = ?", 
-                    (veh_no, v_depot_id)
+                    (veh_no, target_depot_id)
                 ).fetchone()
-                if d_row: def_driver_id = d_row[0]
+                if d_row_crew: def_driver_id = d_row_crew[0]
 
             if existing_veh:
                 cursor.execute('''
                     UPDATE fleet_vehicles 
                     SET category_capacities = ?, 
                         capacity_kg = ?, 
+                        capacity_units = ?,
                         default_driver_id = COALESCE(?, default_driver_id)
                     WHERE id = ?
-                ''', (caps_json, primary_cap, def_driver_id, existing_veh[0]))
+                ''', (caps_json, cap_val, unit, def_driver_id, existing_veh['id']))
             else:
                 cursor.execute('''
                     INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, category_capacities, default_driver_id, ownership, status)
                     VALUES (?, ?, 'Covered Van', ?, ?, ?, ?, 'Owned', 'Active')
-                ''', (v_depot_id, veh_no, primary_cap, default_unit, caps_json, def_driver_id))
+                ''', (target_depot_id, veh_no, cap_val, unit, caps_json, def_driver_id))
             updated_vehicles += 1
 
         conn.commit()
         conn.close()
+
         return jsonify({
             'success': True,
-            'message': f'Successfully imported mapping for {updated_drivers} Drivers & updated {updated_vehicles} Vehicles with category capacities!'
+            'message': f'Successfully imported {updated_drivers} Drivers & updated {updated_vehicles} Vehicles with {cat_key} capacity for {d_row["name"]}!'
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error uploading driver-vehicle mapping: {str(e)}'}), 500
