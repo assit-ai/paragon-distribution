@@ -1469,7 +1469,7 @@ def handle_routes():
             LEFT JOIN route_consignees rc ON r.id = rc.route_id
         '''
         params = ()
-        if depot_id:
+        if depot_id and str(depot_id) != 'all':
             query += ' WHERE r.depot_id = ?'
             params = (depot_id,)
         query += ' GROUP BY r.id ORDER BY r.id ASC'
@@ -1531,7 +1531,7 @@ def handle_consignees():
             WHERE 1=1
         '''
         params = []
-        if depot_id:
+        if depot_id and str(depot_id) != 'all':
             query += ' AND rc.depot_id = ?'
             params.append(depot_id)
         if route_id:
@@ -1598,7 +1598,7 @@ def get_fleet():
         WHERE 1=1
     '''
     params = []
-    if depot_id:
+    if depot_id and str(depot_id) != 'all':
         query += ' AND fv.depot_id = ?'
         params.append(depot_id)
     query += ' ORDER BY fv.ownership ASC, fv.id ASC'
@@ -1662,7 +1662,7 @@ def handle_crew():
         role = request.args.get('role')
         query = 'SELECT * FROM depot_crew WHERE 1=1'
         params = []
-        if depot_id:
+        if depot_id and str(depot_id) != 'all':
             query += ' AND depot_id = ?'
             params.append(depot_id)
         if role:

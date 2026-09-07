@@ -27031,13 +27031,19 @@
                 const isAdmin = (!currentUser) || (currentUser && currentUser.role === 'admin');
                 if (isAdmin) {
                     const masterSel = document.getElementById('masterModalDepotSelect');
-                    if (masterSel && masterSel.value) return parseInt(masterSel.value);
+                    if (masterSel && masterSel.value) {
+                        if (masterSel.value === 'all') return 'all';
+                        return parseInt(masterSel.value);
+                    }
                 }
                 if (currentUser && currentUser.depot_id) {
                     return parseInt(currentUser.depot_id);
                 }
                 const planSel = document.getElementById('planDepotSelect');
-                if (planSel && planSel.value) return parseInt(planSel.value);
+                if (planSel && planSel.value) {
+                    if (planSel.value === 'all') return 'all';
+                    return parseInt(planSel.value);
+                }
                 return currentPlanData.depot_id || 9;
             }
 
@@ -27054,14 +27060,16 @@
                 const masterSel = document.getElementById('masterModalDepotSelect');
                 const depotList = getParagonDepotList();
 
-                // Populate Master Depot Select with all 17 depots
+                // Populate Master Depot Select with "All Depots" option + all 17 depots
                 if (masterSel) {
                     const activePlanDepotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || (currentUser?.depot_id || 9));
                     const currentVal = masterSel.value;
-                    masterSel.innerHTML = depotList.map(d => 
+                    let opts = `<option value="all" style="font-weight: 700; color: #38bdf8;">🌐 All Depots (All 17 Depots - Global)</option>`;
+                    opts += depotList.map(d => 
                         `<option value="${d.id}">${d.name} (${d.category})</option>`
                     ).join('');
-                    if (currentVal && depotList.some(d => d.id == currentVal)) {
+                    masterSel.innerHTML = opts;
+                    if (currentVal && (currentVal === 'all' || depotList.some(d => d.id == currentVal))) {
                         masterSel.value = currentVal;
                     } else {
                         masterSel.value = activePlanDepotId;
@@ -27097,14 +27105,18 @@
             function onMasterModalDepotChange(reload = true) {
                 const depotId = getSelectedMasterDepotId();
                 const depotList = getParagonDepotList();
-                const depotObj = depotList.find(d => d.id == depotId) || { name: 'Active Depot', category: 'General' };
+                let depotName = '🌐 All Depots (System-Wide)';
+                if (depotId !== 'all') {
+                    const depotObj = depotList.find(d => d.id == depotId) || { name: 'Active Depot', category: 'General' };
+                    depotName = depotObj.name;
+                }
                 
                 const elD1 = document.getElementById('masterDepotNameLbl');
                 const elD2 = document.getElementById('masterCrewDepotLbl');
                 const elD3 = document.getElementById('masterFleetDepotLbl');
-                if (elD1) elD1.textContent = `${depotObj.name}`;
-                if (elD2) elD2.textContent = `${depotObj.name}`;
-                if (elD3) elD3.textContent = `${depotObj.name}`;
+                if (elD1) elD1.textContent = depotName;
+                if (elD2) elD2.textContent = depotName;
+                if (elD3) elD3.textContent = depotName;
 
                 if (reload) {
                     // Identify which tab is currently active and reload its data
@@ -27134,9 +27146,13 @@
                 const targetName = typeNames[clearType] || clearType;
                 const depotId = getSelectedMasterDepotId();
                 const depotList = getParagonDepotList();
-                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                let depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM WIDE)';
+                if (depotId !== 'all') {
+                    const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                    depotName = depotObj.name;
+                }
 
-                const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for:\n👉 ${depotObj.name}?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
+                const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for:\n👉 ${depotName}?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
                 if (!confirmed) return;
 
                 try {
@@ -27173,7 +27189,7 @@
                         }
                         if (clearType === 'borrow' || clearType === 'all') {
                             // Purge borrowed vans from current planning memory
-                            currentPlanData.vans = currentPlanData.vans.filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
+                            currentPlanData.vans = (currentPlanData.vans || []).filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
                             renderActiveVans();
                             updateDayGrandTotals();
                             updateDepotFleetStatusBar();
@@ -27187,7 +27203,7 @@
                 } catch (err) {
                     // Fallback for offline file mode
                     if (clearType === 'borrow' || clearType === 'all') {
-                        currentPlanData.vans = currentPlanData.vans.filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
+                        currentPlanData.vans = (currentPlanData.vans || []).filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
                         renderActiveVans();
                         updateDayGrandTotals();
                         updateDepotFleetStatusBar();
@@ -27354,6 +27370,10 @@
 
             async function submitNewRouteMaster() {
                 const depotId = getSelectedMasterDepotId();
+                if (depotId === 'all') {
+                    showToast('Please select a specific Target Depot above to create a new route.', 'warning');
+                    return;
+                }
                 const name = document.getElementById('newRouteName')?.value?.trim();
                 const code = document.getElementById('newRouteCode')?.value?.trim();
                 const veh = document.getElementById('newRouteVehicle')?.value?.trim();
@@ -27450,6 +27470,10 @@
 
             async function submitNewConsigneeMaster() {
                 const depotId = getSelectedMasterDepotId();
+                if (depotId === 'all') {
+                    showToast('Please select a specific Target Depot above to map a new outlet.', 'warning');
+                    return;
+                }
                 const name = document.getElementById('newConsigneeName')?.value?.trim();
                 const routeId = document.getElementById('newConsigneeRouteSelect')?.value;
                 const address = document.getElementById('newConsigneeAddress')?.value?.trim();
@@ -27589,6 +27613,10 @@
 
             async function submitNewFleetVehicleMaster() {
                 const depotId = getSelectedMasterDepotId();
+                if (depotId === 'all') {
+                    showToast('Please select a specific Target Depot above to register a new vehicle.', 'warning');
+                    return;
+                }
                 const vNo = document.getElementById('newVehNo')?.value?.trim();
                 const vType = document.getElementById('newVehType')?.value;
                 const capKg = document.getElementById('newVehCapKg')?.value;
@@ -27618,6 +27646,7 @@
                     const data = await res.json();
                     if (data.success) {
                         showToast(data.message, 'success');
+                        document.getElementById('newVehNo').value = '';
                         closeAddFleetVehicleForm();
                         loadFleetMaster(depotId);
                     }
@@ -27695,6 +27724,10 @@
 
             async function submitNewCrewMaster() {
                 const depotId = getSelectedMasterDepotId();
+                if (depotId === 'all') {
+                    showToast('Please select a specific Target Depot above to register new crew staff.', 'warning');
+                    return;
+                }
                 const role = document.getElementById('newCrewRole')?.value;
                 const name = document.getElementById('newCrewName')?.value?.trim();
                 const phone = document.getElementById('newCrewPhone')?.value?.trim();
@@ -27749,6 +27782,11 @@
                 if (!file) return;
                 
                 const depotId = getSelectedMasterDepotId();
+                if (depotId === 'all') {
+                    showToast('Please select a specific Target Depot above before uploading Excel data.', 'warning');
+                    event.target.value = '';
+                    return;
+                }
                 const depotList = getParagonDepotList();
                 const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
                 const formData = new FormData();
@@ -27824,9 +27862,13 @@
             async function clearBorrowedFleet() {
                 const depotId = getSelectedMasterDepotId();
                 const depotList = getParagonDepotList();
-                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                let depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM WIDE)';
+                if (depotId !== 'all') {
+                    const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                    depotName = depotObj.name;
+                }
 
-                const confirmed = confirm(`Are you sure you want to return/clear all borrowed vehicles for:\n👉 ${depotObj.name}?\n\nThis will remove all borrowed vans from today's fleet.`);
+                const confirmed = confirm(`Are you sure you want to return/clear all borrowed vehicles for:\n👉 ${depotName}?\n\nThis will remove all borrowed vans from today's fleet.`);
                 if (!confirmed) return;
 
                 try {
@@ -27961,6 +28003,10 @@
 
             async function requestBorrowVehicle(vehId, lendingDepotId, vehNo) {
                 const requestingDepotId = getSelectedMasterDepotId();
+                if (requestingDepotId === 'all') {
+                    showToast('Please select a specific Target Depot from the dropdown above before borrowing a vehicle.', 'warning');
+                    return;
+                }
                 try {
                     const res = await fetch('/api/fleet/borrow-request', {
                         method: 'POST',
