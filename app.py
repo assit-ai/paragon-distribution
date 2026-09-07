@@ -2479,22 +2479,58 @@ def bulk_upload_consignees():
         cursor.execute('SELECT id, route_name, route_code FROM routes WHERE depot_id = ?', (depot_id,))
         routes_db = {r['route_name'].lower().strip(): r['id'] for r in cursor.fetchall()}
         
-        imported_count = 0
-        for row in ws.iter_rows(values_only=True):
+        total_rows_processed = 0
+        new_added = 0
+        updated_existing = 0
+        
+        # Track duplicate occurrences within the uploaded file
+        seen_in_file = {}
+        
+        for r_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
             if not row or not any(row):
                 continue
-            r_str = " ".join([str(c) for c in row if c is not None]).upper()
-            if "CONSIGNEE" in r_str or "PARAGON AGRO" in r_str or "INSTRUCTIONS" in r_str:
+                
+            # Smart header detection: only skip title/instructions in first 5 rows
+            if r_idx <= 5:
+                r_str = " ".join([str(c) for c in row if c is not None]).upper()
+                if "PARAGON AGRO LIMITED" in r_str or "INSTRUCTIONS:" in r_str or "CONSIGNEE / OUTLET NAME" in r_str:
+                    continue
+            
+            # Identify columns
+            first_val = str(row[0] or '').strip()
+            second_val = str(row[1] or '').strip() if len(row) > 1 else ''
+            
+            if first_val.isdigit() and second_val:
+                # Column 0 is SL, Column 1 is Outlet Name
+                c_name = second_val
+                r_name = str(row[2] or '').strip() if len(row) > 2 else ''
+                addr = str(row[3] or '').strip() if len(row) > 3 else ''
+                phone = str(row[4] or '').strip() if len(row) > 4 else ''
+                pay_mode = str(row[5] or 'Cash').strip() if len(row) > 5 else 'Cash'
+            else:
+                # Column 0 is Outlet Name
+                c_name = first_val or second_val
+                r_name = str(row[1] or '').strip() if len(row) > 1 else ''
+                addr = str(row[2] or '').strip() if len(row) > 2 else ''
+                phone = str(row[3] or '').strip() if len(row) > 3 else ''
+                pay_mode = str(row[4] or 'Cash').strip() if len(row) > 4 else 'Cash'
+                
+            if not c_name or c_name.lower() in ['sl', 'consignee / outlet name', 'consignee name']:
                 continue
                 
-            c_name = str(row[1] if len(row) > 1 and row[1] else (row[0] or '')).strip()
-            r_name = str(row[2] if len(row) > 2 and row[2] else '').strip()
-            addr = str(row[3] if len(row) > 3 and row[3] else '').strip()
-            phone = str(row[4] if len(row) > 4 and row[4] else '').strip()
-            pay_mode = str(row[5] if len(row) > 5 and row[5] else 'Cash').strip()
+            total_rows_processed += 1
+            c_key = c_name.lower().strip()
             
-            if not c_name or c_name.isdigit() or c_name.lower() in ['sl', 'consignee / outlet name']:
-                continue
+            if c_key in seen_in_file:
+                seen_in_file[c_key]['rows'].append(r_idx)
+                if r_name and r_name not in seen_in_file[c_key]['routes']:
+                    seen_in_file[c_key]['routes'].append(r_name)
+            else:
+                seen_in_file[c_key] = {
+                    'name': c_name,
+                    'rows': [r_idx],
+                    'routes': [r_name] if r_name else []
+                }
                 
             route_id = None
             if r_name:
@@ -2502,7 +2538,6 @@ def bulk_upload_consignees():
                 if r_key in routes_db:
                     route_id = routes_db[r_key]
                 else:
-                    # Auto create new route
                     cursor.execute('INSERT INTO routes (depot_id, route_name) VALUES (?, ?)', (depot_id, r_name))
                     route_id = cursor.lastrowid
                     routes_db[r_key] = route_id
@@ -2512,14 +2547,33 @@ def bulk_upload_consignees():
             if exist:
                 cursor.execute('UPDATE route_consignees SET route_id=?, address=?, phone=?, payment_mode=? WHERE id=?',
                                (route_id, addr, phone, pay_mode, exist['id']))
+                updated_existing += 1
             else:
                 cursor.execute('INSERT INTO route_consignees (depot_id, route_id, consignee_name, address, phone, payment_mode) VALUES (?, ?, ?, ?, ?, ?)',
                                (depot_id, route_id, c_name, addr, phone, pay_mode))
-            imported_count += 1
-            
+                new_added += 1
+                
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': f'Successfully imported {imported_count} consignees/outlets from Excel!'})
+        
+        duplicates_in_file = [info for key, info in seen_in_file.items() if len(info['rows']) > 1]
+        unique_outlets = len(seen_in_file)
+        
+        if duplicates_in_file:
+            msg = f"Excel file processed successfully! Total {total_rows_processed} rows read -> {unique_outlets} unique outlets saved ({new_added} new, {updated_existing} updated). {len(duplicates_in_file)} duplicate rows were found and merged."
+        else:
+            msg = f"Successfully imported all {unique_outlets} unique consignees/outlets from Excel!"
+            
+        return jsonify({
+            'success': True,
+            'message': msg,
+            'total_rows': total_rows_processed,
+            'unique_outlets': unique_outlets,
+            'new_added': new_added,
+            'updated': updated_existing,
+            'duplicate_count': len(duplicates_in_file),
+            'duplicates': duplicates_in_file
+        })
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error uploading consignees: {str(e)}'}), 500
 

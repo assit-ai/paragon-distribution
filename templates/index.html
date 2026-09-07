@@ -28069,6 +28069,12 @@
                     const data = await res.json();
                     if (data.success) {
                         showToast(data.message, 'success');
+                        if (data.duplicates && data.duplicates.length > 0) {
+                            const dupList = data.duplicates.map((d, i) => `${i + 1}. "${d.name}" (Excel rows: ${d.rows.join(', ')})`).join('\n');
+                            setTimeout(() => {
+                                alert(`📋 Consignee Bulk Upload Summary:\n\n• Total Rows Processed: ${data.total_rows}\n• Unique Outlets Enlisted: ${data.unique_outlets}\n• Duplicate Rows Merged: ${data.duplicate_count}\n\nDuplicate Outlets in your Excel File:\n${dupList}\n\n(Note: The duplicate entries in your Excel file updated the existing outlet records, so ${data.unique_outlets} unique outlets are enlisted.)`);
+                            }, 400);
+                        }
                         if (type === 'routes') {
                             loadRoutesMaster(depotId);
                             loadConsigneesMaster(depotId);
