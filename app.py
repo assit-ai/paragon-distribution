@@ -717,6 +717,10 @@ def get_report_by_date():
 @app.route('/api/reports/delete-by-date', methods=['POST', 'DELETE'])
 def delete_report_by_date():
     data = request.json or {}
+    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
+    if role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete submitted daily reports"}), 403
+
     depot_id = data.get('depot_id') or request.args.get('depot_id')
     report_date = data.get('date') or request.args.get('date')
     if not depot_id or not report_date:
@@ -3388,6 +3392,13 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM inter_depot_vehicle_requests')
             cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%"')
         msg = "All borrowed vehicles and borrowing requests cleared successfully!"
+        
+    elif clear_type == 'mapping':
+        if depot_id and str(depot_id) != 'all':
+            cursor.execute('UPDATE depot_crew SET default_vehicle_id = NULL, default_vehicle_no = NULL WHERE depot_id = ?', (depot_id,))
+        else:
+            cursor.execute('UPDATE depot_crew SET default_vehicle_id = NULL, default_vehicle_no = NULL')
+        msg = "All Driver-to-Vehicle mappings cleared successfully!"
         
     elif clear_type == 'all':
         if depot_id and str(depot_id) != 'all':
