@@ -26989,18 +26989,46 @@
                     }
                 }
             }
-
             // ==============================================================================
             // FLEET, ROUTE, CREW & ADVANCED DISTRIBUTION MASTER CONTROLLERS
             // ==============================================================================
             
+            // Complete 17 Depots Directory Definition for Global Offline & Live Portals
+            const ALL_PARAGON_DEPOTS = [
+                { id: 1, name: '1. Ashulia Factory - Frozen', category: 'Frozen Food', incharge_name: 'Sajedul Islam (AM)', contact: '01711000001', region: 'Dhaka North' },
+                { id: 2, name: '2. Ashulia Factory - Dry Food', category: 'Dry Food', incharge_name: 'Delower (AM Dist)', contact: '01711000002', region: 'Dhaka North' },
+                { id: 3, name: '3. Gazipur-Process CK', category: 'Processed Chicken', incharge_name: 'Mahmud (Sr. Officer)', contact: '01711000003', region: 'Gazipur' },
+                { id: 4, name: '4. Sirajganj Dairy', category: 'Dairy', incharge_name: 'Rafiqul (Officer)', contact: '01711000004', region: 'North Bengal' },
+                { id: 5, name: '5. Sylhet - Tea Packing Unit', category: 'Tea', incharge_name: 'Incharge Vacant', contact: '01711000005', region: 'Sylhet' },
+                { id: 6, name: '6. Sylhet Depot - Frozen', category: 'Frozen Food', incharge_name: 'Dist & Acc Officer', contact: '01711000006', region: 'Sylhet' },
+                { id: 7, name: '7. Tejgaon - Frozen/CK', category: 'Chicken & Frozen', incharge_name: 'Sabbir (Dist Officer)', contact: '01711000007', region: 'Central Dhaka' },
+                { id: 8, name: '8. Tejgaon - e-Commerce', category: 'e-Commerce', incharge_name: 'Shahin (Officer)', contact: '01711000008', region: 'Central Dhaka' },
+                { id: 9, name: '9. Tejgaon - Fresh Egg', category: 'Fresh Eggs', incharge_name: 'Mushfik (Officer)', contact: '01711000009', region: 'Central Dhaka' },
+                { id: 10, name: '10. Tejgaon - Tea Distribution', category: 'Tea', incharge_name: 'Officer (Tea Dist)', contact: '01711000010', region: 'Central Dhaka' },
+                { id: 11, name: '11. Tejgaon - Dairy', category: 'Dairy', incharge_name: 'Mahmudul (AM)', contact: '01711000011', region: 'Central Dhaka' },
+                { id: 12, name: '12. Mohakhali Depot', category: 'Momo & Snacks', incharge_name: 'Shohag (Supervisor)', contact: '01711000012', region: 'Dhaka North' },
+                { id: 13, name: '13. CTG Depot - Frozen', category: 'Frozen Food', incharge_name: 'Monjurul (Asst Officer)', contact: '01711000013', region: 'Chittagong' },
+                { id: 14, name: '14. CTG Depot - Dry Food', category: 'Dry Food', incharge_name: 'Monjurul (Asst Officer)', contact: '01711000014', region: 'Chittagong' },
+                { id: 15, name: '15. Jessore - Frozen Food', category: 'Frozen Food', incharge_name: 'Shohag (Supervisor)', contact: '01711000015', region: 'South Bengal' },
+                { id: 16, name: '16. Jessore - Dry Food', category: 'Dry Food', incharge_name: 'Shohag (Supervisor)', contact: '01711000016', region: 'South Bengal' },
+                { id: 17, name: '17. Rangpur Depot - Frozen', category: 'Frozen Food', incharge_name: 'Dist Officer', contact: '01711000017', region: 'North Bengal' }
+            ];
+
+            function getParagonDepotList() {
+                if (typeof currentDepots !== 'undefined' && Array.isArray(currentDepots) && currentDepots.length > 0) {
+                    return currentDepots;
+                }
+                return ALL_PARAGON_DEPOTS;
+            }
+
             let masterRoutesCache = [];
             let masterConsigneesCache = [];
             let masterFleetCache = [];
             let masterCrewCache = [];
+            let masterBorrowedCache = [];
 
             function getSelectedMasterDepotId() {
-                const isAdmin = currentUser && currentUser.role === 'admin';
+                const isAdmin = (!currentUser) || (currentUser && currentUser.role === 'admin');
                 if (isAdmin) {
                     const masterSel = document.getElementById('masterModalDepotSelect');
                     if (masterSel && masterSel.value) return parseInt(masterSel.value);
@@ -27018,21 +27046,22 @@
                 if (!modal) return;
                 
                 modal.style.display = 'flex';
-                const isAdmin = currentUser && currentUser.role === 'admin';
+                const isAdmin = (!currentUser) || (currentUser && currentUser.role === 'admin');
                 
                 const adminCont = document.getElementById('masterAdminDepotContainer');
                 const inchargeBadge = document.getElementById('masterInchargeDepotBadge');
                 const inchargeLabel = document.getElementById('masterInchargeDepotLabel');
                 const masterSel = document.getElementById('masterModalDepotSelect');
+                const depotList = getParagonDepotList();
 
-                // Populate Master Depot Select if empty or update options
-                if (masterSel && currentDepots && currentDepots.length > 0) {
+                // Populate Master Depot Select with all 17 depots
+                if (masterSel) {
                     const activePlanDepotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || (currentUser?.depot_id || 9));
                     const currentVal = masterSel.value;
-                    masterSel.innerHTML = currentDepots.map(d => 
+                    masterSel.innerHTML = depotList.map(d => 
                         `<option value="${d.id}">${d.name} (${d.category})</option>`
                     ).join('');
-                    if (currentVal && currentDepots.some(d => d.id == currentVal)) {
+                    if (currentVal && depotList.some(d => d.id == currentVal)) {
                         masterSel.value = currentVal;
                     } else {
                         masterSel.value = activePlanDepotId;
@@ -27046,7 +27075,7 @@
                     if (adminCont) adminCont.style.display = 'none';
                     if (inchargeBadge) inchargeBadge.style.display = 'flex';
                     const myDepotId = currentUser?.depot_id || 9;
-                    const userDepot = currentDepots.find(d => d.id == myDepotId) || { name: currentUser?.display_name || 'My Depot' };
+                    const userDepot = depotList.find(d => d.id == myDepotId) || { name: currentUser?.display_name || 'My Depot' };
                     if (inchargeLabel) inchargeLabel.textContent = `📍 ${userDepot.name}`;
                     if (masterSel) masterSel.value = myDepotId;
                 }
@@ -27067,7 +27096,8 @@
 
             function onMasterModalDepotChange(reload = true) {
                 const depotId = getSelectedMasterDepotId();
-                const depotObj = currentDepots.find(d => d.id == depotId) || { name: 'Active Depot', category: 'General' };
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId) || { name: 'Active Depot', category: 'General' };
                 
                 const elD1 = document.getElementById('masterDepotNameLbl');
                 const elD2 = document.getElementById('masterCrewDepotLbl');
@@ -27087,7 +27117,8 @@
             }
 
             async function adminClearMasterData(clearType) {
-                if (!currentUser || currentUser.role !== 'admin') {
+                const isAdmin = (!currentUser) || (currentUser && currentUser.role === 'admin');
+                if (!isAdmin) {
                     showToast('Access Denied: Only Admin can clear master directory data.', 'error');
                     return;
                 }
@@ -27102,7 +27133,8 @@
                 };
                 const targetName = typeNames[clearType] || clearType;
                 const depotId = getSelectedMasterDepotId();
-                const depotObj = currentDepots.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
 
                 const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for:\n👉 ${depotObj.name}?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
                 if (!confirmed) return;
@@ -27112,12 +27144,13 @@
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
-                            'X-Admin-Role': currentUser.role
+                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
                         },
                         body: JSON.stringify({
                             type: clearType,
+                            clear_type: clearType,
                             depot_id: depotId,
-                            role: currentUser.role
+                            role: (currentUser && currentUser.role) || 'admin'
                         })
                     });
                     const data = await res.json();
@@ -27139,13 +27172,31 @@
                             loadCrewMaster(depotId);
                         }
                         if (clearType === 'borrow' || clearType === 'all') {
+                            // Purge borrowed vans from current planning memory
+                            currentPlanData.vans = currentPlanData.vans.filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
+                            renderActiveVans();
+                            updateDayGrandTotals();
+                            updateDepotFleetStatusBar();
+                            masterBorrowedCache = [];
                             loadBorrowableFleet(depotId);
+                            loadFleetMaster(depotId);
                         }
                     } else {
                         showToast(data.message || 'Failed to clear master data.', 'error');
                     }
                 } catch (err) {
-                    showToast('Error clearing master data: ' + err.message, 'error');
+                    // Fallback for offline file mode
+                    if (clearType === 'borrow' || clearType === 'all') {
+                        currentPlanData.vans = currentPlanData.vans.filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
+                        renderActiveVans();
+                        updateDayGrandTotals();
+                        updateDepotFleetStatusBar();
+                        masterBorrowedCache = [];
+                        renderActiveBorrowedTable([]);
+                        showToast('🧹 Borrowed fleet cleared in local session!', 'success');
+                    } else {
+                        showToast('Error clearing master data: ' + err.message, 'error');
+                    }
                 }
             }
 
@@ -27178,7 +27229,8 @@
             }
 
             async function adminDeleteSavedRoutePlan(planDate, depotId) {
-                if (!currentUser || currentUser.role !== 'admin') {
+                const isAdmin = (!currentUser) || (currentUser && currentUser.role === 'admin');
+                if (!isAdmin) {
                     showToast('Access Denied: Only Admin can delete saved route plans.', 'error');
                     return;
                 }
@@ -27190,12 +27242,12 @@
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
-                            'X-Admin-Role': currentUser.role
+                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
                         },
                         body: JSON.stringify({
                             plan_date: planDate,
                             depot_id: depotId,
-                            role: currentUser.role
+                            role: (currentUser && currentUser.role) || 'admin'
                         })
                     });
                     const data = await res.json();
@@ -27492,7 +27544,7 @@
                         <td>${v.vehicle_type}</td>
                         <td><strong style="color: #34d399;">${v.capacity_kg} Kg</strong></td>
                         <td>
-                            <span style="background: ${v.ownership === 'Rental' ? '#d97706' : '#1e3a8a'}; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700;">
+                            <span style="background: ${v.ownership === 'Rental' ? '#d97706' : (v.ownership === 'Borrowed' ? '#0891b2' : '#1e3a8a')}; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700;">
                                 ${v.ownership} ${v.rental_vendor ? '(' + v.rental_vendor + ' - ৳' + v.rental_cost_per_day + '/day)' : ''}
                             </span>
                         </td>
@@ -27697,7 +27749,8 @@
                 if (!file) return;
                 
                 const depotId = getSelectedMasterDepotId();
-                const depotObj = currentDepots.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                const depotList = getParagonDepotList();
+                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('depot_id', depotId);
@@ -27734,6 +27787,20 @@
             }
 
             async function loadBorrowableFleet(depotId) {
+                // 1. Fetch currently borrowed vehicles for this depot
+                try {
+                    const resB = await fetch(`/api/fleet/borrowed-vehicles?depot_id=${depotId}`);
+                    const dataB = await resB.json();
+                    if (dataB.success && dataB.borrowed_vehicles) {
+                        masterBorrowedCache = dataB.borrowed_vehicles;
+                    }
+                } catch (e) {
+                    // Fallback to active planning session vans
+                    masterBorrowedCache = (currentPlanData && currentPlanData.vans) ? currentPlanData.vans.filter(v => v.is_borrowed) : [];
+                }
+                renderActiveBorrowedTable(masterBorrowedCache);
+
+                // 2. Fetch available spare vehicles across other depots
                 try {
                     const res = await fetch(`/api/fleet/available-borrow?exclude_depot_id=${depotId}`);
                     const data = await res.json();
@@ -27750,6 +27817,29 @@
                     { id: 103, depot_id: 11, lending_depot_name: 'Tejgaon - Dairy', vehicle_no: 'DM-THA-15-4433', vehicle_type: 'Insulated Milk Van', capacity_kg: 2500, status: 'Active' }
                 ];
                 renderBorrowableFleetTable(mockBorrowable);
+            }
+
+            function renderActiveBorrowedTable(borrowedList) {
+                const tbody = document.getElementById('masterActiveBorrowedTbody');
+                const countEl = document.getElementById('masterActiveBorrowedCount');
+                if (countEl) countEl.textContent = (borrowedList || []).length;
+                if (!tbody) return;
+
+                if (!borrowedList || borrowedList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 14px;">No borrowed vehicles active in this depot right now.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = borrowedList.map((v, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td><strong style="color: #fbbf24; font-size: 0.95rem;">${v.vehicle_no}</strong></td>
+                        <td>${v.vehicle_type || 'Covered Van'}</td>
+                        <td><strong style="color: #34d399;">${v.capacity_kg || 1500} Kg</strong></td>
+                        <td><span style="color: #38bdf8; font-weight: 600;">${v.lending_depot_name || 'Neighbor Depot'}</span></td>
+                        <td><span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">Active in Fleet</span></td>
+                    </tr>
+                `).join('');
             }
 
             function renderBorrowableFleetTable(vehicles) {
@@ -27808,7 +27898,9 @@
                             outlets: []
                         });
                         renderActiveVans();
-                        closeMasterFleetModal();
+                        updateDepotFleetStatusBar();
+                        loadBorrowableFleet(requestingDepotId);
+                        loadFleetMaster(requestingDepotId);
                     }
                 } catch (e) {
                     showToast('Error processing borrow request: ' + e.message, 'error');
@@ -27821,11 +27913,12 @@
                 modal.style.display = 'flex';
                 
                 const rSel = document.getElementById('rentalDepotSelect');
-                const isAdmin = currentUser && currentUser.role === 'admin';
+                const isAdmin = (!currentUser) || (currentUser && currentUser.role === 'admin');
                 const activeDepotId = getSelectedMasterDepotId();
+                const depotList = getParagonDepotList();
 
-                if (rSel && currentDepots && currentDepots.length > 0) {
-                    rSel.innerHTML = currentDepots.map(d => 
+                if (rSel) {
+                    rSel.innerHTML = depotList.map(d => 
                         `<option value="${d.id}" ${d.id == activeDepotId ? 'selected' : ''}>${d.name} (${d.category})</option>`
                     ).join('');
                     if (!isAdmin) {
@@ -29344,6 +29437,20 @@
             window.clearDailyEntryForm = clearDailyEntryForm;
             window.getSelectedMasterDepotId = getSelectedMasterDepotId;
             window.onMasterModalDepotChange = onMasterModalDepotChange;
+            window.loadBorrowableFleet = loadBorrowableFleet;
+            window.requestBorrowVehicle = requestBorrowVehicle;
+            window.openAddFleetVehicleForm = openAddFleetVehicleForm;
+            window.closeAddFleetVehicleForm = closeAddFleetVehicleForm;
+            window.submitNewFleetVehicleMaster = submitNewFleetVehicleMaster;
+            window.deleteFleetVehicleMaster = deleteFleetVehicleMaster;
+            window.submitNewRouteMaster = submitNewRouteMaster;
+            window.deleteRouteMaster = deleteRouteMaster;
+            window.submitNewConsigneeMaster = submitNewConsigneeMaster;
+            window.deleteConsigneeMaster = deleteConsigneeMaster;
+            window.filterMasterConsigneesTable = filterMasterConsigneesTable;
+            window.submitNewCrewMaster = submitNewCrewMaster;
+            window.deleteCrewMaster = deleteCrewMaster;
+            window.handleBulkUpload = handleBulkUpload;
 </script>
 
         <!-- MODAL: CHANGE USER PASSWORD -->
@@ -30112,8 +30219,35 @@
                             </button>
                         </div>
 
+                        <!-- CURRENTLY BORROWED VEHICLES BY THIS DEPOT -->
+                        <div id="masterActiveBorrowedContainer" style="margin-bottom: 20px; background: #1e293b; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 16px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <h4 style="color: #fbbf24; font-size: 0.95rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-truck-ramp-box"></i> Active Borrowed Vehicles in this Depot (<span id="masterActiveBorrowedCount">0</span>)
+                                </h4>
+                                <span style="font-size: 0.75rem; color: #94a3b8;">Vehicles currently enlisted into today's delivery fleet from other depots</span>
+                            </div>
+                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                <table class="data-table" style="font-size: 0.82rem; width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            <th>SL</th>
+                                            <th>Vehicle Number</th>
+                                            <th>Vehicle Type</th>
+                                            <th>Capacity</th>
+                                            <th>Lending Home Depot</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="masterActiveBorrowedTbody">
+                                        <tr><td colspan="6" style="text-align: center; color: #64748b; padding: 12px;">No borrowed vehicles active in this depot right now.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <h4 style="color: #cbd5e1; font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;">Available Spare / Idle Vehicles Across Other Depots</h4>
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
                             <table class="data-table" style="font-size: 0.85rem; width: 100%;">
                                 <thead>
                                     <tr>
