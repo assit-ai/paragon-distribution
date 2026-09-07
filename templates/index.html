@@ -26999,31 +26999,91 @@
             let masterFleetCache = [];
             let masterCrewCache = [];
 
+            function getSelectedMasterDepotId() {
+                const isAdmin = currentUser && currentUser.role === 'admin';
+                if (isAdmin) {
+                    const masterSel = document.getElementById('masterModalDepotSelect');
+                    if (masterSel && masterSel.value) return parseInt(masterSel.value);
+                }
+                if (currentUser && currentUser.depot_id) {
+                    return parseInt(currentUser.depot_id);
+                }
+                const planSel = document.getElementById('planDepotSelect');
+                if (planSel && planSel.value) return parseInt(planSel.value);
+                return currentPlanData.depot_id || 9;
+            }
+
             function openMasterFleetModal(tabName = 'routes') {
                 const modal = document.getElementById('masterFleetModal');
-                if (modal) {
-                    modal.style.display = 'flex';
-                    const dSel = document.getElementById('planDepotSelect') || document.getElementById('entryDepot');
-                    const dName = (dSel && dSel.options[dSel.selectedIndex]) ? dSel.options[dSel.selectedIndex].text : (currentPlanData.depot_name || 'Active Depot');
-                    
-                    const elD1 = document.getElementById('masterDepotNameLbl');
-                    const elD2 = document.getElementById('masterCrewDepotLbl');
-                    if (elD1) elD1.textContent = dName;
-                    if (elD2) elD2.textContent = dName;
+                if (!modal) return;
+                
+                modal.style.display = 'flex';
+                const isAdmin = currentUser && currentUser.role === 'admin';
+                
+                const adminCont = document.getElementById('masterAdminDepotContainer');
+                const inchargeBadge = document.getElementById('masterInchargeDepotBadge');
+                const inchargeLabel = document.getElementById('masterInchargeDepotLabel');
+                const masterSel = document.getElementById('masterModalDepotSelect');
 
-                    // Toggle Admin-only button visibility
-                    const isAdmin = currentUser && currentUser.role === 'admin';
-                    document.querySelectorAll('#masterFleetModal .admin-only-btn').forEach(btn => {
-                        btn.style.display = isAdmin ? 'inline-flex' : 'none';
-                    });
-                    
-                    switchMasterTab(tabName);
+                // Populate Master Depot Select if empty or update options
+                if (masterSel && currentDepots && currentDepots.length > 0) {
+                    const activePlanDepotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || (currentUser?.depot_id || 9));
+                    const currentVal = masterSel.value;
+                    masterSel.innerHTML = currentDepots.map(d => 
+                        `<option value="${d.id}">${d.name} (${d.category})</option>`
+                    ).join('');
+                    if (currentVal && currentDepots.some(d => d.id == currentVal)) {
+                        masterSel.value = currentVal;
+                    } else {
+                        masterSel.value = activePlanDepotId;
+                    }
                 }
+
+                if (isAdmin) {
+                    if (adminCont) adminCont.style.display = 'flex';
+                    if (inchargeBadge) inchargeBadge.style.display = 'none';
+                } else {
+                    if (adminCont) adminCont.style.display = 'none';
+                    if (inchargeBadge) inchargeBadge.style.display = 'flex';
+                    const myDepotId = currentUser?.depot_id || 9;
+                    const userDepot = currentDepots.find(d => d.id == myDepotId) || { name: currentUser?.display_name || 'My Depot' };
+                    if (inchargeLabel) inchargeLabel.textContent = `📍 ${userDepot.name}`;
+                    if (masterSel) masterSel.value = myDepotId;
+                }
+
+                // Toggle Admin-only button visibility
+                document.querySelectorAll('#masterFleetModal .admin-only-btn').forEach(btn => {
+                    btn.style.display = isAdmin ? 'inline-flex' : 'none';
+                });
+
+                onMasterModalDepotChange(false);
+                switchMasterTab(tabName);
             }
 
             function closeMasterFleetModal() {
                 const modal = document.getElementById('masterFleetModal');
                 if (modal) modal.style.display = 'none';
+            }
+
+            function onMasterModalDepotChange(reload = true) {
+                const depotId = getSelectedMasterDepotId();
+                const depotObj = currentDepots.find(d => d.id == depotId) || { name: 'Active Depot', category: 'General' };
+                
+                const elD1 = document.getElementById('masterDepotNameLbl');
+                const elD2 = document.getElementById('masterCrewDepotLbl');
+                const elD3 = document.getElementById('masterFleetDepotLbl');
+                if (elD1) elD1.textContent = `${depotObj.name}`;
+                if (elD2) elD2.textContent = `${depotObj.name}`;
+                if (elD3) elD3.textContent = `${depotObj.name}`;
+
+                if (reload) {
+                    // Identify which tab is currently active and reload its data
+                    let activeTab = 'routes';
+                    if (document.getElementById('masterTabPaneFleet')?.style.display === 'block') activeTab = 'fleet';
+                    else if (document.getElementById('masterTabPaneCrew')?.style.display === 'block') activeTab = 'crew';
+                    else if (document.getElementById('masterTabPaneBorrow')?.style.display === 'block') activeTab = 'borrow';
+                    switchMasterTab(activeTab);
+                }
             }
 
             async function adminClearMasterData(clearType) {
@@ -27041,17 +27101,21 @@
                     'all': 'ALL Master Directory Data'
                 };
                 const targetName = typeNames[clearType] || clearType;
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
+                const depotObj = currentDepots.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
 
-                const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for this depot?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
+                const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for:\n👉 ${depotObj.name}?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
                 if (!confirmed) return;
 
                 try {
                     const res = await fetch('/api/admin/clear-master-data', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': currentUser.role
+                        },
                         body: JSON.stringify({
-                            clear_type: clearType,
+                            type: clearType,
                             depot_id: depotId,
                             role: currentUser.role
                         })
@@ -27124,7 +27188,10 @@
                 try {
                     const res = await fetch('/api/admin/clear-route-plan', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': currentUser.role
+                        },
                         body: JSON.stringify({
                             plan_date: planDate,
                             depot_id: depotId,
@@ -27166,7 +27233,7 @@
                 }
                 if (pane) pane.style.display = 'block';
 
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 if (tabName === 'routes') {
                     loadRoutesMaster(depotId);
                     loadConsigneesMaster(depotId);
@@ -27208,7 +27275,7 @@
                 const list = document.getElementById('masterRoutesList');
                 if (!list) return;
                 if (routes.length === 0) {
-                    list.innerHTML = '<div style="color: #64748b; font-size: 0.82rem; padding: 12px; text-align: center;">No routes created yet. Use form above to add a route.</div>';
+                    list.innerHTML = '<div style="color: #64748b; font-size: 0.82rem; padding: 12px; text-align: center;">No routes created yet for this depot. Use form above to add a route.</div>';
                     return;
                 }
                 list.innerHTML = routes.map((r, i) => `
@@ -27234,7 +27301,7 @@
             }
 
             async function submitNewRouteMaster() {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 const name = document.getElementById('newRouteName')?.value?.trim();
                 const code = document.getElementById('newRouteCode')?.value?.trim();
                 const veh = document.getElementById('newRouteVehicle')?.value?.trim();
@@ -27265,7 +27332,7 @@
 
             async function deleteRouteMaster(routeId) {
                 if (!confirm('Are you sure you want to delete this route and unmap its outlets?')) return;
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 try {
                     const res = await fetch(`/api/routes/${routeId}`, { method: 'DELETE' });
                     const data = await res.json();
@@ -27330,7 +27397,7 @@
             }
 
             async function submitNewConsigneeMaster() {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 const name = document.getElementById('newConsigneeName')?.value?.trim();
                 const routeId = document.getElementById('newConsigneeRouteSelect')?.value;
                 const address = document.getElementById('newConsigneeAddress')?.value?.trim();
@@ -27370,7 +27437,7 @@
             }
 
             async function deleteConsigneeMaster(consigneeId) {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 try {
                     const res = await fetch(`/api/consignees/${consigneeId}`, { method: 'DELETE' });
                     const data = await res.json();
@@ -27399,10 +27466,10 @@
                 }
                 if (!masterFleetCache || masterFleetCache.length === 0) {
                     masterFleetCache = [
-                        { id: 1, vehicle_no: 'DM-THA-11-2041', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, ownership_type: 'company', status: 'available', default_driver_name: 'Md. Rafiqul Islam' },
-                        { id: 2, vehicle_no: 'DM-THA-11-3052', vehicle_type: 'Covered Van 2.0 Ton', capacity_kg: 2000, ownership_type: 'company', status: 'available', default_driver_name: 'Md. Alamgir Hossain' },
-                        { id: 3, vehicle_no: 'DM-THA-11-4018', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, ownership_type: 'company', status: 'available', default_driver_name: 'Md. Kamal Uddin' },
-                        { id: 4, vehicle_no: 'DM-THA-11-5099', vehicle_type: 'Refrigerated Van', capacity_kg: 1800, ownership_type: 'company', status: 'maintenance', default_driver_name: 'Md. Sohel Rana' }
+                        { id: 1, vehicle_no: 'DM-THA-11-2041', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Rafiqul Islam' },
+                        { id: 2, vehicle_no: 'DM-THA-11-3052', vehicle_type: 'Covered Van 2.0 Ton', capacity_kg: 2000, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Alamgir Hossain' },
+                        { id: 3, vehicle_no: 'DM-THA-11-4018', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Kamal Uddin' },
+                        { id: 4, vehicle_no: 'DM-THA-11-5099', vehicle_type: 'Refrigerated Van', capacity_kg: 1800, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Sohel Rana' }
                     ];
                 }
                 renderMasterFleetTable(masterFleetCache);
@@ -27449,7 +27516,7 @@
                 const drawer = document.getElementById('addFleetVehicleDrawer');
                 if (drawer) {
                     drawer.style.display = 'block';
-                    const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                    const depotId = getSelectedMasterDepotId();
                     fetch(`/api/crew?depot_id=${depotId}`).then(r => r.json()).then(d => {
                         if (d.success) {
                             const drivers = d.crew.filter(c => c.role === 'driver');
@@ -27469,7 +27536,7 @@
             }
 
             async function submitNewFleetVehicleMaster() {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 const vNo = document.getElementById('newVehNo')?.value?.trim();
                 const vType = document.getElementById('newVehType')?.value;
                 const capKg = document.getElementById('newVehCapKg')?.value;
@@ -27509,7 +27576,7 @@
 
             async function deleteFleetVehicleMaster(vehId) {
                 if (!confirm('Remove this vehicle from depot fleet?')) return;
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 try {
                     const res = await fetch(`/api/fleet/vehicle/${vehId}`, { method: 'DELETE' });
                     const data = await res.json();
@@ -27575,7 +27642,7 @@
             }
 
             async function submitNewCrewMaster() {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 const role = document.getElementById('newCrewRole')?.value;
                 const name = document.getElementById('newCrewName')?.value?.trim();
                 const phone = document.getElementById('newCrewPhone')?.value?.trim();
@@ -27612,7 +27679,7 @@
             }
 
             async function deleteCrewMaster(crewId) {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
                 try {
                     const res = await fetch(`/api/crew/${crewId}`, { method: 'DELETE' });
                     const data = await res.json();
@@ -27629,12 +27696,13 @@
                 const file = event.target.files[0];
                 if (!file) return;
                 
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const depotId = getSelectedMasterDepotId();
+                const depotObj = currentDepots.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('depot_id', depotId);
 
-                showToast(`⏳ Uploading & processing ${type} from Excel...`, 'info');
+                showToast(`⏳ Uploading & processing ${type} for ${depotObj.name} from Excel...`, 'info');
 
                 try {
                     const res = await fetch(`/api/${type}/bulk-upload`, {
@@ -27677,9 +27745,9 @@
                     console.warn('Network offline, using mock borrowable fleet:', e);
                 }
                 const mockBorrowable = [
-                    { id: 101, depot_id: 1, depot_name: 'Ashulia Factory - Frozen', vehicle_no: 'DM-THA-12-8810', vehicle_type: 'Covered Van 2.0 Ton', capacity_kg: 2000, status: 'idle / available' },
-                    { id: 102, depot_id: 3, depot_name: 'Gazipur-Process CK', vehicle_no: 'DM-THA-14-6622', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, status: 'idle / available' },
-                    { id: 103, depot_id: 11, depot_name: 'Tejgaon - Dairy', vehicle_no: 'DM-THA-15-4433', vehicle_type: 'Insulated Milk Van', capacity_kg: 2500, status: 'idle / available' }
+                    { id: 101, depot_id: 1, lending_depot_name: 'Ashulia Factory - Frozen', vehicle_no: 'DM-THA-12-8810', vehicle_type: 'Covered Van 2.0 Ton', capacity_kg: 2000, status: 'Active' },
+                    { id: 102, depot_id: 3, lending_depot_name: 'Gazipur-Process CK', vehicle_no: 'DM-THA-14-6622', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, status: 'Active' },
+                    { id: 103, depot_id: 11, lending_depot_name: 'Tejgaon - Dairy', vehicle_no: 'DM-THA-15-4433', vehicle_type: 'Insulated Milk Van', capacity_kg: 2500, status: 'Active' }
                 ];
                 renderBorrowableFleetTable(mockBorrowable);
             }
@@ -27695,7 +27763,7 @@
 
                 tbody.innerHTML = vehicles.map(v => `
                     <tr>
-                        <td><strong style="color: #38bdf8;">${v.lending_depot_name}</strong></td>
+                        <td><strong style="color: #38bdf8;">${v.lending_depot_name || v.depot_name || 'Neighbor Depot'}</strong></td>
                         <td><strong style="color: #fff;">${v.vehicle_no}</strong></td>
                         <td>${v.vehicle_type}</td>
                         <td><strong style="color: #34d399;">${v.capacity_kg} Kg</strong></td>
@@ -27710,7 +27778,7 @@
             }
 
             async function requestBorrowVehicle(vehId, lendingDepotId, vehNo) {
-                const requestingDepotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const requestingDepotId = getSelectedMasterDepotId();
                 try {
                     const res = await fetch('/api/fleet/borrow-request', {
                         method: 'POST',
@@ -27724,7 +27792,7 @@
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast(`🤝 Vehicle ${vehNo} borrowed and added to today's active fleet!`, 'success');
+                        showToast(`🤝 Vehicle ${vehNo} borrowed and added to active fleet!`, 'success');
                         
                         // Add to current plan data
                         currentPlanData.vans.push({
@@ -27749,7 +27817,24 @@
 
             function openRentalVanModal() {
                 const modal = document.getElementById('addRentalVanModal');
-                if (modal) modal.style.display = 'flex';
+                if (!modal) return;
+                modal.style.display = 'flex';
+                
+                const rSel = document.getElementById('rentalDepotSelect');
+                const isAdmin = currentUser && currentUser.role === 'admin';
+                const activeDepotId = getSelectedMasterDepotId();
+
+                if (rSel && currentDepots && currentDepots.length > 0) {
+                    rSel.innerHTML = currentDepots.map(d => 
+                        `<option value="${d.id}" ${d.id == activeDepotId ? 'selected' : ''}>${d.name} (${d.category})</option>`
+                    ).join('');
+                    if (!isAdmin) {
+                        rSel.disabled = true;
+                        if (currentUser?.depot_id) rSel.value = currentUser.depot_id;
+                    } else {
+                        rSel.disabled = false;
+                    }
+                }
             }
 
             function closeRentalVanModal() {
@@ -27758,7 +27843,8 @@
             }
 
             async function submitRentalVan() {
-                const depotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || 9);
+                const rSel = document.getElementById('rentalDepotSelect');
+                const depotId = (rSel && rSel.value) ? parseInt(rSel.value) : getSelectedMasterDepotId();
                 const vNo = document.getElementById('rentalVehNo')?.value?.trim();
                 const vendor = document.getElementById('rentalVendor')?.value?.trim();
                 const cost = document.getElementById('rentalCost')?.value;
@@ -27787,25 +27873,28 @@
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast(`🔑 Rental Van ${vNo} added successfully!`, 'success');
+                        showToast(`🔑 Rental Van ${vNo} registered successfully!`, 'success');
                         closeRentalVanModal();
                         
-                        // Add into current active planning vans
-                        currentPlanData.vans.push({
-                            id: 'VAN-RENTAL-' + Date.now(),
-                            vehicle_no: vNo,
-                            driver_name: 'Rental Driver',
-                            driver_mobile: '01711-000000',
-                            delivery_man: 'Rental Delivery Man',
-                            delivery_man_mobile: '01911-000000',
-                            dispatch_time: '07:30 AM',
-                            route_zone: 'Rental Overflow Route',
-                            is_rental: true,
-                            rental_vendor: vendor,
-                            rental_cost: parseFloat(cost) || 0,
-                            outlets: []
-                        });
-                        renderActiveVans();
+                        // Add into current active planning vans if same depot
+                        if (depotId == (currentPlanData.depot_id || 9)) {
+                            currentPlanData.vans.push({
+                                id: 'VAN-RENTAL-' + Date.now(),
+                                vehicle_no: vNo,
+                                driver_name: 'Rental Driver',
+                                driver_mobile: '01711-000000',
+                                delivery_man: 'Rental Delivery Man',
+                                delivery_man_mobile: '01911-000000',
+                                dispatch_time: '07:30 AM',
+                                route_zone: 'Rental Overflow Route',
+                                is_rental: true,
+                                rental_vendor: vendor,
+                                rental_cost: parseFloat(cost) || 0,
+                                outlets: []
+                            });
+                            renderActiveVans();
+                        }
+                        loadFleetMaster(depotId);
                     }
                 } catch (e) {
                     showToast('Error adding rental van: ' + e.message, 'error');
@@ -29253,6 +29342,8 @@
             window.clearActiveRoutePlan = clearActiveRoutePlan;
             window.adminDeleteSavedRoutePlan = adminDeleteSavedRoutePlan;
             window.clearDailyEntryForm = clearDailyEntryForm;
+            window.getSelectedMasterDepotId = getSelectedMasterDepotId;
+            window.onMasterModalDepotChange = onMasterModalDepotChange;
 </script>
 
         <!-- MODAL: CHANGE USER PASSWORD -->
@@ -29723,17 +29814,37 @@
             <div style="background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius-lg); width: 100%; max-width: 1200px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.9);">
                 
                 <!-- Master Header -->
-                <div style="padding: 16px 24px; background: #1e293b; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+                <div style="padding: 16px 24px; background: #1e293b; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; flex-wrap: wrap; gap: 14px;">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px;">
                             <i class="fa-solid fa-sliders"></i>
                         </div>
                         <div>
                             <h2 style="font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 2px;">Depot Fleet, Route & Crew Master Directory</h2>
-                            <p style="font-size: 0.82rem; color: #94a3b8;">Manage Predefined Routes, Consignee Mapping, Vehicle Numbers, Rental Vans, Drivers & Deliverymen</p>
+                            <p style="font-size: 0.82rem; color: #94a3b8; margin: 0;">Manage Predefined Routes, Consignee Mapping, Vehicle Numbers, Rental Vans, Drivers & Deliverymen</p>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-outline" onclick="closeMasterFleetModal()" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">&times;</button>
+                    
+                    <!-- DEPOT SELECTION & CONTROLS CONTAINER -->
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <!-- Admin Depot Dropdown (Interactive only for Admin) -->
+                        <div id="masterAdminDepotContainer" style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.85); border: 1.5px solid #38bdf8; padding: 6px 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);">
+                            <label for="masterModalDepotSelect" style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                                <i class="fa-solid fa-building-circle-check text-cyan"></i> Target Depot:
+                            </label>
+                            <select id="masterModalDepotSelect" onchange="onMasterModalDepotChange()" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 0.84rem; font-weight: 700; cursor: pointer; min-width: 240px;">
+                                <!-- Populated dynamically with all 17 depots -->
+                            </select>
+                        </div>
+
+                        <!-- Incharge Fixed Depot Badge (Visible only for regular incharge) -->
+                        <div id="masterInchargeDepotBadge" style="display: none; align-items: center; gap: 8px; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; padding: 6px 14px; border-radius: 8px;">
+                            <i class="fa-solid fa-location-dot text-green"></i>
+                            <span id="masterInchargeDepotLabel" style="font-size: 0.85rem; font-weight: 800; color: #4ade80;">Tejgaon - Fresh Egg</span>
+                        </div>
+
+                        <button type="button" class="btn btn-outline" onclick="closeMasterFleetModal()" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">&times;</button>
+                    </div>
                 </div>
 
                 <!-- Master Navigation Tabs -->
@@ -29862,7 +29973,7 @@
                     <div id="masterTabPaneFleet" class="master-tab-pane" style="display: none;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
-                                <h3 style="color: #fff; font-size: 1.1rem; font-weight: 800; margin-bottom: 2px;">Depot Vehicles & Dedicated Fleet</h3>
+                                <h3 style="color: #fff; font-size: 1.1rem; font-weight: 800; margin-bottom: 2px;">Depot Vehicles & Dedicated Fleet &bull; <span id="masterFleetDepotLbl" style="color: #38bdf8; font-size: 0.95rem;">Current Depot</span></h3>
                                 <p style="font-size: 0.82rem; color: #94a3b8;">Enlist company owned vans, capacity, default drivers and quick add rental vans</p>
                             </div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
@@ -30048,6 +30159,12 @@
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                    <div id="rentalDepotGroup">
+                        <label style="font-size: 0.82rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Assign to Depot *</label>
+                        <select id="rentalDepotSelect" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-weight: 600;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
                     <div>
                         <label style="font-size: 0.82rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Rental Vehicle Reg No *</label>
                         <input type="text" id="rentalVehNo" placeholder="e.g. DM-U-12-8970 (Rental)" class="form-control" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px;">

@@ -1588,12 +1588,20 @@ def get_fleet():
     depot_id = request.args.get('depot_id')
     conn = get_db()
     cursor = conn.cursor()
-    query = 'SELECT * FROM fleet_vehicles WHERE 1=1'
+    query = '''
+        SELECT fv.*,
+               drv.name as default_driver_name, drv.phone as default_driver_phone,
+               del.name as default_deliv_name, del.phone as default_deliv_phone
+        FROM fleet_vehicles fv
+        LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
+        LEFT JOIN depot_crew del ON fv.default_deliveryman_id = del.id
+        WHERE 1=1
+    '''
     params = []
     if depot_id:
-        query += ' AND depot_id = ?'
+        query += ' AND fv.depot_id = ?'
         params.append(depot_id)
-    query += ' ORDER BY ownership ASC, id ASC'
+    query += ' ORDER BY fv.ownership ASC, fv.id ASC'
     cursor.execute(query, tuple(params))
     vehicles = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -1708,11 +1716,11 @@ def delete_crew(cid):
 
 @app.route('/api/fleet/available-borrow', methods=['GET'])
 def get_available_borrow_vehicles():
-    current_depot_id = request.args.get('depot_id', 9)
+    current_depot_id = request.args.get('depot_id') or request.args.get('exclude_depot_id') or 9
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT fv.*, d.name as depot_name, d.category as depot_category
+        SELECT fv.*, d.name as lending_depot_name, d.category as lending_depot_category, d.name as depot_name
         FROM fleet_vehicles fv
         JOIN depots d ON fv.depot_id = d.id
         WHERE fv.depot_id != ? AND fv.status IN ('Active', 'Spare')
