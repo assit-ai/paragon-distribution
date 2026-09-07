@@ -27131,23 +27131,35 @@
                 const dName = (d ? d.name : '').toLowerCase();
                 const dCat = (d ? d.category : '').toLowerCase();
                 
-                let primaryCat = 'frozen';
+                let primaryCat = 'Frozen / Chicken';
+                let primaryUom = 'Kg';
+                let primaryCap = 1500;
                 let primaryLabel = 'Frozen Foods / Chicken (Kg)';
                 
                 if (dCat.includes('egg') || dName.includes('egg') || depotId == 9) {
-                    primaryCat = 'egg';
+                    primaryCat = 'Egg';
+                    primaryUom = 'Pcs';
+                    primaryCap = 30000;
                     primaryLabel = 'Fresh Egg (Pcs)';
                 } else if (dCat.includes('dairy') || dName.includes('milk') || depotId == 4 || depotId == 11) {
-                    primaryCat = 'dairy';
+                    primaryCat = 'Dairy';
+                    primaryUom = 'Liter';
+                    primaryCap = 1000;
                     primaryLabel = 'Dairy / Milk (Liter)';
                 } else if (dCat.includes('dry') || dName.includes('dry') || depotId == 2 || depotId == 14 || depotId == 16) {
-                    primaryCat = 'dry';
-                    primaryLabel = 'Dry Goods / Box (Ctn)';
+                    primaryCat = 'Dry Food';
+                    primaryUom = 'Kg';
+                    primaryCap = 500;
+                    primaryLabel = 'Dry Goods / Food (Kg)';
                 } else if (dCat.includes('tea') || dName.includes('tea') || depotId == 5 || depotId == 10) {
-                    primaryCat = 'frozen';
+                    primaryCat = 'Tea';
+                    primaryUom = 'Kg';
+                    primaryCap = 1000;
                     primaryLabel = 'Tea (Kg)';
                 } else {
-                    primaryCat = 'frozen';
+                    primaryCat = 'Frozen / Chicken';
+                    primaryUom = 'Kg';
+                    primaryCap = 1500;
                     primaryLabel = 'Frozen Foods / Chicken (Kg)';
                 }
 
@@ -27156,25 +27168,17 @@
                     badge.innerHTML = `🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">${primaryLabel}</strong>`;
                 }
 
-                const inputs = {
-                    frozen: document.getElementById('mapCapFrozen'),
-                    egg: document.getElementById('mapCapEgg'),
-                    dairy: document.getElementById('mapCapDairy'),
-                    dry: document.getElementById('mapCapDry')
-                };
+                const catSelect = document.getElementById('mapCategory');
+                const uomSelect = document.getElementById('mapUom');
+                const capInput = document.getElementById('mapMaxCapacity');
+                const skuId = document.getElementById('mapSkuId')?.value;
 
-                for (const [k, inp] of Object.entries(inputs)) {
-                    if (inp && inp.parentElement) {
-                        if (k === primaryCat) {
-                            inp.style.border = '2px solid #38bdf8';
-                            inp.parentElement.style.background = 'rgba(56, 189, 248, 0.12)';
-                            inp.parentElement.style.borderRadius = '6px';
-                            inp.parentElement.style.padding = '4px 6px';
-                        } else {
-                            inp.style.border = '1px solid #475569';
-                            inp.parentElement.style.background = 'transparent';
-                            inp.parentElement.style.padding = '0';
-                        }
+                // Only set default if not currently editing an existing record
+                if (!skuId) {
+                    if (catSelect) catSelect.value = primaryCat;
+                    if (uomSelect) uomSelect.value = primaryUom;
+                    if (capInput && (!capInput.value || capInput.value == '1500' || capInput.value == '30000' || capInput.value == '1000' || capInput.value == '500')) {
+                        capInput.value = primaryCap;
                     }
                 }
             }
@@ -28198,8 +28202,9 @@
                 const depotList = getParagonDepotList();
                 const depotObj = depotList.find(d => d.id == depotId);
                 const depotName = depotObj ? depotObj.name : `Depot #${depotId}`;
+                const depotType = depotObj ? (depotObj.category || depotObj.type || '') : '';
                 showToast(`📥 ${depotName}-এর জন্য ১-শিট এক্সেল টেমপ্লেট ডাউনলোড হচ্ছে...`, 'info');
-                window.location.href = `/api/template/driver-vehicle-mapping-excel?depot_id=${depotId}`;
+                window.location.href = `/api/template/driver-vehicle-mapping-excel?depot_id=${depotId}&type=${encodeURIComponent(depotType)}`;
             }
 
             async function handleBulkMappingUpload(event) {
@@ -28219,12 +28224,15 @@
                     return;
                 }
                 const depotList = getParagonDepotList();
-                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}`, category: '' };
+                const depotType = depotObj.category || depotObj.type || '';
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('depot_id', depotId);
+                formData.append('type', depotType);
+                formData.append('depot_type', depotType);
 
-                showToast(`⏳ ${depotObj.name}-এর ১-শিট এক্সেল থেকে ড্রাইভার, গাড়ি ও ক্যাপাসিটি আপলোড হচ্ছে...`, 'info');
+                showToast(`⏳ ${depotObj.name}-এর ১-শিট এক্সেল থেকে SKU, ড্রাইভার ও গাড়ি আপলোড হচ্ছে...`, 'info');
 
                 try {
                     const res = await fetch('/api/crew/mapping-bulk-upload', {
@@ -28251,69 +28259,87 @@
 
             async function loadMappingMaster(depotId) {
                 try {
-                    const res = await fetch(`/api/fleet/capacities?depot_id=${depotId}`);
+                    const res = await fetch(`/api/master/skus?depot_id=${depotId}`);
                     const data = await res.json();
                     if (data.success) {
-                        masterMappingCache = data.vehicles || [];
+                        masterMappingCache = data.skus || [];
                         renderMappingMasterTable(masterMappingCache);
                     }
                 } catch (e) {
-                    console.error('Error loading driver-vehicle mappings:', e);
+                    console.error('Error loading SKU mappings:', e);
                 }
             }
 
-            function renderMappingMasterTable(vehicles) {
+            function filterMappingMasterTable() {
+                const query = document.getElementById('masterMappingSearch')?.value?.toLowerCase() || '';
+                if (!query) {
+                    renderMappingMasterTable(masterMappingCache);
+                    return;
+                }
+                const filtered = masterMappingCache.filter(s => 
+                    (s.sku_name || '').toLowerCase().includes(query) ||
+                    (s.sku_code || '').toLowerCase().includes(query) ||
+                    (s.category || '').toLowerCase().includes(query) ||
+                    (s.uom || '').toLowerCase().includes(query) ||
+                    (s.default_vehicle_no || '').toLowerCase().includes(query) ||
+                    (s.default_driver_name || '').toLowerCase().includes(query) ||
+                    (s.default_route_name || '').toLowerCase().includes(query) ||
+                    (s.depot_name || '').toLowerCase().includes(query)
+                );
+                renderMappingMasterTable(filtered);
+            }
+
+            function renderMappingMasterTable(skus) {
                 const tbody = document.getElementById('masterMappingTableBody');
+                const countBadge = document.getElementById('masterMappingCountBadge');
+                if (countBadge) {
+                    countBadge.textContent = `${skus.length} SKU line-items`;
+                }
                 if (!tbody) return;
 
-                if (!vehicles || vehicles.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #64748b; padding: 24px;">No driver-vehicle mappings found for this depot. Use the form above or upload Mapping Excel.</td></tr>';
+                if (!skus || skus.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #64748b; padding: 28px;">No SKU line-items found for this depot. Click "Download Master Mapping Template" or use the form above to add SKUs.</td></tr>';
                     return;
                 }
 
-                const isAllDepots = (getSelectedMasterDepotId() === 'all');
-                const depotList = getParagonDepotList();
+                tbody.innerHTML = skus.map((s, idx) => {
+                    const uom = (s.uom || 'Kg').trim();
+                    let uomBadge = `<span style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.78rem;">⚖️ ${uom}</span>`;
+                    if (uom.toLowerCase() === 'pcs') {
+                        uomBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.78rem;">🥚 ${uom}</span>`;
+                    } else if (uom.toLowerCase().includes('liter') || uom.toLowerCase() === 'ltr') {
+                        uomBadge = `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.78rem;">🥛 ${uom}</span>`;
+                    } else if (uom.toLowerCase().includes('ctn') || uom.toLowerCase().includes('box') || uom.toLowerCase().includes('carton')) {
+                        uomBadge = `<span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #a855f7; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.78rem;">📦 ${uom}</span>`;
+                    }
 
-                tbody.innerHTML = vehicles.map((v, idx) => {
-                    const caps = v.category_capacities || {};
-                    const fzCap = (caps['Frozen Foods / Chicken'] || caps['Chicken'] || caps['Frozen Foods'] || {}).capacity || v.capacity_kg || 1500;
-                    const fzUnit = (caps['Frozen Foods / Chicken'] || caps['Chicken'] || caps['Frozen Foods'] || {}).unit || 'Kg';
-                    const eggCap = (caps['Egg'] || {}).capacity || 30000;
-                    const eggUnit = (caps['Egg'] || {}).unit || 'Pcs';
-                    const dryCap = (caps['Dairy'] || {}).capacity || 1000;
-                    const dryUnit = (caps['Dairy'] || {}).unit || 'Liter';
-                    const boxCap = (caps['Dry Goods / Box Items'] || caps['Dry Food'] || {}).capacity || 500;
-                    const boxUnit = (caps['Dry Goods / Box Items'] || caps['Dry Food'] || {}).unit || 'Ctn';
+                    const depotInfo = `<div style="font-weight: 700; color: #fff;">${s.depot_name || '-'}</div><span style="font-size: 0.72rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px;">${s.depot_type || 'General'}</span>`;
 
-                    const vDepot = isAllDepots ? (depotList.find(d => d.id == v.depot_id) || { name: `Depot #${v.depot_id}` }) : null;
-                    const depotBadge = vDepot ? `<div style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; margin-bottom: 2px;"><i class="fa-solid fa-location-dot"></i> ${vDepot.name}</div>` : '';
+                    const capDisplay = s.max_capacity ? `${Number(s.max_capacity).toLocaleString()} ${uom}` : '-';
 
                     return `
                         <tr>
                             <td>${idx + 1}</td>
+                            <td>${depotInfo}</td>
+                            <td><span style="color: #cbd5e1; font-weight: 600;">${s.category || '-'}</span></td>
+                            <td><code style="color: #38bdf8; font-weight: 700; font-size: 0.8rem; background: #0b1329; padding: 2px 6px; border-radius: 4px; border: 1px solid #334155;">${s.sku_code || '-'}</code></td>
                             <td>
-                                ${depotBadge}
-                                <strong style="color: #fff;">${v.default_driver_name || '<span style="color: #64748b; font-style: italic;">Unassigned</span>'}</strong>
+                                <strong style="color: #fff; font-size: 0.85rem;">${s.sku_name || '-'}</strong>
+                                ${s.pack_size ? `<div style="font-size: 0.72rem; color: #94a3b8;">${s.pack_size}</div>` : ''}
                             </td>
-                            <td><span style="color: #94a3b8; font-size: 0.8rem;">${v.default_driver_phone || '-'}</span></td>
-                            <td><strong style="color: #fbbf24; font-family: monospace;">${v.vehicle_no}</strong></td>
-                            <td><span style="color: #f59e0b; font-size: 0.8rem;">${v.secondary_vehicle_no || '-'}</span></td>
-                            <td><span style="color: #38bdf8; font-weight: 600;">${v.default_route_name || 'All Lines'}</span></td>
+                            <td style="text-align: center;">${uomBadge}</td>
+                            <td><strong style="color: #fbbf24; font-family: monospace; font-size: 0.85rem;">${s.default_vehicle_no || '-'}</strong></td>
                             <td>
-                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                    <span style="background: #1e3a8a; color: #93c5fd; padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">🍗 ${Number(fzCap).toLocaleString()} ${fzUnit}</span>
-                                    <span style="background: #78350f; color: #fde68a; padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">🥚 ${Number(eggCap).toLocaleString()} ${eggUnit}</span>
-                                    <span style="background: #064e3b; color: #6ee7b7; padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">🥛 ${Number(dryCap).toLocaleString()} ${dryUnit}</span>
-                                    <span style="background: #4c1d95; color: #c4b5fd; padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">📦 ${Number(boxCap).toLocaleString()} ${boxUnit}</span>
-                                </div>
+                                <strong style="color: #fff;">${s.default_driver_name || '<span style="color: #64748b; font-style: italic;">Unassigned</span>'}</strong>
                             </td>
-                            <td style="text-align: center;"><span style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">Yes</span></td>
-                            <td style="text-align: center;">
-                                <button type="button" onclick="openEditVehicleCapacitiesModal(${v.id}, '${v.vehicle_no}', ${v.capacity_kg || 1500}, '${v.capacity_units || 'Kg'}')" style="background: #0284c7; border: none; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; margin-right: 4px;" title="Edit Multi-Category Capacities">
-                                    <i class="fa-solid fa-weight-scale"></i> Caps
+                            <td><span style="color: #38bdf8; font-weight: 600;">${s.default_route_name || '-'}</span></td>
+                            <td style="text-align: right;"><strong style="color: #4ade80;">${capDisplay}</strong></td>
+                            <td style="text-align: center; white-space: nowrap;">
+                                <button type="button" onclick="populateSkuMappingForm(${JSON.stringify(s).replace(/"/g, '&quot;')})" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; margin-right: 4px;" title="Edit SKU Assignment">
+                                    <i class="fa-solid fa-pen"></i> Edit
                                 </button>
-                                <button type="button" onclick="populateDriverMappingForm(${JSON.stringify(v).replace(/"/g, '&quot;')})" style="background: #334155; border: none; color: #38bdf8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer;" title="Edit Driver Assignment">
-                                    <i class="fa-solid fa-pen-to-square"></i>
+                                <button type="button" onclick="deleteMasterSku(${s.id})" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer;" title="Delete SKU">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
                         </tr>
@@ -28321,103 +28347,151 @@
                 }).join('');
             }
 
-            function populateDriverMappingForm(v) {
-                if (!v) return;
+            function populateSkuMappingForm(s) {
+                if (!s) return;
                 const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-                setVal('mapDriverName', v.default_driver_name || '');
-                setVal('mapDriverPhone', v.default_driver_phone || '');
-                setVal('mapDefaultVeh', v.vehicle_no || '');
-                setVal('mapBackupVeh', v.secondary_vehicle_no || '');
-                setVal('mapDefaultRoute', v.default_route_name || '');
+                setVal('mapSkuId', s.id || '');
+                setVal('mapSkuName', s.sku_name || '');
+                setVal('mapSkuCode', s.sku_code || '');
+                setVal('mapCategory', s.category || 'Frozen / Chicken');
+                setVal('mapUom', s.uom || 'Kg');
+                setVal('mapDefaultVeh', s.default_vehicle_no || '');
+                setVal('mapDriverName', s.default_driver_name || '');
+                setVal('mapDefaultRoute', s.default_route_name || '');
+                setVal('mapMaxCapacity', s.max_capacity || 1500);
+                setVal('mapPackSize', s.pack_size || '');
+                setVal('mapRemarks', s.remarks || '');
 
-                const caps = v.category_capacities || {};
-                const fz = (caps['Frozen Foods / Chicken'] || caps['Chicken'] || caps['Frozen Foods'] || {}).capacity || v.capacity_kg || 1500;
-                const egg = (caps['Egg'] || {}).capacity || 30000;
-                const dairy = (caps['Dairy'] || {}).capacity || 1000;
-                const dry = (caps['Dry Goods / Box Items'] || caps['Dry Food'] || {}).capacity || 500;
+                const btn = document.getElementById('btnSaveSkuMapping');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-check"></i> Update SKU Assignment';
+                const cancelBtn = document.getElementById('btnCancelSkuEdit');
+                if (cancelBtn) cancelBtn.style.display = 'inline-flex';
 
-                setVal('mapCapFrozen', fz);
-                setVal('mapCapEgg', egg);
-                setVal('mapCapDairy', dairy);
-                setVal('mapCapDry', dry);
-
-                const scrollTarget = document.getElementById('mapDriverName');
+                const scrollTarget = document.getElementById('mapSkuName');
                 if (scrollTarget) scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function resetSkuMappingForm() {
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+                setVal('mapSkuId', '');
+                setVal('mapSkuName', '');
+                setVal('mapSkuCode', '');
+                setVal('mapDefaultVeh', '');
+                setVal('mapDriverName', '');
+                setVal('mapDefaultRoute', '');
+                setVal('mapPackSize', '');
+                setVal('mapRemarks', '');
+
+                const btn = document.getElementById('btnSaveSkuMapping');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save SKU Assignment & Capacity';
+                const cancelBtn = document.getElementById('btnCancelSkuEdit');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+
+                const depotId = getSelectedMasterDepotId();
+                updateMappingFormCategoryHighlight(depotId);
+            }
+
+            function onFormCategoryChange() {
+                const cat = document.getElementById('mapCategory')?.value || '';
+                const uomEl = document.getElementById('mapUom');
+                const capEl = document.getElementById('mapMaxCapacity');
+                if (!uomEl) return;
+
+                const c = cat.toLowerCase();
+                if (c.includes('egg')) {
+                    uomEl.value = 'Pcs';
+                    if (capEl) capEl.value = 30000;
+                } else if (c.includes('dairy') || c.includes('milk')) {
+                    uomEl.value = 'Liter';
+                    if (capEl) capEl.value = 1000;
+                } else if (c.includes('dry')) {
+                    uomEl.value = 'Kg';
+                    if (capEl) capEl.value = 500;
+                } else if (c.includes('tea')) {
+                    uomEl.value = 'Kg';
+                    if (capEl) capEl.value = 1000;
+                } else {
+                    uomEl.value = 'Kg';
+                    if (capEl) capEl.value = 1500;
+                }
             }
 
             async function submitDriverVehicleMappingForm() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above before saving mapping.', 'warning');
+                    showToast('Please select a specific Target Depot above before saving SKU mapping.', 'warning');
                     return;
                 }
 
-                const driverName = document.getElementById('mapDriverName')?.value?.trim();
-                const phone = document.getElementById('mapDriverPhone')?.value?.trim();
+                const skuId = document.getElementById('mapSkuId')?.value;
+                const skuName = document.getElementById('mapSkuName')?.value?.trim();
+                const skuCode = document.getElementById('mapSkuCode')?.value?.trim();
+                const category = document.getElementById('mapCategory')?.value?.trim() || 'Frozen / Chicken';
+                const uom = document.getElementById('mapUom')?.value?.trim() || 'Kg';
                 const defaultVeh = document.getElementById('mapDefaultVeh')?.value?.trim();
-                const backupVeh = document.getElementById('mapBackupVeh')?.value?.trim();
+                const driverName = document.getElementById('mapDriverName')?.value?.trim();
                 const defaultRoute = document.getElementById('mapDefaultRoute')?.value?.trim();
+                const maxCapacity = parseFloat(document.getElementById('mapMaxCapacity')?.value) || 1500;
+                const packSize = document.getElementById('mapPackSize')?.value?.trim() || '';
+                const remarks = document.getElementById('mapRemarks')?.value?.trim() || '';
 
-                if (!driverName || !defaultVeh) {
-                    showToast('Driver Name and Default Vehicle Reg No are required.', 'warning');
+                if (!skuName || !defaultVeh) {
+                    showToast('SKU Name and Default Vehicle Reg No are required.', 'warning');
                     return;
                 }
 
-                const frozen = parseFloat(document.getElementById('mapCapFrozen')?.value) || 1500;
-                const egg = parseFloat(document.getElementById('mapCapEgg')?.value) || 30000;
-                const dairy = parseFloat(document.getElementById('mapCapDairy')?.value) || 1000;
-                const dry = parseFloat(document.getElementById('mapCapDry')?.value) || 500;
-
-                const categoryCapacities = {
-                    "Frozen Foods / Chicken": { "capacity": frozen, "unit": "Kg" },
-                    "Egg": { "capacity": egg, "unit": "Pcs" },
-                    "Dairy": { "capacity": dairy, "unit": "Liter" },
-                    "Dry Goods / Box Items": { "capacity": dry, "unit": "Ctn" }
+                const payload = {
+                    id: skuId || undefined,
+                    depot_id: depotId,
+                    sku_name: skuName,
+                    sku_code: skuCode,
+                    category: category,
+                    uom: uom,
+                    default_vehicle_no: defaultVeh,
+                    default_driver_name: driverName,
+                    default_route_name: defaultRoute,
+                    max_capacity: maxCapacity,
+                    pack_size: packSize,
+                    remarks: remarks
                 };
 
-                showToast('⏳ Saving Driver-Vehicle Assignment & Capacities...', 'info');
+                showToast('⏳ Saving SKU Assignment & Capacity...', 'info');
 
                 try {
-                    // 1. Update Crew Mapping
-                    const mapRes = await fetch('/api/crew/default-mapping', {
+                    const res = await fetch('/api/master/sku', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            depot_id: depotId,
-                            driver_name: driverName,
-                            phone: phone,
-                            default_vehicle_no: defaultVeh,
-                            secondary_vehicle_no: backupVeh,
-                            default_route_name: defaultRoute
-                        })
+                        body: JSON.stringify(payload)
                     });
-                    const mapData = await mapRes.json();
-
-                    // 2. Update Vehicle Capacities
-                    await fetch('/api/fleet/capacities/update', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            vehicle_no: defaultVeh,
-                            category_capacities: categoryCapacities
-                        })
-                    });
-
-                    showToast('✅ ' + (mapData.message || 'Driver-Vehicle mapping and capacities saved successfully!'), 'success');
-
-                    // Reset form
-                    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-                    setVal('mapDriverName', '');
-                    setVal('mapDriverPhone', '');
-                    setVal('mapDefaultVeh', '');
-                    setVal('mapBackupVeh', '');
-                    setVal('mapDefaultRoute', '');
-
-                    loadMappingMaster(depotId);
-                    loadCrewMaster(depotId);
-                    loadFleetMaster(depotId);
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('✅ ' + (data.message || 'SKU Assignment saved successfully!'), 'success');
+                        resetSkuMappingForm();
+                        loadMappingMaster(depotId);
+                        loadFleetMaster(depotId);
+                        loadCrewMaster(depotId);
+                    } else {
+                        showToast('Save failed: ' + (data.message || 'Unknown error'), 'error');
+                    }
                 } catch (err) {
-                    showToast('Error saving mapping: ' + err.message, 'error');
+                    showToast('Error saving SKU assignment: ' + err.message, 'error');
+                }
+            }
+
+            async function deleteMasterSku(skuId) {
+                if (!confirm('Are you sure you want to delete this SKU line-item assignment?')) return;
+                const depotId = getSelectedMasterDepotId();
+                try {
+                    const res = await fetch(`/api/master/sku/${skuId}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('🗑️ ' + (data.message || 'SKU assignment removed.'), 'info');
+                        loadMappingMaster(depotId);
+                    } else {
+                        showToast(data.message || 'Failed to delete SKU.', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error deleting SKU: ' + e.message, 'error');
                 }
             }
 
@@ -30236,7 +30310,11 @@
             window.handleBulkMappingUpload = handleBulkMappingUpload;
             window.loadMappingMaster = loadMappingMaster;
             window.renderMappingMasterTable = renderMappingMasterTable;
-            window.populateDriverMappingForm = populateDriverMappingForm;
+            window.populateSkuMappingForm = populateSkuMappingForm;
+            window.resetSkuMappingForm = resetSkuMappingForm;
+            window.deleteMasterSku = deleteMasterSku;
+            window.filterMappingMasterTable = filterMappingMasterTable;
+            window.onFormCategoryChange = onFormCategoryChange;
             window.submitDriverVehicleMappingForm = submitDriverVehicleMappingForm;
             window.returnBorrowedVehicle = returnBorrowedVehicle;
             window.clearBorrowedFleet = clearBorrowedFleet;
@@ -31120,7 +31198,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB 5: DEFAULT DRIVER-VEHICLE MAPPING & MULTI-CATEGORY CAPACITIES -->
+                    <!-- TAB 5: DEFAULT SKU ASSIGNMENT, UOM & CAPACITY MASTER -->
                     <div id="masterTabPaneMapping" class="master-tab-pane" style="display: none;">
                         <!-- Action Bar -->
                         <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #1e293b; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155;">
@@ -31140,97 +31218,117 @@
                             </div>
                         </div>
 
-                        <!-- Single Driver-Vehicle Mapping & Capacities Form -->
+                        <!-- Single SKU Assignment & Capacity Form -->
                         <div class="card" style="padding: 16px 20px; background: #1e293b; border: 1.5px solid #0284c7; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.15);">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <input type="hidden" id="mapSkuId" value="">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                                 <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 800; margin: 0;">
-                                    <i class="fa-solid fa-id-card-clip"></i> 1. Add / Edit Driver-Vehicle Default Mapping & Category Capacities
+                                    <i class="fa-solid fa-boxes-stacked"></i> 1. Add / Edit SKU Assignment, Default Crew & Capacity Master
                                 </h4>
-                                <span style="font-size: 0.78rem; background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #4ade80; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
-                                    Admin / User Editable: Yes
+                                <span id="mapPrimaryCategoryBadge" style="font-size: 0.78rem; background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 2px 10px; border-radius: 4px; font-weight: 700;">
+                                    🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">Auto-detecting...</strong>
                                 </span>
                             </div>
-                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">ড্রাইভার সিলেক্ট করলেই ডিফল্ট গাড়ি, ব্যাকআপ গাড়ি ও রুট স্বয়ংক্রিয়ভাবে ট্যাগ হবে এবং ক্যাটাগরি অনুযায়ী ক্যাপাসিটি ট্র্যাক করা হবে।</p>
+                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">ডিপো টাইপ ও ক্যাটাগরি অনুসারে প্রতিটি SKU-এর জন্য নির্ধারিত UoM (যেমন: Kg, Pcs, Liter), ডিফল্ট গাড়ি, চালক ও ক্যাপাসিটি সেট করুন।</p>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px;">
-                                <div>
-                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Driver Name *</label>
-                                    <input type="text" id="mapDriverName" placeholder="e.g. Md Shohel Mia" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                            <!-- Row 1: SKU & Category Details -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                                <div style="grid-column: span 2;">
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">SKU Name / Description *</label>
+                                    <input type="text" id="mapSkuName" placeholder="e.g. Paragon Broiler Whole Chicken (Dressed)" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
                                 <div>
-                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Contact No *</label>
-                                    <input type="text" id="mapDriverPhone" placeholder="e.g. 01877-871342" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">SKU Code</label>
+                                    <input type="text" id="mapSkuCode" placeholder="e.g. PG-FZ-01" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #38bdf8; font-weight: 700; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Category *</label>
+                                    <select id="mapCategory" onchange="onFormCategoryChange()" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                        <option value="Frozen / Chicken">Frozen Foods / Chicken</option>
+                                        <option value="Egg">Egg</option>
+                                        <option value="Dairy">Dairy / Milk</option>
+                                        <option value="Dry Food">Dry Food / Goods</option>
+                                        <option value="Tea">Tea</option>
+                                        <option value="Momo">Momo / Ready to Eat</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 800; color: #4ade80; display: block; margin-bottom: 4px;">Assigned UoM (স্বয়ংক্রিয় একক) *</label>
+                                    <select id="mapUom" style="background: #0b1329; border: 1.5px solid #22c55e; color: #4ade80; font-weight: 800; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                        <option value="Kg">Kg (Kilograms)</option>
+                                        <option value="Pcs">Pcs (Pieces)</option>
+                                        <option value="Liter">Liter (Liters)</option>
+                                        <option value="Ctn">Ctn (Cartons / Boxes)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Default Assignment & Capacity Details -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px;">
                                 <div>
                                     <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Default Vehicle Reg No *</label>
-                                    <input type="text" id="mapDefaultVeh" placeholder="e.g. DH M Sha-11-5419" class="form-control" style="background: #0b1329; border: 1.5px solid #38bdf8; color: #fbbf24; font-weight: 700; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    <input type="text" id="mapDefaultVeh" placeholder="e.g. DM-SHA-11-2041" class="form-control" style="background: #0b1329; border: 1.5px solid #38bdf8; color: #fbbf24; font-weight: 700; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
                                 <div>
-                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Secondary / Backup Vehicle (Optional)</label>
-                                    <input type="text" id="mapBackupVeh" placeholder="e.g. DH M Sha-11-9988" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #f59e0b; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Default Driver Name</label>
+                                    <input type="text" id="mapDriverName" placeholder="e.g. Md. Rafiqul Islam" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
                                 <div>
                                     <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Default Route Name</label>
-                                    <input type="text" id="mapDefaultRoute" placeholder="e.g. Dhaka East Route" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                    <input type="text" id="mapDefaultRoute" placeholder="e.g. Gulshan - Banani Expressway" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
-                            </div>
-
-                            <!-- Multi-Category Capacities Input Grid -->
-                            <div style="background: #0b1329; padding: 12px 14px; border-radius: 6px; border: 1px solid #334155; margin-bottom: 14px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
-                                    <label style="font-size: 0.82rem; font-weight: 800; color: #4ade80; margin: 0;">
-                                        <i class="fa-solid fa-boxes-stacked"></i> Vehicle Max Capacities by Product Category ( ধারণক্ষমতা )
-                                    </label>
-                                    <span id="mapPrimaryCategoryBadge" style="font-size: 0.76rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
-                                        🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">Auto-detecting...</strong>
-                                    </span>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Max Vehicle Capacity *</label>
+                                    <input type="number" id="mapMaxCapacity" value="1500" placeholder="1500" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #4ade80; font-weight: 800; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                                    <div>
-                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🍗 Frozen Foods / Chicken (Kg):</span>
-                                        <input type="number" id="mapCapFrozen" value="1500" placeholder="1500" style="background: #1e293b; border: 1px solid #475569; color: #fff; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
-                                    </div>
-                                    <div>
-                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🥚 Egg (Pcs / Tray):</span>
-                                        <input type="number" id="mapCapEgg" value="30000" placeholder="30000" style="background: #1e293b; border: 1px solid #475569; color: #fbbf24; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
-                                    </div>
-                                    <div>
-                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">🥛 Dairy / Liquid (Liter):</span>
-                                        <input type="number" id="mapCapDairy" value="1000" placeholder="1000" style="background: #1e293b; border: 1px solid #475569; color: #38bdf8; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
-                                    </div>
-                                    <div>
-                                        <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">📦 Dry Goods / Box (Ctn / Box):</span>
-                                        <input type="number" id="mapCapDry" value="500" placeholder="500" style="background: #1e293b; border: 1px solid #475569; color: #a78bfa; padding: 5px 8px; border-radius: 4px; width: 100%; font-size: 0.85rem; font-weight: 700;">
-                                    </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Pack Size (ঐচ্ছিক)</label>
+                                    <input type="text" id="mapPackSize" placeholder="e.g. 1 Kg / Pack" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #94a3b8; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Remarks / Handling Note</label>
+                                    <input type="text" id="mapRemarks" placeholder="e.g. Keep Frozen at -18C" class="form-control" style="background: #0b1329; border: 1px solid #334155; color: #94a3b8; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                 </div>
                             </div>
 
                             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                                <button type="button" class="btn btn-primary" onclick="submitDriverVehicleMappingForm()" style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; font-weight: 800; font-size: 0.85rem; padding: 7px 18px;">
-                                    <i class="fa-solid fa-floppy-disk"></i> Save Driver-Vehicle Mapping & Capacities
+                                <button type="button" id="btnCancelSkuEdit" class="btn btn-outline" onclick="resetSkuMappingForm()" style="display: none; padding: 7px 16px; font-size: 0.85rem;">
+                                    Cancel
+                                </button>
+                                <button type="button" id="btnSaveSkuMapping" class="btn btn-primary" onclick="submitDriverVehicleMappingForm()" style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; font-weight: 800; font-size: 0.85rem; padding: 7px 18px;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save SKU Assignment & Capacity
                                 </button>
                             </div>
                         </div>
 
                         <!-- Master Mapping Layout Table -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                            <h4 style="color: #cbd5e1; font-size: 0.95rem; font-weight: 700; margin: 0;">
-                                📋 Default Assignment & Capacity Master Table ( প্রস্তাবিত মাস্টার ফরম্যাট )
-                            </h4>
-                            <span style="font-size: 0.78rem; color: #94a3b8;">User & Admin Both Can Edit Anytime</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <h4 style="color: #cbd5e1; font-size: 0.95rem; font-weight: 700; margin: 0;">
+                                    📋 Default Assignment & Capacity Master Table (প্রস্তাবিত মাস্টার ফরম্যাট)
+                                </h4>
+                                <span id="masterMappingCountBadge" style="font-size: 0.78rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 10px; border-radius: 4px; font-weight: 700;">
+                                    0 SKU line-items
+                                </span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="text" id="masterMappingSearch" oninput="filterMappingMasterTable()" placeholder="🔍 Search SKU, Code, Category, Van..." style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.82rem; width: 240px;">
+                            </div>
                         </div>
-                        <div class="table-responsive" style="max-height: 440px; overflow-y: auto;">
+                        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
                             <table class="data-table" style="font-size: 0.82rem; width: 100%;">
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>Driver Name</th>
-                                        <th>Contact No</th>
+                                        <th>Depot & Type</th>
+                                        <th>Category</th>
+                                        <th>SKU Code</th>
+                                        <th>SKU Name / Description</th>
+                                        <th style="text-align: center;">Assigned UoM</th>
                                         <th>Default Vehicle Reg No</th>
-                                        <th>Secondary / Backup Vehicle</th>
+                                        <th>Default Driver Name</th>
                                         <th>Default Route Name</th>
-                                        <th>Multi-Category Maximum Capacities</th>
-                                        <th style="text-align: center;">Editable</th>
+                                        <th style="text-align: right;">Max Capacity</th>
                                         <th style="text-align: center;">Action</th>
                                     </tr>
                                 </thead>

@@ -237,6 +237,165 @@ def get_default_category_capacities(cap_val=1500, veh_type='Covered Van'):
         "Dry Goods / Box Items": {"capacity": round(500 * ratio), "unit": "Ctn"}
     }
 
+# =========================================================================
+# DYNAMIC SKU CATALOG & UOM AUTO-MAPPING RULES
+# Auto-Mapping Rules:
+# - Tejgaon + Frozen/Chicken -> Kg
+# - Tejgaon + Egg -> Pcs
+# - Tejgaon + Dairy -> Liter
+# - CTG + Frozen -> Kg
+# - CTG + Dry Food -> Kg
+# =========================================================================
+
+DEFAULT_SKU_CATALOG = {
+    "egg": [
+        {"code": "SKU-EGG-001", "name": "Premium Loose Egg", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "30 Pcs/Tray", "route": "Central Route 01"},
+        {"code": "SKU-EGG-002", "name": "Paragon Brown Egg 12 pcs", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "12 Pcs/Pack", "route": "Central Route 01"},
+        {"code": "SKU-EGG-003", "name": "Paragon White Egg 12 pcs", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "12 Pcs/Pack", "route": "West Line Route"},
+        {"code": "SKU-EGG-004", "name": "Paragon Omega 3 Plus 12 pcs", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "12 Pcs/Pack", "route": "Superstore Express"},
+        {"code": "SKU-EGG-005", "name": "Paragon Egg Economy pack(12 pcs)EE12", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "12 Pcs/Pack", "route": "Wholesale Line"},
+        {"code": "SKU-EGG-006", "name": "Tatka Premium 12 Pcs", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "12 Pcs/Pack", "route": "Retail Route 02"},
+        {"code": "SKU-EGG-007", "name": "Free Range Native (Deshi) Egg", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "30 Pcs/Tray", "route": "North Line Route"},
+        {"code": "SKU-EGG-008", "name": "Quail Eggs 20 Pcs Box", "category": "Fresh Eggs", "uom": "Pcs", "cap": 30000.0, "pack": "20 Pcs/Box", "route": "Superstore Express"}
+    ],
+    "dairy": [
+        {"code": "SKU-DY-001", "name": "Pasteurized Milk-1000 ml (Full Cream)", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "1000 ml Pouch", "route": "Morning Chilled Line 01"},
+        {"code": "SKU-DY-002", "name": "Pasteurized Milk-500 ml (Full Cream)", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "500 ml Pouch", "route": "Morning Chilled Line 01"},
+        {"code": "SKU-DY-003", "name": "Standarized Milk 1000 ml", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "1000 ml Pouch", "route": "Urban Retail Line"},
+        {"code": "SKU-DY-004", "name": "Standarized Milk 500 ml", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "500 ml Pouch", "route": "Urban Retail Line"},
+        {"code": "SKU-DY-005", "name": "Coffee Milk-1000 ml", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "1000 ml Pouch", "route": "Institutional & HORECA"},
+        {"code": "SKU-DY-006", "name": "Toned Milk-1000 ml", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "1000 ml Pouch", "route": "Chilled Market Route"},
+        {"code": "SKU-DY-007", "name": "Sweet Curd / Mishti Doi 100gm", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "100 gm Cup", "route": "Superstore Route"},
+        {"code": "SKU-DY-008", "name": "Choco Chilled Milk Drink 200ml", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "200 ml Bottle", "route": "Retail Route 02"},
+        {"code": "SKU-DY-009", "name": "Laban / Chilled Dairy Drink 250ml", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "250 ml Bottle", "route": "Morning Chilled Line 01"},
+        {"code": "SKU-DY-010", "name": "Pure Cow Ghee / Butter Oil 400gm", "category": "Dairy", "uom": "Liter", "cap": 1000.0, "pack": "400 gm Jar", "route": "Wholesale Route"}
+    ],
+    "frozen": [
+        {"code": "SKU-FZ-001", "name": "Dressed Chicken without skin 1000gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "1000 gm Poly", "route": "Cold Chain Route 01"},
+        {"code": "SKU-FZ-002", "name": "Chicken 12 Pcs Cut 1000gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "1000 gm Poly", "route": "Cold Chain Route 01"},
+        {"code": "SKU-FZ-003", "name": "Chicken Leg without bone without skin", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "Tray / Kg", "route": "HORECA & Chef Route"},
+        {"code": "SKU-FZ-004", "name": "Feet (Tray)", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "Tray / Kg", "route": "Central Cold Route"},
+        {"code": "SKU-FZ-005", "name": "Chicken Drumstick without skin", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "Tray / Kg", "route": "Superstore Route 01"},
+        {"code": "SKU-FZ-006", "name": "Chicken Breast without bone without skin", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "Tray / Kg", "route": "Superstore Route 01"},
+        {"code": "SKU-FZ-007", "name": "Keema (Tray)", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "Tray / Kg", "route": "Central Cold Route"},
+        {"code": "SKU-FZ-008", "name": "Chicken Nuggets 250gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "250 gm Pkt", "route": "Retail Express Line"},
+        {"code": "SKU-FZ-009", "name": "Chicken Sausage 340gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "340 gm Pkt", "route": "Retail Express Line"},
+        {"code": "SKU-FZ-010", "name": "Low Fat Paratha (10 Pcs)", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "650 gm Pkt", "route": "Superstore Line 02"},
+        {"code": "SKU-FZ-011", "name": "Chicken Mini Samosa 250gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "250 gm Pkt", "route": "Retail Express Line"},
+        {"code": "SKU-FZ-012", "name": "Chicken Shami Kabab 500gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "500 gm Pkt", "route": "Superstore Line 02"},
+        {"code": "SKU-FZ-013", "name": "French Fry 1000gm", "category": "Frozen/Chicken", "uom": "Kg", "cap": 1500.0, "pack": "1000 gm Pkt", "route": "HORECA Line"}
+    ],
+    "dry": [
+        {"code": "SKU-DRY-001", "name": "Butter Cookies 200gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "200 gm Pkt", "route": "Bakery Van Route 01"},
+        {"code": "SKU-DRY-002", "name": "Milky butter Cake 10gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "10 gm Pkt", "route": "Bakery Van Route 01"},
+        {"code": "SKU-DRY-003", "name": "Dry Cake (Mini) 25gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "25 gm Pkt", "route": "General Retail Route"},
+        {"code": "SKU-DRY-004", "name": "Butter Toast 14gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "14 gm Pkt", "route": "General Retail Route"},
+        {"code": "SKU-DRY-005", "name": "Muffin Cake Chocolate 18gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "18 gm Pkt", "route": "Urban Grocery Line"},
+        {"code": "SKU-DRY-006", "name": "Muffin Cake Vanilla 18gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "18 gm Pkt", "route": "Urban Grocery Line"},
+        {"code": "SKU-DRY-007", "name": "Kacha Chana 1000gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "1000 gm Pkt", "route": "Wholesale Bulk Line"},
+        {"code": "SKU-DRY-008", "name": "Sweet Toast Biscuit 200gm", "category": "Dry Food", "uom": "Kg", "cap": 500.0, "pack": "200 gm Pkt", "route": "Bakery Van Route 02"}
+    ],
+    "tea": [
+        {"code": "SKU-TEA-001", "name": "BOP 500 gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "500 gm Pkt", "route": "Tea Distribution Route 01"},
+        {"code": "SKU-TEA-002", "name": "PD 500 gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "500 gm Pkt", "route": "Tea Distribution Route 01"},
+        {"code": "SKU-TEA-003", "name": "Paragon Best Leaf 500 gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "500 gm Pkt", "route": "Retail Tea Express"},
+        {"code": "SKU-TEA-004", "name": "RD Dust 500gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "500 gm Pkt", "route": "Tea Wholesale Hub"},
+        {"code": "SKU-TEA-005", "name": "Premium Gold Tea 500gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "500 gm Pkt", "route": "Superstore Route"},
+        {"code": "SKU-TEA-006", "name": "Premium Black Tea 500gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "500 gm Pkt", "route": "Superstore Route"},
+        {"code": "SKU-TEA-007", "name": "Exotic Classic 15 gm", "category": "Tea", "uom": "Kg", "cap": 1200.0, "pack": "15 gm Pkt", "route": "Tea Retail Express"}
+    ],
+    "momo": [
+        {"code": "SKU-MM-001", "name": "Chicken Momo Classic (10 Pcs)", "category": "Momo & Snacks", "uom": "Kg", "cap": 1500.0, "pack": "10 Pcs Box", "route": "Momo Food Cart & Outlet Line"},
+        {"code": "SKU-MM-002", "name": "Spicy Chicken Momo (10 Pcs)", "category": "Momo & Snacks", "uom": "Kg", "cap": 1500.0, "pack": "10 Pcs Box", "route": "Momo Food Cart & Outlet Line"},
+        {"code": "SKU-MM-003", "name": "Steamed Chicken Dumplings (250gm)", "category": "Momo & Snacks", "uom": "Kg", "cap": 1500.0, "pack": "250 gm Box", "route": "HORECA & Café Line"},
+        {"code": "SKU-MM-004", "name": "Chicken Spring Roll (300gm)", "category": "Momo & Snacks", "uom": "Kg", "cap": 1500.0, "pack": "300 gm Box", "route": "Superstore Express"}
+    ]
+}
+
+def resolve_sku_uom(depot_name, category='', depot_type=None):
+    d_name = (depot_name or '').lower()
+    d_type = (depot_type or '').lower()
+    cat = (category or '').lower()
+
+    # Rule 1: Tejgaon mappings
+    if 'tejgaon' in d_name or 'tejgaon' in d_type:
+        if 'egg' in cat or 'egg' in d_name or 'egg' in d_type:
+            return 'Pcs'
+        elif 'dairy' in cat or 'milk' in cat or 'dairy' in d_name or 'dairy' in d_type:
+            return 'Liter'
+        elif 'frozen' in cat or 'chicken' in cat or 'frozen' in d_name or 'ck' in d_name or 'frozen' in d_type:
+            return 'Kg'
+        elif 'tea' in cat or 'tea' in d_name or 'tea' in d_type:
+            return 'Kg'
+        elif 'commerce' in d_name or 'commerce' in d_type:
+            return 'Kg'
+
+    # Rule 2: CTG (Chittagong) mappings
+    if 'ctg' in d_name or 'chittagong' in d_name or 'ctg' in d_type:
+        if 'frozen' in cat or 'chicken' in cat or 'frozen' in d_name or 'frozen' in d_type:
+            return 'Kg'
+        if 'dry' in cat or 'food' in cat or 'bakery' in cat or 'dry' in d_name or 'dry' in d_type:
+            return 'Kg'
+
+    # Rule 3: General / Other Depots fallback rules
+    if 'egg' in cat or 'egg' in d_name or 'egg' in d_type:
+        return 'Pcs'
+    elif 'dairy' in cat or 'milk' in cat or 'dairy' in d_name or 'dairy' in d_type:
+        return 'Liter'
+    elif 'dry' in cat or 'dry' in d_name or 'dry' in d_type:
+        return 'Kg'
+    elif 'frozen' in cat or 'chicken' in cat or 'frozen' in d_name or 'frozen' in d_type or 'ck' in d_name:
+        return 'Kg'
+    elif 'tea' in cat or 'tea' in d_name or 'tea' in d_type:
+        return 'Kg'
+    elif 'momo' in cat or 'momo' in d_name or 'momo' in d_type:
+        return 'Kg'
+
+    return 'Kg'
+
+def get_depot_sku_catalog_key(depot_row):
+    d_name = (depot_row['name'] if depot_row else '').lower()
+    d_cat = (depot_row['category'] if depot_row else '').lower()
+    d_id = depot_row['id'] if depot_row else 9
+
+    if 'egg' in d_cat or 'egg' in d_name or d_id == 9:
+        return 'egg'
+    elif 'dairy' in d_cat or 'milk' in d_name or d_id in [4, 11]:
+        return 'dairy'
+    elif 'dry' in d_cat or 'dry' in d_name or d_id in [2, 14, 16]:
+        return 'dry'
+    elif 'tea' in d_cat or 'tea' in d_name or d_id in [5, 10]:
+        return 'tea'
+    elif 'momo' in d_cat or 'momo' in d_name or d_id == 12:
+        return 'momo'
+    else:
+        return 'frozen'
+
+def seed_depot_sku_master_table(cursor):
+    depots = cursor.execute("SELECT id, name, category, default_uom FROM depots").fetchall()
+    for d in depots:
+        d_id, d_name, d_cat = d[0], d[1], d[2]
+        cat_key = get_depot_sku_catalog_key({'id': d_id, 'name': d_name, 'category': d_cat})
+        catalog_items = DEFAULT_SKU_CATALOG.get(cat_key, DEFAULT_SKU_CATALOG['frozen'])
+        
+        # Get vehicles for this depot
+        v_rows = cursor.execute("SELECT vehicle_no FROM fleet_vehicles WHERE depot_id = ? ORDER BY id ASC", (d_id,)).fetchall()
+        v_list = [r[0] for r in v_rows]
+        # Get driver for this depot
+        drv_rows = cursor.execute("SELECT name FROM depot_crew WHERE depot_id = ? AND role = 'driver' ORDER BY id ASC", (d_id,)).fetchall()
+        drv_list = [r[0] for r in drv_rows]
+        
+        for idx, itm in enumerate(catalog_items):
+            uom = resolve_sku_uom(d_name, itm['category'], cat_key)
+            veh_no = v_list[idx % len(v_list)] if v_list else ''
+            drv_name = drv_list[idx % len(drv_list)] if drv_list else ''
+            
+            cursor.execute('''
+            INSERT INTO depot_sku_master 
+            (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (d_id, d_name, d_cat, itm['category'], itm['code'], itm['name'], uom, veh_no, drv_name, itm.get('route', ''), itm.get('cap', 1500.0), itm.get('pack', ''), 'Default Seed Catalog'))
+
 def ensure_schema_migrations():
     try:
         conn = get_db()
@@ -270,6 +429,33 @@ def ensure_schema_migrations():
                 default_caps = json.dumps(get_default_category_capacities(cap_kg or 1500, vtype))
                 c.execute("UPDATE fleet_vehicles SET category_capacities = ? WHERE id = ?", (default_caps, vid))
             
+        # Ensure depot_sku_master table exists
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS depot_sku_master (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            depot_id INTEGER NOT NULL,
+            depot_name TEXT NOT NULL,
+            depot_type TEXT,
+            category TEXT NOT NULL,
+            sku_code TEXT,
+            sku_name TEXT NOT NULL,
+            uom TEXT NOT NULL,
+            default_vehicle_no TEXT,
+            default_driver_name TEXT,
+            default_route_name TEXT,
+            max_capacity REAL DEFAULT 0,
+            pack_size TEXT,
+            remarks TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (depot_id) REFERENCES depots (id)
+        )
+        ''')
+        
+        # Seed default SKUs if table is empty
+        c.execute("SELECT COUNT(*) FROM depot_sku_master")
+        if c.fetchone()[0] == 0:
+            seed_depot_sku_master_table(c)
+
         conn.commit()
         conn.close()
     except Exception as e:
@@ -1979,51 +2165,105 @@ def get_depot_primary_category_info(depot_row):
         return ("Frozen Foods / Chicken", "Vehicle Max Capacity - Frozen Foods / Chicken (Kg) *", "Kg", 1500.0)
 
 @app.route('/api/template/driver-vehicle-mapping-excel', methods=['GET'])
+@app.route('/api/template/depot-sku-assignment-template', methods=['GET'])
 def download_driver_vehicle_mapping_template():
     try:
         user_role = session.get('role')
         user_depot = session.get('depot_id')
 
         depot_id = request.args.get('depot_id')
-        
+        depot_type_param = request.args.get('type') or request.args.get('depot_type')
+
+        conn = get_db()
+        cursor = conn.cursor()
+
         # If user is incharge (non-admin), enforce their assigned depot
         if user_role and user_role != 'admin' and user_depot:
             depot_id = user_depot
         elif not depot_id or str(depot_id).lower() in ['all', 'none', '']:
-            if user_depot:
+            if depot_type_param:
+                # Match depot by type
+                d_match = cursor.execute("SELECT id FROM depots WHERE LOWER(category) LIKE ? OR LOWER(name) LIKE ? ORDER BY id ASC LIMIT 1",
+                                         (f"%{depot_type_param.lower()}%", f"%{depot_type_param.lower()}%")).fetchone()
+                depot_id = d_match['id'] if d_match else (user_depot or 9)
+            elif user_depot:
                 depot_id = user_depot
             else:
-                return jsonify({"success": False, "message": "Please select a specific depot from the header to download its mapping template"}), 400
+                depot_id = 9
 
         try: depot_id = int(depot_id)
         except: depot_id = 9
-
-        conn = get_db()
-        cursor = conn.cursor()
 
         d_row = cursor.execute("SELECT id, name, category, default_uom FROM depots WHERE id = ?", (depot_id,)).fetchone()
         if not d_row:
             conn.close()
             return jsonify({"success": False, "message": f"Depot ID {depot_id} not found"}), 404
 
-        cat_key, col_header, unit, default_cap = get_depot_primary_category_info(d_row)
+        cat_key = get_depot_sku_catalog_key(d_row)
+        resolved_uom = resolve_sku_uom(d_row['name'], d_row['category'], depot_type_param or cat_key)
+
+        # Query existing SKUs from depot_sku_master if present
+        sku_rows = cursor.execute('''
+            SELECT id, sku_code, sku_name, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks
+            FROM depot_sku_master
+            WHERE depot_id = ?
+            ORDER BY id ASC
+        ''', (depot_id,)).fetchall()
+
+        skus_to_export = [dict(r) for r in sku_rows]
+
+        # Query registered vehicles & drivers for this depot to provide defaults
+        v_rows = cursor.execute('''
+            SELECT fv.vehicle_no, fv.capacity_kg, drv.name as driver_name, drv.default_route_name
+            FROM fleet_vehicles fv
+            LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
+            WHERE fv.depot_id = ?
+            ORDER BY fv.id ASC
+        ''', (depot_id,)).fetchall()
+        depot_vehicles = [dict(r) for r in v_rows]
+
+        # If no SKUs in DB yet, pull from default catalog
+        if not skus_to_export:
+            catalog_items = DEFAULT_SKU_CATALOG.get(cat_key, DEFAULT_SKU_CATALOG['frozen'])
+            for idx, itm in enumerate(catalog_items):
+                assigned_v = depot_vehicles[idx % len(depot_vehicles)] if depot_vehicles else {}
+                skus_to_export.append({
+                    "sku_code": itm['code'],
+                    "sku_name": itm['name'],
+                    "category": itm['category'],
+                    "uom": resolve_sku_uom(d_row['name'], itm['category'], cat_key),
+                    "default_vehicle_no": assigned_v.get('vehicle_no', ''),
+                    "default_driver_name": assigned_v.get('driver_name', ''),
+                    "default_route_name": assigned_v.get('default_route_name') or itm.get('route', ''),
+                    "max_capacity": itm.get('cap', 1500.0),
+                    "pack_size": itm.get('pack', ''),
+                    "remarks": "Auto-Generated Default"
+                })
 
         output = io.BytesIO()
         wb = xlsxwriter.Workbook(output, {'in_memory': True})
-        
-        # EXACTLY 1 SHEET
-        ws = wb.add_worksheet('Driver-Vehicle & Capacity')
+        ws = wb.add_worksheet('Assignment & SKU Master')
 
+        # Modern Formats
         hdr_fmt = wb.add_format({
-            'bold': True, 'font_size': 11, 'font_color': '#FFFFFF',
+            'bold': True, 'font_size': 12, 'font_color': '#FFFFFF',
             'bg_color': '#0284C7', 'align': 'center', 'valign': 'vcenter', 'border': 1
         })
+        sub_fmt = wb.add_format({
+            'bold': True, 'font_size': 9.5, 'font_color': '#38BDF8',
+            'bg_color': '#0F172A', 'align': 'center', 'valign': 'vcenter', 'border': 1
+        })
         tip_fmt = wb.add_format({
-            'font_size': 9, 'font_color': '#64748B', 'italic': True
+            'font_size': 9, 'font_color': '#64748B', 'italic': True, 'align': 'center', 'valign': 'vcenter'
         })
         th_fmt = wb.add_format({
             'bold': True, 'font_size': 9.5, 'font_color': '#FFFFFF',
-            'bg_color': '#0F172A', 'align': 'center', 'valign': 'vcenter',
+            'bg_color': '#1E293B', 'align': 'center', 'valign': 'vcenter',
+            'border': 1, 'text_wrap': True
+        })
+        th_uom_fmt = wb.add_format({
+            'bold': True, 'font_size': 9.5, 'font_color': '#FDE047',
+            'bg_color': '#78350F', 'align': 'center', 'valign': 'vcenter',
             'border': 1, 'text_wrap': True
         })
         td_fmt = wb.add_format({
@@ -2032,91 +2272,83 @@ def download_driver_vehicle_mapping_template():
         td_center = wb.add_format({
             'font_size': 9, 'color': '#1E293B', 'align': 'center', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'
         })
+        td_uom = wb.add_format({
+            'bold': True, 'font_size': 9.5, 'color': '#0369A1', 'bg_color': '#E0F2FE', 'align': 'center',
+            'border': 1, 'border_color': '#7DD3FC', 'valign': 'vcenter'
+        })
         td_right = wb.add_format({
-            'font_size': 9, 'color': '#1E293B', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter', 'num_format': '#,##0'
+            'font_size': 9, 'color': '#1E293B', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1',
+            'valign': 'vcenter', 'num_format': '#,##0.0'
         })
 
+        # Columns
         ws.set_column(0, 0, 6)   # SL
-        ws.set_column(1, 1, 24)  # Driver Name
-        ws.set_column(2, 2, 16)  # Contact No
-        ws.set_column(3, 3, 24)  # Default Vehicle Reg No
-        ws.set_column(4, 4, 24)  # Secondary / Backup Vehicle
-        ws.set_column(5, 5, 24)  # Default Route Name
-        ws.set_column(6, 6, 32)  # Category Capacity
+        ws.set_column(1, 1, 25)  # Depot Name
+        ws.set_column(2, 2, 20)  # Category
+        ws.set_column(3, 3, 16)  # SKU Code
+        ws.set_column(4, 4, 38)  # SKU Name
+        ws.set_column(5, 5, 18)  # UoM (Assigned)
+        ws.set_column(6, 6, 25)  # Default Vehicle Reg No
+        ws.set_column(7, 7, 22)  # Default Driver Name
+        ws.set_column(8, 8, 26)  # Default Route Name
+        ws.set_column(9, 9, 22)  # Vehicle Max Load Capacity (in UoM)
+        ws.set_column(10, 10, 18) # Standard Pack Size
+        ws.set_column(11, 11, 24) # Remarks
 
-        title_text = f"PARAGON AGRO LIMITED - DRIVER-VEHICLE & CAPACITY MASTER ({d_row['name'].upper()})"
-        ws.merge_range('A1:G1', title_text, hdr_fmt)
-        ws.merge_range('A2:G2', f"Instructions: Enter driver name, contact, vehicle reg no, backup vehicle, route, and {cat_key} capacity. Upload directly in Tab 5.", tip_fmt)
-        ws.set_row(0, 25)
-        ws.set_row(1, 16)
+        title_text = f"PARAGON AGRO LIMITED - DEFAULT ASSIGNMENT & SKU CAPACITY MASTER"
+        sub_text = f"Target Depot: {d_row['name']}  |  Depot Type: {d_row['category']}  |  Auto-Mapped Primary UoM: {resolved_uom}"
+        inst_text = "Instructions: Each SKU is pre-populated with its auto-assigned UoM. Assign default vehicles, drivers, and routes, then upload directly in Tab 5."
+
+        ws.merge_range('A1:L1', title_text, hdr_fmt)
+        ws.merge_range('A2:L2', sub_text, sub_fmt)
+        ws.merge_range('A3:L3', inst_text, tip_fmt)
+        ws.set_row(0, 26)
+        ws.set_row(1, 20)
+        ws.set_row(2, 18)
 
         headers = [
             'SL',
-            'Driver Name *',
-            'Contact No *',
-            'Default Vehicle Reg No *',
-            'Secondary / Backup Vehicle (Optional)',
-            'Default Route Name',
-            col_header
+            'Depot Name',
+            'Category',
+            'SKU Code',
+            'SKU Name / Description *',
+            'Unit of Measurement (UoM) *',
+            'Default Assigned Vehicle Reg No',
+            'Default Driver Name',
+            'Default Route Name / Area',
+            f'Vehicle Max Capacity ({resolved_uom}) *',
+            'Standard Pack Size',
+            'Remarks / Channel'
         ]
+
         for col, h in enumerate(headers):
-            ws.write(3, col, h, th_fmt)
-        ws.set_row(3, 24)
+            ws.write(4, col, h, th_uom_fmt if 'UoM' in h else th_fmt)
+        ws.set_row(4, 26)
 
-        # Query actual registered vehicles for this depot
-        rows = cursor.execute('''
-            SELECT fv.id, fv.vehicle_no, fv.capacity_kg, fv.capacity_units, fv.category_capacities,
-                   drv.name as driver_name, drv.phone as driver_phone, drv.secondary_vehicle_no, drv.default_route_name
-            FROM fleet_vehicles fv
-            LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
-            WHERE fv.depot_id = ?
-            ORDER BY fv.id ASC
-        ''', (depot_id,)).fetchall()
-        real_vehicles = [dict(r) for r in rows]
-
-        start_row = 4
-        if real_vehicles:
-            for idx, v in enumerate(real_vehicles, 1):
-                r_idx = start_row + idx - 1
-                caps = {}
-                if v.get('category_capacities'):
-                    try: caps = json.loads(v['category_capacities'])
-                    except: pass
-                
-                cap_val = (caps.get(cat_key) or {}).get('capacity')
-                if not cap_val:
-                    if cat_key == 'Frozen Foods / Chicken':
-                        cap_val = (caps.get('Chicken') or caps.get('Frozen Foods') or {}).get('capacity')
-                    elif cat_key == 'Dry Goods / Box Items':
-                        cap_val = (caps.get('Dry Food') or {}).get('capacity')
-                if not cap_val:
-                    cap_val = v.get('capacity_kg') or default_cap
-
-                ws.write(r_idx, 0, idx, td_center)
-                ws.write(r_idx, 1, v.get('driver_name') or '', td_fmt)
-                ws.write(r_idx, 2, v.get('driver_phone') or '', td_center)
-                ws.write(r_idx, 3, v.get('vehicle_no') or '', td_center)
-                ws.write(r_idx, 4, v.get('secondary_vehicle_no') or '', td_center)
-                ws.write(r_idx, 5, v.get('default_route_name') or '', td_fmt)
-                ws.write(r_idx, 6, float(cap_val), td_right)
-                ws.set_row(r_idx, 19)
-        else:
-            for idx in range(1, 11):
-                r_idx = start_row + idx - 1
-                ws.write(r_idx, 0, idx, td_center)
-                ws.write(r_idx, 1, '', td_fmt)
-                ws.write(r_idx, 2, '', td_center)
-                ws.write(r_idx, 3, '', td_center)
-                ws.write(r_idx, 4, '', td_center)
-                ws.write(r_idx, 5, '', td_fmt)
-                ws.write(r_idx, 6, default_cap, td_right)
-                ws.set_row(r_idx, 19)
+        start_row = 5
+        for idx, itm in enumerate(skus_to_export, 1):
+            r_idx = start_row + idx - 1
+            item_uom = itm.get('uom') or resolve_sku_uom(d_row['name'], itm.get('category'), cat_key)
+            
+            ws.write(r_idx, 0, idx, td_center)
+            ws.write(r_idx, 1, d_row['name'], td_fmt)
+            ws.write(r_idx, 2, itm.get('category') or d_row['category'], td_fmt)
+            ws.write(r_idx, 3, itm.get('sku_code') or f"SKU-{idx:03d}", td_center)
+            ws.write(r_idx, 4, itm.get('sku_name') or '', td_fmt)
+            ws.write(r_idx, 5, item_uom, td_uom)
+            ws.write(r_idx, 6, itm.get('default_vehicle_no') or '', td_center)
+            ws.write(r_idx, 7, itm.get('default_driver_name') or '', td_fmt)
+            ws.write(r_idx, 8, itm.get('default_route_name') or '', td_fmt)
+            ws.write(r_idx, 9, float(itm.get('max_capacity') or 1500.0), td_right)
+            ws.write(r_idx, 10, itm.get('pack_size') or '', td_center)
+            ws.write(r_idx, 11, itm.get('remarks') or 'Active Mapping', td_fmt)
+            ws.set_row(r_idx, 20)
 
         conn.close()
         wb.close()
         output.seek(0)
         clean_depot_name = re.sub(r'[^a-zA-Z0-9_-]', '_', d_row['name'])
-        filename = f"Paragon_{clean_depot_name}_Mapping_Template.xlsx"
+        filename = f"Paragon_{clean_depot_name}_SKU_Capacity_Template.xlsx"
         return send_file(
             output,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2127,6 +2359,7 @@ def download_driver_vehicle_mapping_template():
         return jsonify({"success": False, "message": f"Template creation error: {str(e)}"}), 500
 
 @app.route('/api/crew/mapping-bulk-upload', methods=['POST'])
+@app.route('/api/master/sku-mapping-bulk-upload', methods=['POST'])
 def bulk_upload_driver_vehicle_mapping():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No Excel file uploaded'}), 400
@@ -2136,7 +2369,8 @@ def bulk_upload_driver_vehicle_mapping():
     user_depot = session.get('depot_id')
 
     depot_id_param = request.form.get('depot_id')
-    
+    depot_type_param = request.form.get('type') or request.form.get('depot_type')
+
     # Enforce role-based depot selection
     if user_role and user_role != 'admin' and user_depot:
         target_depot_id = user_depot
@@ -2163,7 +2397,7 @@ def bulk_upload_driver_vehicle_mapping():
             conn.close()
             return jsonify({'success': False, 'message': f'Depot ID {target_depot_id} not found in database'}), 404
 
-        cat_key, col_header, unit, default_cap = get_depot_primary_category_info(d_row)
+        cat_key = get_depot_sku_catalog_key(d_row)
 
         def clean_vehicle_no(v_str):
             if not v_str: return ''
@@ -2184,42 +2418,52 @@ def bulk_upload_driver_vehicle_mapping():
             if 'paragon agro' in row_str or 'instructions' in row_str or 'guidelines' in row_str:
                 continue
 
-            if 'vehicle' in row_str or 'driver' in row_str or 'capacity' in row_str or 'reg no' in row_str or 'গাড়ি' in row_str or 'চালক' in row_str:
+            # Check if this is the header row
+            if any(k in row_str for k in ['sku', 'item', 'product', 'driver', 'vehicle', 'capacity', 'uom', 'unit']):
                 candidate_map = {}
                 for c_idx, cell in enumerate(row):
                     if cell is None: continue
                     c_text = str(cell).lower().strip()
-                    if 'capacity' in c_text or 'max' in c_text or 'ধারণক্ষমতা' in c_text:
-                        candidate_map['cap'] = c_idx
-                        if 'frozen' in c_text or 'chicken' in c_text: candidate_map['frozen'] = c_idx
-                        elif 'egg' in c_text or 'dim' in c_text: candidate_map['egg'] = c_idx
-                        elif 'dairy' in c_text or 'milk' in c_text: candidate_map['dairy'] = c_idx
-                        elif 'dry' in c_text or 'box' in c_text: candidate_map['dry'] = c_idx
+                    if 'sku code' in c_text or 'item code' in c_text or 'code' in c_text:
+                        candidate_map['sku_code'] = c_idx
+                    elif 'sku' in c_text or 'item' in c_text or 'product' in c_text or 'description' in c_text or 'পণ্য' in c_text:
+                        candidate_map['sku_name'] = c_idx
+                    elif 'uom' in c_text or 'unit' in c_text or 'measure' in c_text or 'একক' in c_text or 'পরিমাপ' in c_text:
+                        candidate_map['uom'] = c_idx
+                    elif 'category' in c_text or 'ক্যাটাগরি' in c_text:
+                        candidate_map['category'] = c_idx
+                    elif 'capacity' in c_text or 'max' in c_text or 'ধারণক্ষমতা' in c_text:
+                        candidate_map['capacity'] = c_idx
                     elif 'route' in c_text or 'line' in c_text or 'zone' in c_text or 'রুট' in c_text:
                         candidate_map['route'] = c_idx
                     elif 'backup' in c_text or 'secondary' in c_text:
                         candidate_map['backup_veh'] = c_idx
-                    elif ('vehicle' in c_text or 'truck' in c_text or 'van' in c_text or 'reg' in c_text or 'গাড়ি' in c_text) and 'driver' not in c_text:
+                    elif 'vehicle' in c_text or 'truck' in c_text or 'van' in c_text or 'reg' in c_text or 'গাড়ি' in c_text:
                         if 'veh' not in candidate_map: candidate_map['veh'] = c_idx
-                    elif 'driver' in c_text or 'staff' in c_text or 'চালক' in c_text or (('name' in c_text or 'full name' in c_text) and 'route' not in c_text):
+                    elif 'driver' in c_text or 'staff' in c_text or 'চালক' in c_text or (('name' in c_text or 'full name' in c_text) and 'sku' not in c_text and 'depot' not in c_text):
                         if 'driver' not in candidate_map: candidate_map['driver'] = c_idx
-                    elif 'phone' in c_text or 'contact' in c_text or 'mobile' in c_text or 'cell' in c_text or 'ফোন' in c_text:
+                    elif 'phone' in c_text or 'contact' in c_text or 'mobile' in c_text:
                         candidate_map['phone'] = c_idx
+                    elif 'pack' in c_text or 'case' in c_text or 'size' in c_text:
+                        candidate_map['pack_size'] = c_idx
+                    elif 'remarks' in c_text or 'note' in c_text or 'channel' in c_text:
+                        candidate_map['remarks'] = c_idx
 
-                if 'veh' in candidate_map or 'driver' in candidate_map:
+                if 'sku_name' in candidate_map or 'veh' in candidate_map or 'driver' in candidate_map:
                     header_row_idx = r_idx
                     col_map = candidate_map
                     break
 
-        if 'veh' not in col_map and 'driver' not in col_map:
-            col_map = {'driver': 1, 'phone': 2, 'veh': 3, 'backup_veh': 4, 'route': 5, 'cap': 6}
-            header_row_idx = 3
+        if not header_row_idx:
+            header_row_idx = 5
+            col_map = {'sku_name': 4, 'uom': 5, 'veh': 6, 'driver': 7, 'route': 8, 'capacity': 9, 'pack_size': 10, 'remarks': 11}
 
-        drivers_map = {}
-        vehicle_capacities = {}
+        parsed_skus = []
+        vehicles_to_sync = {}
+        drivers_to_sync = {}
 
         for r_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
-            if header_row_idx and r_idx <= header_row_idx: continue
+            if r_idx <= header_row_idx: continue
             if not row or not any(row): continue
             r_str = " ".join([str(c) for c in row if c is not None]).upper()
             if "PARAGON AGRO" in r_str or "INSTRUCTIONS" in r_str or "GUIDELINES" in r_str: continue
@@ -2230,142 +2474,246 @@ def bulk_upload_driver_vehicle_mapping():
                     return str(row[idx]).strip()
                 return default
 
+            sku_name = get_val('sku_name')
+            sku_code = get_val('sku_code')
+            cat_name = get_val('category') or d_row['category']
+            raw_uom = get_val('uom')
+            veh_no = clean_vehicle_no(get_val('veh'))
+            backup_veh = clean_vehicle_no(get_val('backup_veh'))
             drv_name = get_val('driver')
             phone = get_val('phone')
-            def_veh = clean_vehicle_no(get_val('veh'))
-            backup_veh = clean_vehicle_no(get_val('backup_veh'))
             route_name = get_val('route')
+            raw_cap = get_val('capacity')
+            pack_size = get_val('pack_size')
+            remarks = get_val('remarks')
 
-            if def_veh in ['DEFAULT VEHICLE REG NO', 'VEHICLE NO', 'VEHICLE REG NO', 'SL', ''] and not drv_name:
+            # Backward compatibility for legacy format without SKU column
+            if not sku_name and veh_no:
+                sku_name = f"Standard Load - {cat_name}"
+
+            if not sku_name:
                 continue
-            if drv_name in ['DRIVER NAME', 'STAFF FULL NAME', 'NAME', 'SL']:
+
+            if sku_name.upper() in ['SKU NAME', 'ITEM NAME', 'PRODUCT NAME', 'DESCRIPTION', 'SL']:
                 continue
 
-            if drv_name:
-                drivers_map[drv_name] = {
-                    'name': drv_name,
-                    'phone': phone,
-                    'default_veh': def_veh,
-                    'backup_veh': backup_veh,
-                    'route_name': route_name
-                }
-
-            if def_veh:
-                cap_num = None
-                for k in ['cap', 'frozen', 'egg', 'dairy', 'dry']:
-                    if k in col_map:
-                        raw_c = get_val(k)
-                        if raw_c:
-                            try:
-                                cap_num = float(str(raw_c).replace(',', ''))
-                                break
-                            except: pass
-                if cap_num is None:
-                    cap_num = default_cap
-
-                vehicle_capacities[def_veh] = {
-                    'primary_cap': cap_num,
-                    'driver_name': drv_name
-                }
-
-        # 1. Update depot_crew
-        updated_drivers = 0
-        for drv_name, d_info in drivers_map.items():
-            if not drv_name: continue
-            existing = cursor.execute(
-                "SELECT id FROM depot_crew WHERE role='driver' AND LOWER(TRIM(name))=LOWER(TRIM(?)) AND depot_id=?", 
-                (drv_name, target_depot_id)
-            ).fetchone()
-
-            if existing:
-                cid = existing[0]
-                cursor.execute('''
-                    UPDATE depot_crew
-                    SET assigned_vehicle_no = CASE WHEN ? != '' THEN ? ELSE assigned_vehicle_no END,
-                        secondary_vehicle_no = CASE WHEN ? != '' THEN ? ELSE secondary_vehicle_no END,
-                        default_route_name = CASE WHEN ? != '' THEN ? ELSE default_route_name END,
-                        phone = CASE WHEN ? != '' THEN ? ELSE phone END
-                    WHERE id = ?
-                ''', (d_info['default_veh'], d_info['default_veh'], d_info['backup_veh'], d_info['backup_veh'], d_info['route_name'], d_info['route_name'], d_info['phone'], d_info['phone'], cid))
+            # Auto-map UoM logic based on Depot + Category mapping rules
+            if raw_uom:
+                uom_clean = raw_uom.strip()
+                if uom_clean.lower() in ['kg', 'kg.', 'kgs', 'kilogram', 'কেজি']:
+                    final_uom = 'Kg'
+                elif uom_clean.lower() in ['pcs', 'pcs.', 'pieces', 'piece', 'টি', 'পিস']:
+                    final_uom = 'Pcs'
+                elif uom_clean.lower() in ['liter', 'ltr', 'litre', 'লিটার']:
+                    final_uom = 'Liter'
+                elif uom_clean.lower() in ['ctn', 'carton', 'box']:
+                    final_uom = 'Ctn'
+                elif uom_clean.lower() in ['pkt', 'packet']:
+                    final_uom = 'Pkt'
+                else:
+                    final_uom = resolve_sku_uom(d_row['name'], cat_name, d_row['category'])
             else:
-                cursor.execute('''
-                    INSERT INTO depot_crew (depot_id, role, name, phone, assigned_vehicle_no, secondary_vehicle_no, default_route_name, status)
-                    VALUES (?, 'driver', ?, ?, ?, ?, ?, 'Active')
-                ''', (target_depot_id, drv_name, d_info['phone'] or '01711-000000', d_info['default_veh'], d_info['backup_veh'], d_info['route_name']))
-                cid = cursor.lastrowid
-            
-            if d_info['default_veh']:
-                cursor.execute('''
-                    UPDATE fleet_vehicles 
-                    SET default_driver_id = ? 
-                    WHERE depot_id = ? AND REPLACE(REPLACE(UPPER(vehicle_no), ' ', '-'), '--', '-') = ?
-                ''', (cid, target_depot_id, d_info['default_veh']))
-            updated_drivers += 1
+                final_uom = resolve_sku_uom(d_row['name'], cat_name, d_row['category'])
 
-        # 2. Update fleet_vehicles
-        updated_vehicles = 0
-        for veh_no, v_info in vehicle_capacities.items():
-            if not veh_no: continue
-            cap_val = v_info['primary_cap']
-            drv_name = v_info['driver_name']
-
-            existing_veh = cursor.execute('''
-                SELECT id, category_capacities, default_driver_id 
-                FROM fleet_vehicles 
-                WHERE REPLACE(REPLACE(UPPER(vehicle_no), ' ', '-'), '--', '-') = ? AND depot_id = ?
-            ''', (veh_no, target_depot_id)).fetchone()
-
-            caps = {}
-            if existing_veh and existing_veh['category_capacities']:
-                try: caps = json.loads(existing_veh['category_capacities'])
+            cap_val = 1500.0
+            if raw_cap:
+                try: cap_val = float(str(raw_cap).replace(',', ''))
                 except: pass
 
-            if not caps:
-                caps = get_default_category_capacities(cap_val)
+            parsed_skus.append({
+                "depot_id": target_depot_id,
+                "depot_name": d_row['name'],
+                "depot_type": d_row['category'],
+                "category": cat_name,
+                "sku_code": sku_code or f"SKU-{len(parsed_skus)+1:03d}",
+                "sku_name": sku_name,
+                "uom": final_uom,
+                "default_vehicle_no": veh_no,
+                "default_driver_name": drv_name,
+                "default_route_name": route_name,
+                "max_capacity": cap_val,
+                "pack_size": pack_size,
+                "remarks": remarks
+            })
 
-            # Update the primary category
-            caps[cat_key] = {"capacity": cap_val, "unit": unit}
-            caps_json = json.dumps(caps)
-
-            def_driver_id = None
+            if veh_no:
+                vehicles_to_sync[veh_no] = {
+                    "depot_id": target_depot_id,
+                    "vehicle_no": veh_no,
+                    "capacity": cap_val,
+                    "uom": final_uom,
+                    "driver_name": drv_name,
+                    "route_name": route_name
+                }
             if drv_name:
-                d_row_crew = cursor.execute(
-                    "SELECT id FROM depot_crew WHERE role='driver' AND LOWER(TRIM(name)) = LOWER(TRIM(?)) AND depot_id = ?", 
-                    (drv_name, target_depot_id)
-                ).fetchone()
-                if d_row_crew: def_driver_id = d_row_crew[0]
-            if not def_driver_id:
-                d_row_crew = cursor.execute(
-                    "SELECT id FROM depot_crew WHERE role='driver' AND REPLACE(REPLACE(UPPER(assigned_vehicle_no), ' ', '-'), '--', '-') = ? AND depot_id = ?", 
-                    (veh_no, target_depot_id)
-                ).fetchone()
-                if d_row_crew: def_driver_id = d_row_crew[0]
+                drivers_to_sync[drv_name] = {
+                    "depot_id": target_depot_id,
+                    "name": drv_name,
+                    "phone": phone,
+                    "vehicle_no": veh_no,
+                    "backup_veh": backup_veh,
+                    "route_name": route_name
+                }
 
-            if existing_veh:
+        if not parsed_skus:
+            conn.close()
+            return jsonify({'success': False, 'message': 'No valid SKU or vehicle assignment rows found in the uploaded file.'}), 400
+
+        # Replace existing SKUs for this depot with the new imported list
+        cursor.execute("DELETE FROM depot_sku_master WHERE depot_id = ?", (target_depot_id,))
+        for s in parsed_skus:
+            cursor.execute('''
+                INSERT INTO depot_sku_master 
+                (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (s['depot_id'], s['depot_name'], s['depot_type'], s['category'], s['sku_code'], s['sku_name'], s['uom'],
+                  s['default_vehicle_no'], s['default_driver_name'], s['default_route_name'], s['max_capacity'], s['pack_size'], s['remarks']))
+
+        # Synchronize vehicles into fleet_vehicles
+        for vno, vdata in vehicles_to_sync.items():
+            exist = cursor.execute("SELECT id, category_capacities FROM fleet_vehicles WHERE depot_id = ? AND UPPER(vehicle_no) = UPPER(?)", (target_depot_id, vno)).fetchone()
+            cat_caps = {}
+            if exist and exist['category_capacities']:
+                try: cat_caps = json.loads(exist['category_capacities'])
+                except: pass
+            cat_caps[cat_key] = {"capacity": vdata['capacity'], "unit": vdata['uom']}
+            
+            if exist:
                 cursor.execute('''
-                    UPDATE fleet_vehicles 
-                    SET category_capacities = ?, 
-                        capacity_kg = ?, 
-                        capacity_units = ?,
-                        default_driver_id = COALESCE(?, default_driver_id)
+                    UPDATE fleet_vehicles
+                    SET capacity_kg = ?, capacity_units = ?, category_capacities = ?
                     WHERE id = ?
-                ''', (caps_json, cap_val, unit, def_driver_id, existing_veh['id']))
+                ''', (vdata['capacity'], vdata['uom'], json.dumps(cat_caps), exist['id']))
             else:
                 cursor.execute('''
-                    INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, category_capacities, default_driver_id, ownership, status)
-                    VALUES (?, ?, 'Covered Van', ?, ?, ?, ?, 'Owned', 'Active')
-                ''', (target_depot_id, veh_no, cap_val, unit, caps_json, def_driver_id))
-            updated_vehicles += 1
+                    INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, category_capacities, status)
+                    VALUES (?, ?, 'Covered Van', ?, ?, ?, 'Available')
+                ''', (target_depot_id, vno, vdata['capacity'], vdata['uom'], json.dumps(cat_caps)))
+
+        # Synchronize drivers into depot_crew
+        for dname, ddata in drivers_to_sync.items():
+            c_exist = cursor.execute("SELECT id FROM depot_crew WHERE depot_id = ? AND UPPER(name) = UPPER(?)", (target_depot_id, dname)).fetchone()
+            if c_exist:
+                cursor.execute('''
+                    UPDATE depot_crew
+                    SET assigned_vehicle_no = COALESCE(?, assigned_vehicle_no),
+                        secondary_vehicle_no = COALESCE(?, secondary_vehicle_no),
+                        default_route_name = COALESCE(?, default_route_name)
+                    WHERE id = ?
+                ''', (ddata['vehicle_no'] or None, ddata.get('backup_veh') or None, ddata['route_name'] or None, c_exist['id']))
+            else:
+                cursor.execute('''
+                    INSERT INTO depot_crew (depot_id, name, role, phone, assigned_vehicle_no, secondary_vehicle_no, default_route_name, status)
+                    VALUES (?, ?, 'driver', ?, ?, ?, ?, 'Active')
+                ''', (target_depot_id, dname, ddata.get('phone') or '01711-000000', ddata['vehicle_no'], ddata.get('backup_veh') or '', ddata['route_name']))
 
         conn.commit()
         conn.close()
 
+        uom_summary = ", ".join(list(set(s['uom'] for s in parsed_skus)))
         return jsonify({
             'success': True,
-            'message': f'Successfully imported {updated_drivers} Drivers & updated {updated_vehicles} Vehicles with {cat_key} capacity for {d_row["name"]}!'
+            'message': f"Successfully processed {len(parsed_skus)} SKU line-items for {d_row['name']} with auto-assigned UoM: [{uom_summary}]!",
+            'count': len(parsed_skus),
+            'uom_summary': uom_summary,
+            'depot_id': target_depot_id
         })
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Error uploading driver-vehicle mapping: {str(e)}'}), 500
+    except Exception as err:
+        return jsonify({'success': False, 'message': f'Processing error: {str(err)}'}), 500
+
+@app.route('/api/master/skus', methods=['GET'])
+def get_master_skus():
+    depot_id = request.args.get('depot_id')
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if not depot_id or str(depot_id).lower() == 'all':
+        rows = cursor.execute('''
+            SELECT id, depot_id, depot_name, depot_type, category, sku_code, sku_name, uom,
+                   default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks
+            FROM depot_sku_master
+            ORDER BY depot_id ASC, id ASC
+        ''').fetchall()
+    else:
+        try: d_id = int(depot_id)
+        except: d_id = 9
+        rows = cursor.execute('''
+            SELECT id, depot_id, depot_name, depot_type, category, sku_code, sku_name, uom,
+                   default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks
+            FROM depot_sku_master
+            WHERE depot_id = ?
+            ORDER BY id ASC
+        ''', (d_id,)).fetchall()
+        
+    conn.close()
+    return jsonify({
+        "success": True,
+        "skus": [dict(r) for r in rows]
+    })
+
+@app.route('/api/master/sku', methods=['POST'])
+def save_master_sku():
+    data = request.json or {}
+    sku_id = data.get('id')
+    depot_id = data.get('depot_id')
+    if not depot_id:
+        return jsonify({"success": False, "message": "Depot ID is required"}), 400
+    try: depot_id = int(depot_id)
+    except: return jsonify({"success": False, "message": "Invalid Depot ID"}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    d_row = cursor.execute("SELECT id, name, category FROM depots WHERE id = ?", (depot_id,)).fetchone()
+    if not d_row:
+        conn.close()
+        return jsonify({"success": False, "message": "Depot not found"}), 404
+        
+    depot_name = d_row['name']
+    depot_type = d_row['category']
+    sku_name = data.get('sku_name', '').strip()
+    if not sku_name:
+        conn.close()
+        return jsonify({"success": False, "message": "SKU Name is required"}), 400
+        
+    category = data.get('category') or depot_type
+    raw_uom = data.get('uom', '').strip()
+    uom = raw_uom if raw_uom else resolve_sku_uom(depot_name, category, depot_type)
+    sku_code = data.get('sku_code') or f"SKU-{int(datetime.datetime.now().timestamp()) % 10000:04d}"
+    veh_no = data.get('default_vehicle_no', '').strip()
+    drv_name = data.get('default_driver_name', '').strip()
+    route_name = data.get('default_route_name', '').strip()
+    try: cap_val = float(data.get('max_capacity') or 1500.0)
+    except: cap_val = 1500.0
+    pack_size = data.get('pack_size', '').strip()
+    remarks = data.get('remarks', '').strip()
+    
+    if sku_id:
+        cursor.execute('''
+            UPDATE depot_sku_master
+            SET category = ?, sku_code = ?, sku_name = ?, uom = ?, default_vehicle_no = ?,
+                default_driver_name = ?, default_route_name = ?, max_capacity = ?, pack_size = ?, remarks = ?
+            WHERE id = ? AND depot_id = ?
+        ''', (category, sku_code, sku_name, uom, veh_no, drv_name, route_name, cap_val, pack_size, remarks, sku_id, depot_id))
+    else:
+        cursor.execute('''
+            INSERT INTO depot_sku_master 
+            (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, veh_no, drv_name, route_name, cap_val, pack_size, remarks))
+        
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": f"SKU '{sku_name}' with assigned UoM '{uom}' saved successfully!"})
+
+@app.route('/api/master/sku/<int:sku_id>', methods=['DELETE', 'POST'])
+def delete_master_sku(sku_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM depot_sku_master WHERE id = ?", (sku_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "SKU line-item removed successfully!"})
 
 
 # ----------------- INTER-DEPOT VEHICLE BORROWING APIS -----------------
@@ -3559,10 +3907,12 @@ def admin_clear_master_data():
         
     elif clear_type == 'mapping':
         if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
             cursor.execute('UPDATE depot_crew SET default_vehicle_id = NULL, default_vehicle_no = NULL WHERE depot_id = ?', (depot_id,))
         else:
+            cursor.execute('DELETE FROM depot_sku_master')
             cursor.execute('UPDATE depot_crew SET default_vehicle_id = NULL, default_vehicle_no = NULL')
-        msg = "All Driver-to-Vehicle mappings cleared successfully!"
+        msg = "All SKU line-items and Driver-to-Vehicle mappings cleared successfully!"
         
     elif clear_type == 'all':
         if depot_id and str(depot_id) != 'all':
@@ -3570,12 +3920,14 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
         else:
             cursor.execute('DELETE FROM route_consignees')
             cursor.execute('DELETE FROM routes')
             cursor.execute('DELETE FROM fleet_vehicles')
             cursor.execute('DELETE FROM depot_crew')
+            cursor.execute('DELETE FROM depot_sku_master')
             cursor.execute('DELETE FROM inter_depot_vehicle_requests')
         msg = "All Master Directory records for this depot cleared successfully!"
     else:
