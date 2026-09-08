@@ -2,6 +2,7 @@ import os
 import io
 import re
 import json
+import math
 import sqlite3
 import datetime
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
@@ -209,8 +210,11 @@ def seed_database(cursor):
         VALUES (?, ?, 'depot123', 'incharge', ?, ?)
         ''', (uid, username, d[0], display_name))
         
-    conn.commit()
-    conn.close()
+    # Sample Delivery Man / Van Rider
+    cursor.execute('''
+    INSERT OR IGNORE INTO users (id, username, password, role, depot_id, display_name)
+    VALUES (100, 'rider_tejgaon', 'rider123', 'delivery_man', 1, 'Tejgaon Van Rider (Selim)')
+    ''')
 
 # Initialize DB on start if not present
 if not os.path.exists(DB_PATH):
@@ -494,6 +498,79 @@ def ensure_schema_migrations():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (depot_id) REFERENCES depots (id)
         )
+        ''')
+
+        # Ensure saved_route_plans table exists
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS saved_route_plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            depot_id INTEGER NOT NULL,
+            plan_date TEXT NOT NULL,
+            shift TEXT,
+            shift_time TEXT,
+            total_vans INTEGER DEFAULT 0,
+            total_outlets INTEGER DEFAULT 0,
+            total_pkts REAL DEFAULT 0,
+            total_kg REAL DEFAULT 0,
+            gross_value REAL DEFAULT 0,
+            plan_json TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(depot_id, plan_date)
+        )
+        ''')
+
+        # Ensure live tracking tables exist
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS live_tracking_positions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vehicle_no TEXT NOT NULL,
+            driver_mobile TEXT,
+            driver_name TEXT,
+            depot_id INTEGER NOT NULL,
+            route_id TEXT,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            heading REAL DEFAULT 0.0,
+            speed_kmh REAL DEFAULT 0.0,
+            source TEXT DEFAULT 'MOBILE_GEOLOCATION',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(vehicle_no, depot_id)
+        )
+        ''')
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS live_drop_statuses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            depot_id INTEGER NOT NULL,
+            route_code TEXT NOT NULL,
+            drop_id TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            delivered_at TIMESTAMP,
+            proof_note TEXT,
+            cash_collected REAL DEFAULT 0.0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(depot_id, route_code, drop_id)
+        )
+        ''')
+
+        # Ensure Admin Audit Log table exists
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS admin_audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            username TEXT NOT NULL,
+            action TEXT NOT NULL,
+            target_type TEXT,
+            depot_id TEXT,
+            details TEXT,
+            ip_address TEXT
+        )
+        ''')
+
+        # Ensure sample delivery_man user exists
+        c.execute('''
+        INSERT OR IGNORE INTO users (id, username, password, role, depot_id, display_name)
+        VALUES (100, 'rider_tejgaon', 'rider123', 'delivery_man', 1, 'Tejgaon Van Rider (Selim)')
         ''')
 
         conn.commit()
@@ -2207,10 +2284,10 @@ def update_fleet_capacities():
     if isinstance(category_capacities, dict):
         if 'Frozen Foods / Chicken' in category_capacities:
             try: frozen_cap = float(category_capacities['Frozen Foods / Chicken'].get('capacity', 1500))
-            except: pass
+            except (ValueError, TypeError): pass
         elif 'Chicken' in category_capacities:
             try: frozen_cap = float(category_capacities['Chicken'].get('capacity', 1500))
-            except: pass
+            except (ValueError, TypeError): pass
             
     cursor.execute('UPDATE fleet_vehicles SET category_capacities = ?, capacity_kg = ? WHERE id = ?', (caps_json, frozen_cap, vid))
     conn.commit()
@@ -2306,7 +2383,7 @@ def download_driver_vehicle_mapping_template():
                 depot_id = 9
 
         try: depot_id = int(depot_id)
-        except: depot_id = 9
+        except (ValueError, TypeError): depot_id = 9
 
         d_row = cursor.execute("SELECT id, name, category, default_uom FROM depots WHERE id = ?", (depot_id,)).fetchone()
         if not d_row:
@@ -2503,7 +2580,7 @@ def bulk_upload_driver_vehicle_mapping():
         target_depot_id = user_depot
     elif depot_id_param and str(depot_id_param).lower() not in ['all', 'none', '']:
         try: target_depot_id = int(depot_id_param)
-        except: target_depot_id = None
+        except (ValueError, TypeError): target_depot_id = None
     elif user_depot:
         target_depot_id = user_depot
     else:
@@ -2634,7 +2711,7 @@ def bulk_upload_driver_vehicle_mapping():
             cap_val = std_cap
             if raw_cap:
                 try: cap_val = float(str(raw_cap).replace(',', ''))
-                except: pass
+                except (ValueError, TypeError): pass
 
             parsed_mappings.append({
                 "depot_id": target_depot_id,
@@ -2688,7 +2765,7 @@ def bulk_upload_driver_vehicle_mapping():
             cat_caps = {}
             if exist and exist['category_capacities']:
                 try: cat_caps = json.loads(exist['category_capacities'])
-                except: pass
+                except (json.JSONDecodeError, TypeError): pass
             cat_caps[cat_key] = {"capacity": vdata['capacity'], "unit": vdata['uom']}
             
             if exist:
@@ -2750,7 +2827,7 @@ def get_master_mappings():
         ''').fetchall()
     else:
         try: d_id = int(depot_id)
-        except: d_id = 9
+        except (ValueError, TypeError): d_id = 9
         rows = cursor.execute('''
             SELECT id, depot_id, depot_name, depot_type, category, uom,
                    default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks
@@ -2776,7 +2853,7 @@ def save_master_mapping():
     if not depot_id:
         return jsonify({"success": False, "message": "Depot ID is required"}), 400
     try: depot_id = int(depot_id)
-    except: return jsonify({"success": False, "message": "Invalid Depot ID"}), 400
+    except (ValueError, TypeError): return jsonify({"success": False, "message": "Invalid Depot ID"}), 400
     
     conn = get_db()
     cursor = conn.cursor()
@@ -2799,7 +2876,7 @@ def save_master_mapping():
     drv_name = data.get('default_driver_name', '').strip()
     route_name = data.get('default_route_name', '').strip()
     try: cap_val = float(data.get('max_capacity') or 1500.0)
-    except: cap_val = 1500.0
+    except (ValueError, TypeError): cap_val = 1500.0
     remarks = data.get('remarks', '').strip() or 'Active Vehicle Assignment'
     
     if mapping_id:
@@ -2822,7 +2899,7 @@ def save_master_mapping():
     cat_caps = {}
     if exist and exist['category_capacities']:
         try: cat_caps = json.loads(exist['category_capacities'])
-        except: pass
+        except (json.JSONDecodeError, TypeError): pass
     cat_caps[cat_key] = {"capacity": cap_val, "unit": uom}
     
     if exist:
@@ -3389,7 +3466,7 @@ def bulk_upload_fleet():
             v_type = str(row[2] if len(row) > 2 and row[2] else 'Covered Van').strip()
             try:
                 cap_kg = float(row[3]) if len(row) > 3 and row[3] is not None else 1500.0
-            except:
+            except (ValueError, TypeError):
                 cap_kg = 1500.0
                 
             cap_uom = str(row[4] if len(row) > 4 and row[4] else '').strip()
@@ -3404,7 +3481,7 @@ def bulk_upload_fleet():
             vendor = str(row[7] if len(row) > 7 and row[7] else (row[6] if len(row) > 6 and ownership == 'Rental' else '')).strip()
             try:
                 rent_cost = float(row[8] if len(row) > 8 and row[8] is not None else (row[7] if len(row) > 7 and row[7] is not None else 0.0))
-            except:
+            except (ValueError, TypeError):
                 rent_cost = 0.0
                 
             if not v_no or v_no.lower() in ['sl', 'vehicle reg no']:
@@ -3458,7 +3535,7 @@ def download_universal_route_plan_template():
             parts = date_param.split('-')
             if len(parts) == 3 and len(parts[0]) == 4:
                 date_param = f"{parts[2]}/{parts[1]}/{parts[0]}"
-        except:
+        except (IndexError, ValueError):
             pass
 
     depot_name = "09. Tejgaon - Fresh Egg"
@@ -3779,25 +3856,6 @@ def save_distribution_plan():
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS saved_route_plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        depot_id INTEGER NOT NULL,
-        plan_date TEXT NOT NULL,
-        shift TEXT,
-        shift_time TEXT,
-        total_vans INTEGER DEFAULT 0,
-        total_outlets INTEGER DEFAULT 0,
-        total_pkts REAL DEFAULT 0,
-        total_kg REAL DEFAULT 0,
-        gross_value REAL DEFAULT 0,
-        plan_json TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(depot_id, plan_date)
-    )
-    ''')
-    
     plan_json_str = json.dumps(plan_data)
     cursor.execute('''
     INSERT INTO saved_route_plans (
@@ -3829,25 +3887,6 @@ def get_distribution_plan():
         
     conn = get_db()
     cursor = conn.cursor()
-    
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS saved_route_plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        depot_id INTEGER NOT NULL,
-        plan_date TEXT NOT NULL,
-        shift TEXT,
-        shift_time TEXT,
-        total_vans INTEGER DEFAULT 0,
-        total_outlets INTEGER DEFAULT 0,
-        total_pkts REAL DEFAULT 0,
-        total_kg REAL DEFAULT 0,
-        gross_value REAL DEFAULT 0,
-        plan_json TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(depot_id, plan_date)
-    )
-    ''')
     
     cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? AND plan_date = ?', (depot_id, plan_date))
     row = cursor.fetchone()
@@ -3946,25 +3985,6 @@ def get_distribution_plan_history():
     cursor = conn.cursor()
     
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS saved_route_plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        depot_id INTEGER NOT NULL,
-        plan_date TEXT NOT NULL,
-        shift TEXT,
-        shift_time TEXT,
-        total_vans INTEGER DEFAULT 0,
-        total_outlets INTEGER DEFAULT 0,
-        total_pkts REAL DEFAULT 0,
-        total_kg REAL DEFAULT 0,
-        gross_value REAL DEFAULT 0,
-        plan_json TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(depot_id, plan_date)
-    )
-    ''')
-    
-    cursor.execute('''
     SELECT id, depot_id, plan_date, shift, shift_time, total_vans, total_outlets, total_pkts, total_kg, gross_value, updated_at
     FROM saved_route_plans
     WHERE depot_id = ?
@@ -3998,7 +4018,6 @@ def get_distribution_plan_history():
                 "updated_at": rep_dict['created_at']
             })
             existing_dates.add(r_date)
-            
     history.sort(key=lambda x: x['plan_date'], reverse=True)
     conn.close()
     return jsonify({"success": True, "history": history})
@@ -4008,8 +4027,9 @@ def get_distribution_plan_history():
 @app.route('/api/admin/clear-master-data', methods=['GET', 'POST', 'DELETE'])
 def admin_clear_master_data():
     data = request.json if request.is_json else {}
-    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
+    sess_user = session.get('user') or {}
+    role = session.get('role') or sess_user.get('role')
+    if role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
 
     clear_type = data.get('clear_type') or data.get('type') or request.args.get('clear_type') or request.args.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'mapping', 'all'
@@ -4041,38 +4061,30 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM fleet_vehicles')
         msg = "All fleet vehicles and rental entries cleared successfully!"
         
-    elif clear_type in ('crew', 'drivers', 'driver', 'staff'):
+    elif clear_type in ('crew', 'drivers', 'staff'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM depot_crew')
-        msg = "All drivers & delivery staff cleared successfully!"
+        msg = "All driver and helper records cleared successfully!"
         
     elif clear_type in ('borrow', 'borrowed'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
-            cursor.execute('DELETE FROM fleet_vehicles WHERE (depot_id = ? OR home_depot_id = ?) AND (ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%")', (depot_id, depot_id))
+            cursor.execute("DELETE FROM fleet_vehicles WHERE depot_id = ? AND ownership = 'Borrowed'", (depot_id,))
         else:
             cursor.execute('DELETE FROM inter_depot_vehicle_requests')
-            cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%"')
-        msg = "All borrowed vehicles and borrowing requests cleared successfully!"
+            cursor.execute("DELETE FROM fleet_vehicles WHERE ownership = 'Borrowed'")
+        msg = "All borrowed vehicle records and requests cleared successfully!"
         
-    elif clear_type in ('mapping', 'mappings', 'sku', 'skus'):
+    elif clear_type in ('mapping', 'sku', 'skus'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM depot_vehicle_mapping WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
-            try:
-                cursor.execute('UPDATE depot_crew SET assigned_vehicle_id = NULL, assigned_vehicle_no = NULL WHERE depot_id = ?', (depot_id,))
-            except Exception:
-                pass
         else:
             cursor.execute('DELETE FROM depot_vehicle_mapping')
             cursor.execute('DELETE FROM depot_sku_master')
-            try:
-                cursor.execute('UPDATE depot_crew SET assigned_vehicle_id = NULL, assigned_vehicle_no = NULL')
-            except Exception:
-                pass
-        msg = "All Driver-Vehicle mappings and capacity configurations cleared successfully!"
+        msg = "All default driver-vehicle mappings and SKU catalogs cleared successfully!"
         
     elif clear_type == 'all':
         if depot_id and str(depot_id) != 'all':
@@ -4096,6 +4108,13 @@ def admin_clear_master_data():
         conn.close()
         return jsonify({"success": False, "message": "Invalid clear type specified"}), 400
         
+    # Record in admin audit log
+    username = sess_user.get('username') or session.get('username') or 'admin'
+    cursor.execute('''
+    INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (username, 'CLEAR_MASTER_DATA', clear_type, str(depot_id or 'ALL'), msg, request.remote_addr))
+
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": msg})
@@ -4119,8 +4138,9 @@ def get_borrowed_vehicles():
 @app.route('/api/admin/clear-route-plan', methods=['GET', 'POST', 'DELETE'])
 def admin_clear_route_plan():
     data = request.json if request.is_json else {}
-    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
+    sess_user = session.get('user') or {}
+    role = session.get('role') or sess_user.get('role')
+    if role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
@@ -4129,25 +4149,6 @@ def admin_clear_route_plan():
     
     conn = get_db()
     cursor = conn.cursor()
-    
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS saved_route_plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        depot_id INTEGER NOT NULL,
-        plan_date TEXT NOT NULL,
-        shift TEXT,
-        shift_time TEXT,
-        total_vans INTEGER DEFAULT 0,
-        total_outlets INTEGER DEFAULT 0,
-        total_pkts REAL DEFAULT 0,
-        total_kg REAL DEFAULT 0,
-        gross_value REAL DEFAULT 0,
-        plan_json TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(depot_id, plan_date)
-    )
-    ''')
     
     if clear_all:
         if depot_id:
@@ -4169,9 +4170,44 @@ def admin_clear_route_plan():
         conn.close()
         return jsonify({"success": False, "message": "Missing depot_id or date"}), 400
         
+    # Record in admin audit log
+    username = sess_user.get('username') or session.get('username') or 'admin'
+    cursor.execute('''
+    INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (username, 'CLEAR_ROUTE_PLAN', 'saved_route_plans', str(depot_id or 'ALL'), msg, request.remote_addr))
+
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": msg})
+
+def match_depot_from_ref(branch="", ref_no="", order_no=""):
+    """Match depot from branch, reference, or order strings for Poloxy import"""
+    combined = f"{branch} {ref_no} {order_no}".lower()
+    depot_keywords = [
+        (1, ['ashulia frozen', 'ashulia_frozen', 'ashulia-frozen']),
+        (2, ['ashulia dry', 'ashulia_dry', 'dry food']),
+        (3, ['gazipur', 'process ck', 'gazipur_ck']),
+        (4, ['sirajganj', 'dairy plant', 'sirajganj_dairy']),
+        (5, ['sylhet tea', 'tea packing', 'sylhet_tea']),
+        (6, ['sylhet frozen', 'sylhet_frozen']),
+        (7, ['tejgaon frozen', 'tejgaon_frozenck', 'frozen chicken', 'chicken & frozen']),
+        (8, ['ecommerce', 'e-commerce', 'tejgaon_ecommerce']),
+        (9, ['egg', 'fresh egg', 'tejgaon_egg']),
+        (10, ['tea dist', 'tejgaon_tea', 'tea distribution']),
+        (11, ['liquid milk', 'tejgaon_dairy', 'milk depot']),
+        (12, ['mohakhali', 'momo']),
+        (13, ['ctg frozen', 'chittagong frozen']),
+        (14, ['ctg dry', 'chittagong dry']),
+        (15, ['jessore frozen', 'jessore_frozen']),
+        (16, ['jessore dry', 'jessore_dry']),
+        (17, ['rangpur'])
+    ]
+    for d_id, kws in depot_keywords:
+        if any(kw in combined for kw in kws):
+            name = DEPOT_COORDINATES.get(d_id, {}).get('name', f'Depot #{d_id}')
+            return {'id': d_id, 'name': name, 'category': 'Food'}
+    return {'id': 1, 'name': 'Tejgaon Head Office & Central Depot', 'category': 'Central Food'}
 
 # ==============================================================================
 # POLOXY ERP BATCH PARSER WITH ROUTE & FLEET AUTO-MAPPING
@@ -4573,6 +4609,7 @@ def get_tracking_depot_routes():
                             v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
                             
                     completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
+                    van_ownership = van.get('ownership') or ('Borrowed' if van.get('is_borrowed') else 'Owned')
                     d_routes.append({
                         "depot_id": d_id,
                         "depot_name": depot_coords["name"],
@@ -4580,6 +4617,7 @@ def get_tracking_depot_routes():
                         "route_code": r_code,
                         "route_name": f"{van.get('route_name') or f'Corridor {v_idx}'}",
                         "vehicle_no": v_no,
+                        "ownership": van_ownership,
                         "driver_name": d_name,
                         "driver_mobile": d_phone,
                         "total_drops": len(drop_points),
@@ -4595,8 +4633,8 @@ def get_tracking_depot_routes():
 
         if not d_routes:
             sample_vans = [
-                {"v_no": f"DHK-TA-{d_id:02d}-2041", "driver": "Md. Selim Reza", "mobile": f"01711-{d_id:02d}8901", "r_code": f"RT-{d_id:02d}-A", "name": "Primary Supermarket Loop"},
-                {"v_no": f"DHK-TA-{d_id:02d}-3088", "driver": "Rafiqul Islam", "mobile": f"01819-{d_id:02d}4902", "r_code": f"RT-{d_id:02d}-B", "name": "Corporate & Express Corridor"}
+                {"v_no": f"DHK-TA-{d_id:02d}-2041", "driver": "Md. Selim Reza", "mobile": f"01711-{d_id:02d}8901", "r_code": f"RT-{d_id:02d}-A", "name": "Primary Supermarket Loop", "ownership": "Owned"},
+                {"v_no": f"DHK-TA-{d_id:02d}-3088", "driver": "Rafiqul Islam", "mobile": f"01819-{d_id:02d}4902", "r_code": f"RT-{d_id:02d}-B", "name": "Corporate & Express Corridor", "ownership": "Borrowed"}
             ]
             for v_idx, sv in enumerate(sample_vans, 1):
                 drop_points = []
@@ -4634,9 +4672,16 @@ def get_tracking_depot_routes():
                     })
                     
                 completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
-                next_drop = next((d for d in drop_points if d['status'] == 'in_transit'), drop_points[0])
-                v_lat = round((depot_coords['lat'] * 0.4 + next_drop['lat'] * 0.6), 6)
-                v_lng = round((depot_coords['lng'] * 0.4 + next_drop['lng'] * 0.6), 6)
+                live_v = live_pos_map.get(f"{d_id}_{sv['v_no']}")
+                if live_v:
+                    v_lat, v_lng = live_v['latitude'], live_v['longitude']
+                    v_heading, v_speed = live_v['heading'], live_v['speed_kmh']
+                else:
+                    next_drop = next((d for d in drop_points if d['status'] == 'in_transit'), drop_points[0])
+                    v_lat = round((depot_coords['lat'] * 0.4 + next_drop['lat'] * 0.6), 6)
+                    v_lng = round((depot_coords['lng'] * 0.4 + next_drop['lng'] * 0.6), 6)
+                    v_heading = 55.0 + v_idx * 20
+                    v_speed = 28.5
                 
                 d_routes.append({
                     "depot_id": d_id,
@@ -4645,6 +4690,7 @@ def get_tracking_depot_routes():
                     "route_code": sv['r_code'],
                     "route_name": sv['name'],
                     "vehicle_no": sv['v_no'],
+                    "ownership": sv.get('ownership', 'Owned'),
                     "driver_name": sv['driver'],
                     "driver_mobile": sv['mobile'],
                     "total_drops": len(drop_points),
@@ -4652,8 +4698,8 @@ def get_tracking_depot_routes():
                     "vehicle_position": {
                         "lat": v_lat,
                         "lng": v_lng,
-                        "heading": 55.0 + v_idx * 20,
-                        "speed": 28.5
+                        "heading": v_heading,
+                        "speed": v_speed
                     },
                     "drop_points": drop_points
                 })
@@ -4799,18 +4845,26 @@ def simulate_vehicle_movement():
                 ''', v)
         else:
             for r in rows:
-                new_lat = r['latitude'] + (0.0012 if (r['id'] % 2 == 1) else -0.0010)
-                new_lng = r['longitude'] + (0.0015 if (r['id'] % 2 == 1) else 0.0011)
-                if abs(new_lat - depot_coords['lat']) > 0.06:
-                    new_lat = depot_coords['lat'] + 0.005
-                if abs(new_lng - depot_coords['lng']) > 0.06:
-                    new_lng = depot_coords['lng'] + 0.005
-                new_speed = round(max(15.0, min(55.0, (r['speed_kmh'] or 30.0) + (1.5 if r['id'] % 2 == 0 else -1.2))), 1)
-                new_heading = round(((r['heading'] or 45.0) + 12.0) % 360, 1)
+                r_id = int(r['id'] or 1)
+                current_heading = float(r['heading'] if r['heading'] is not None else 45.0)
+                new_heading = round((current_heading + 15.0) % 360, 1)
+                angle_rad = math.radians(new_heading)
+                
+                # Each vehicle gets an elliptical bounded patrol route around depot (1.5 - 3.2 km)
+                orbit_lat_r = 0.014 + ((r_id % 3) * 0.006)
+                orbit_lng_r = 0.017 + (((r_id + 1) % 3) * 0.006)
+                
+                new_lat = round(depot_coords['lat'] + orbit_lat_r * math.sin(angle_rad), 6)
+                new_lng = round(depot_coords['lng'] + orbit_lng_r * math.cos(angle_rad), 6)
+                
+                current_speed = float(r['speed_kmh'] or 32.0)
+                speed_delta = 1.5 if (r_id % 2 == 0) else -1.2
+                new_speed = round(max(18.0, min(52.0, current_speed + speed_delta)), 1)
+                
                 cursor.execute('''
                 UPDATE live_tracking_positions SET latitude = ?, longitude = ?, heading = ?, speed_kmh = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-                ''', (round(new_lat, 6), round(new_lng, 6), new_heading, new_speed, r['id']))
+                ''', (new_lat, new_lng, new_heading, new_speed, r['id']))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Simulation step applied!"})

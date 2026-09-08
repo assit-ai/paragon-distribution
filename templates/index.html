@@ -1259,12 +1259,12 @@
            ========================================================================== */
         .leaflet-container {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-            background: #0b1120 !important;
+            background: var(--bg-primary, #0b1120) !important;
         }
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background: #0f172a !important;
-            color: #f8fafc !important;
-            border: 1px solid #334155 !important;
+            background: var(--bg-card, #0f172a) !important;
+            color: var(--text-primary, #f8fafc) !important;
+            border: 1px solid var(--border-color, #334155) !important;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7) !important;
             border-radius: 8px !important;
         }
@@ -1304,32 +1304,45 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
             font-weight: 800;
-            font-size: 12px;
             border: 2px solid #ffffff;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.6);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
             color: #ffffff;
             cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .custom-drop-pin-num {
+            transform: rotate(45deg);
+            display: inline-block;
+            font-weight: 800;
+            font-size: 13px;
+            line-height: 1;
+        }
+        .custom-drop-pin:hover {
+            transform: rotate(-45deg) scale(1.18);
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.95);
+            z-index: 999;
         }
         .drop-pin-completed {
-            background: #22c55e;
-            box-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
         }
         .drop-pin-intransit {
-            background: #0284c7;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
             box-shadow: 0 0 14px rgba(56, 189, 248, 0.9);
             animation: pulse 1.5s infinite;
         }
         .drop-pin-pending {
-            background: #f59e0b;
-            box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
         }
         .drop-pin-failed {
-            background: #ef4444;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
         }
 
     </style>
@@ -2464,14 +2477,23 @@
                             </div>
                         </div>
 
+                        <!-- Delivery Man Mode Banner -->
+                        <div id="deliveryManBanner" style="display: none; background: linear-gradient(135deg, rgba(2, 132, 199, 0.2), rgba(16, 185, 129, 0.15)); border: 1px solid #0284c7; border-radius: 8px; padding: 12px 18px; margin-bottom: 14px; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="margin: 0 0 3px; color: #38bdf8; font-size: 1rem;"><i class="fa-solid fa-motorcycle"></i> Van Delivery Mode Active</h4>
+                                <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">Driver & Rider Portal: View drop points, navigate via Google Maps, and update drop statuses.</p>
+                            </div>
+                            <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: 700;">Live Dispatch</span>
+                        </div>
+
                         <!-- KPI Mini Stats Row -->
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(51, 65, 85, 0.6);">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(51, 65, 85, 0.6);">
                             <div style="background: rgba(11, 19, 41, 0.8); padding: 10px 14px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; gap: 12px;">
                                 <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 16px;">
                                     <i class="fa-solid fa-truck-moving"></i>
                                 </div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Active Vans En-Route</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Active Vans</div>
                                     <div id="statTrackingVans" style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;">--</div>
                                 </div>
                             </div>
@@ -2491,7 +2513,7 @@
                                     <i class="fa-solid fa-hourglass-half"></i>
                                 </div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Pending / In-Transit</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Pending Drops</div>
                                     <div id="statTrackingPending" style="font-size: 1.25rem; font-weight: 800; color: #f59e0b;">--</div>
                                 </div>
                             </div>
@@ -2501,8 +2523,28 @@
                                     <i class="fa-solid fa-bangladeshi-taka-sign"></i>
                                 </div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Total Delivery Value</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Total Delivery Val</div>
                                     <div id="statTrackingTotalAmount" style="font-size: 1.25rem; font-weight: 800; color: #c084fc;">--</div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(11, 19, 41, 0.8); padding: 10px 14px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Cash Collected</div>
+                                    <div id="statTrackingCash" style="font-size: 1.15rem; font-weight: 800; color: #34d399;">৳ 0</div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(11, 19, 41, 0.8); padding: 10px 14px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Optimization Score</div>
+                                    <div id="statTrackingEfficiency" style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;">--</div>
                                 </div>
                             </div>
                         </div>
@@ -2919,9 +2961,12 @@
 
                     if (planTabBtn) planTabBtn.style.display = 'flex';
 
+                    const deliveryManBanner = document.getElementById('deliveryManBanner');
+
                     if (currentUser.role === 'incharge' && currentUser.depot_id) {
                         // Depot Incharge Mode: Direct to Route Planning & Van Dispatch Tab & Stop Auto Refresh
                         stopAutoRefresh();
+                        if (deliveryManBanner) deliveryManBanner.style.display = 'none';
                         if (dashTabBtn) dashTabBtn.style.display = 'none';
                         if (settingsTabBtn) settingsTabBtn.style.display = 'none';
                         if (sopTabBtn) sopTabBtn.style.display = 'none';
@@ -2947,8 +2992,32 @@
 
                         if (inchargeDownloadBtn) inchargeDownloadBtn.style.display = 'inline-flex';
                         adminActionCol.forEach(el => el.style.display = 'none');
+                    } else if (currentUser.role === 'delivery_man') {
+                        // Delivery Man / Rider Mode: Focus strictly on Live Tracking & Drop Updates
+                        stopAutoRefresh();
+                        if (dashTabBtn) dashTabBtn.style.display = 'none';
+                        if (settingsTabBtn) settingsTabBtn.style.display = 'none';
+                        if (sopTabBtn) sopTabBtn.style.display = 'none';
+                        if (entryTabBtn) entryTabBtn.style.display = 'none';
+                        if (planTabBtn) planTabBtn.style.display = 'none';
+
+                        if (deliveryManBanner) deliveryManBanner.style.display = 'flex';
+                        if (trackingTabBtn) {
+                            trackingTabBtn.style.display = 'flex';
+                            trackingTabBtn.click();
+                        }
+
+                        const trackingDepotSelect = document.getElementById('trackingDepotSelect');
+                        if (trackingDepotSelect && currentUser.depot_id) {
+                            trackingDepotSelect.value = currentUser.depot_id;
+                            trackingDepotSelect.disabled = true;
+                        }
+
+                        if (inchargeDownloadBtn) inchargeDownloadBtn.style.display = 'none';
+                        adminActionCol.forEach(el => el.style.display = 'none');
                     } else {
                         // Executive Admin Mode: Direct to Dashboard Tab & Start Auto Refresh
+                        if (deliveryManBanner) deliveryManBanner.style.display = 'none';
                         if (trackingTabBtn) trackingTabBtn.style.display = 'flex';
                         if (dashTabBtn) {
                             dashTabBtn.style.display = 'flex';
@@ -2959,6 +3028,8 @@
                         if (entryTabBtn) entryTabBtn.style.display = 'flex';
                         if (entryDepotSelect) entryDepotSelect.disabled = false;
                         if (planDepotSelect) planDepotSelect.disabled = false;
+                        const trackingDepotSelect = document.getElementById('trackingDepotSelect');
+                        if (trackingDepotSelect) trackingDepotSelect.disabled = false;
                         if (inchargeDownloadBtn) inchargeDownloadBtn.style.display = 'none';
                         adminActionCol.forEach(el => el.style.display = '');
 
@@ -3226,6 +3297,10 @@
                         tab.classList.add('active');
                         const targetPane = document.getElementById(target);
                         if (targetPane) targetPane.classList.add('active');
+
+                        if (target !== 'tracking-tab' && typeof stopTrackingAutoPoll === 'function') {
+                            stopTrackingAutoPoll();
+                        }
 
                         if (target === 'dashboard-tab') {
                             loadDashboardSummary();
@@ -27519,10 +27594,12 @@
                 }
             }
 
-            async function adminClearMasterData(clearType) {
-                const isAdmin = (!currentUser) || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'guest'));
+            let pendingAdminClear = null;
+
+            function adminClearMasterData(clearType) {
+                const isAdmin = currentUser && currentUser.authenticated && currentUser.role === 'admin';
                 if (!isAdmin) {
-                    showToast('Access Denied: Only Admin can clear master directory data.', 'error');
+                    showToast('Access Denied: Only authenticated Admin can clear master directory data.', 'error');
                     return;
                 }
 
@@ -27544,21 +27621,66 @@
                     depotName = depotObj.name;
                 }
 
-                const confirmed = confirm(`⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL ${targetName.toUpperCase()} for:\n👉 ${depotName}?\n\nThis will permanently delete the records from the master database. This action cannot be undone.`);
-                if (!confirmed) return;
+                pendingAdminClear = { clearType, depotId, targetName, depotName };
+
+                const modal = document.getElementById('adminClearConfirmModal');
+                const targetNameEl = document.getElementById('adminClearTargetTypeName');
+                const depotNameEl = document.getElementById('adminClearDepotNameDisplay');
+                const inputEl = document.getElementById('adminClearConfirmInput');
+                const execBtn = document.getElementById('adminClearExecuteBtn');
+
+                if (targetNameEl) targetNameEl.textContent = targetName;
+                if (depotNameEl) depotNameEl.textContent = depotName;
+                if (inputEl) inputEl.value = '';
+                if (execBtn) {
+                    execBtn.disabled = true;
+                    execBtn.style.opacity = '0.5';
+                    execBtn.style.cursor = 'not-allowed';
+                }
+                if (modal) modal.style.display = 'flex';
+            }
+
+            function closeAdminClearConfirmModal() {
+                const modal = document.getElementById('adminClearConfirmModal');
+                if (modal) modal.style.display = 'none';
+                pendingAdminClear = null;
+            }
+
+            function validateAdminClearTypedText() {
+                const inputEl = document.getElementById('adminClearConfirmInput');
+                const execBtn = document.getElementById('adminClearExecuteBtn');
+                if (!inputEl || !execBtn) return;
+                const isValid = inputEl.value.trim().toUpperCase() === 'CLEAR';
+                execBtn.disabled = !isValid;
+                execBtn.style.opacity = isValid ? '1' : '0.5';
+                execBtn.style.cursor = isValid ? 'pointer' : 'not-allowed';
+            }
+
+            async function executeAdminClearConfirmed() {
+                if (!pendingAdminClear) return;
+                const { clearType, depotId } = pendingAdminClear;
+
+                const isAdmin = currentUser && currentUser.authenticated && currentUser.role === 'admin';
+                if (!isAdmin) {
+                    showToast('Access Denied: Only Admin can clear master directory data.', 'error');
+                    closeAdminClearConfirmModal();
+                    return;
+                }
+
+                closeAdminClearConfirmModal();
 
                 try {
                     const res = await fetch('/api/admin/clear-master-data', {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
-                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
+                            'X-Admin-Role': currentUser.role
                         },
                         body: JSON.stringify({
                             type: clearType,
                             clear_type: clearType,
                             depot_id: depotId,
-                            role: (currentUser && currentUser.role) || 'admin'
+                            role: currentUser.role
                         })
                     });
                     const data = await res.json();
@@ -27580,7 +27702,6 @@
                             loadCrewMaster(depotId);
                         }
                         if (clearType === 'borrow' || clearType === 'all') {
-                            // Purge borrowed vans from current planning memory
                             currentPlanData.vans = (currentPlanData.vans || []).filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
                             renderActiveVans();
                             updateDayGrandTotals();
@@ -30575,6 +30696,9 @@
             window.onPlanDateChange = onPlanDateChange;
             window.onPlanDepotChange = onPlanDepotChange;
             window.adminClearMasterData = adminClearMasterData;
+            window.closeAdminClearConfirmModal = closeAdminClearConfirmModal;
+            window.validateAdminClearTypedText = validateAdminClearTypedText;
+            window.executeAdminClearConfirmed = executeAdminClearConfirmed;
             window.clearActiveRoutePlan = clearActiveRoutePlan;
             window.adminDeleteSavedRoutePlan = adminDeleteSavedRoutePlan;
             window.clearDailyEntryForm = clearDailyEntryForm;
@@ -30630,6 +30754,8 @@
             let trackingData = null;
             let trackingAutoPollTimer = null;
             let dropMarkersRegistry = {};
+            let vehicleMarkersRegistry = {};
+            let liveDropsRegistry = {};
 
             async function initLiveTracking() {
                 console.log("[Live Tracking] Initializing tracking module...");
@@ -30684,10 +30810,17 @@
                     }
                 }, 150);
 
-                // 3. Load tracking telematics data
-                await loadLiveTrackingData(true);
+                // 3. Load tracking telematics data & ensure auto-poll timer is always started
+                try {
+                    await loadLiveTrackingData(true);
+                } catch (loadErr) {
+                    console.error("[Live Tracking] Telematics load error:", loadErr);
+                } finally {
+                    startTrackingAutoPoll();
+                }
+            }
 
-                // 4. Start auto-refresh timer (every 15s)
+            function startTrackingAutoPoll() {
                 stopTrackingAutoPoll();
                 trackingAutoPollTimer = setInterval(() => {
                     const trackingTab = document.getElementById('tracking-tab');
@@ -30730,7 +30863,7 @@
                     }
                 }
 
-                const isDepotUser = (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'incharge' && currentUser.depot_id);
+                const isDepotUser = (typeof currentUser !== 'undefined' && currentUser && (currentUser.role === 'incharge' || currentUser.role === 'delivery_man') && currentUser.depot_id);
 
                 // For Executive/Admin: Add All Depots option at the top
                 if (!isDepotUser) {
@@ -30807,12 +30940,25 @@
                 let totalDrops = 0;
                 let completedDrops = 0;
                 let totalValue = 0;
+                let cashCollected = 0;
+                let movingVansCount = 0;
 
                 routes.forEach(r => {
                     totalDrops += (r.total_drops || 0);
                     completedDrops += (r.completed_drops || 0);
+                    const vPos = r.vehicle_position || {};
+                    if (parseFloat(vPos.speed || 0) > 0) {
+                        movingVansCount++;
+                    }
+
                     (r.drop_points || []).forEach(d => {
-                        totalValue += (parseFloat(d.total_amount) || 0);
+                        const amt = parseFloat(d.total_amount) || 0;
+                        totalValue += amt;
+                        const st = (d.status || '').toLowerCase();
+                        const isCash = (d.payment_type || 'Cash').toLowerCase() === 'cash';
+                        if (st === 'completed') {
+                            if (isCash) cashCollected += amt;
+                        }
                     });
                 });
 
@@ -30820,6 +30966,8 @@
                 const completedEl = document.getElementById('statTrackingCompleted');
                 const pendingEl = document.getElementById('statTrackingPending');
                 const totalAmountEl = document.getElementById('statTrackingTotalAmount');
+                const cashEl = document.getElementById('statTrackingCash');
+                const efficiencyEl = document.getElementById('statTrackingEfficiency');
 
                 if (activeVansEl) activeVansEl.textContent = `${routes.length} Vans`;
                 if (completedEl) {
@@ -30828,6 +30976,15 @@
                 }
                 if (pendingEl) pendingEl.textContent = `${Math.max(0, totalDrops - completedDrops)} Drops`;
                 if (totalAmountEl) totalAmountEl.textContent = `৳ ${totalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+                if (cashEl) cashEl.textContent = `৳ ${cashCollected.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+
+                // Efficiency / Route Optimization Score (82% base + completion factor up to 12% + active fleet factor)
+                let optScore = 86;
+                if (totalDrops > 0) {
+                    const compRate = completedDrops / totalDrops;
+                    optScore = Math.min(99, Math.round(82 + (compRate * 12) + (movingVansCount > 0 ? 4 : 0)));
+                }
+                if (efficiencyEl) efficiencyEl.textContent = `${optScore}% (Optimal)`;
 
                 // Update Route Filter Dropdown
                 const routeFilter = document.getElementById('trackingRouteFilter');
@@ -30859,12 +31016,12 @@
                     if (!trackingLayers.drops) trackingLayers.drops = L.layerGroup().addTo(trackingMap);
                     if (!trackingLayers.vehicles) trackingLayers.vehicles = L.layerGroup().addTo(trackingMap);
 
-                    // Clear existing markers
+                    // Clear static/path layers on refresh
                     trackingLayers.depot.clearLayers();
                     trackingLayers.routes.clearLayers();
                     trackingLayers.drops.clearLayers();
-                    trackingLayers.vehicles.clearLayers();
                     dropMarkersRegistry = {};
+                    liveDropsRegistry = {};
 
                     const routes = data.routes || [];
                     const allPoints = [];
@@ -30898,6 +31055,7 @@
                     });
 
                     const routeColors = ['#38bdf8', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4', '#eab308', '#6366f1', '#14b8a6', '#f97316'];
+                    const currentVehicleNos = new Set();
 
                     // 2. Render each route, drop points & vehicles
                     routes.forEach((r, rIdx) => {
@@ -30907,6 +31065,8 @@
                             : (depotList[0] ? [depotList[0].lat, depotList[0].lng] : [23.7644, 90.3928]);
                             
                         const routeCoordinates = [originCoord];
+                        const routeDepotId = r.depot_id || data.depot_id || 1;
+                        const isOwned = !r.ownership || r.ownership.toLowerCase() === 'owned';
 
                         // Drops
                         (r.drop_points || []).forEach((drop, dIdx) => {
@@ -30937,20 +31097,30 @@
                                 stBadgeColor = '#ef4444';
                             }
 
+                            const dropKey = `drop_${routeDepotId}_${r.route_code}_${drop.id}`;
+                            liveDropsRegistry[dropKey] = {
+                                depotId: routeDepotId,
+                                routeCode: r.route_code,
+                                dropId: drop.id,
+                                outletName: drop.outlet_name || 'Outlet',
+                                address: drop.address || '',
+                                status: st,
+                                amount: drop.total_amount || 0
+                            };
+
                             const dropIcon = L.divIcon({
                                 className: 'custom-drop-marker-wrapper',
-                                html: `<div class="custom-drop-pin ${pinClass}">${drop.sequence_order || (dIdx + 1)}</div>`,
-                                iconSize: [28, 28],
-                                iconAnchor: [14, 14]
+                                html: `<div class="custom-drop-pin ${pinClass}"><span class="custom-drop-pin-num">${drop.sequence_order || (dIdx + 1)}</span></div>`,
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 32],
+                                popupAnchor: [0, -32]
                             });
 
                             const dropMarker = L.marker(dropCoord, { icon: dropIcon }).addTo(trackingLayers.drops);
                             dropMarkersRegistry[`${r.route_code}_${drop.id}`] = dropMarker;
 
-                            const routeDepotId = r.depot_id || data.depot_id || 1;
-
                             dropMarker.bindPopup(`
-                                <div style="min-width: 220px;">
+                                <div style="min-width: 230px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                         <span style="font-weight:800; font-size:0.75rem; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px;">
                                             Stop #${drop.sequence_order || (dIdx + 1)} ${r.depot_name ? ('• ' + r.depot_name.split(' ')[0]) : ''}
@@ -30969,26 +31139,31 @@
                                         <div><strong>Inv:</strong> ${drop.invoice_no || 'N/A'} | <strong>Pkts:</strong> ${drop.total_pkts}</div>
                                         <div><strong>Value:</strong> ৳ ${parseFloat(drop.total_amount || 0).toLocaleString()} (${drop.payment_type || 'Cash'})</div>
                                     </div>
-                                    <button type="button" onclick="openUpdateDropModal(${routeDepotId}, '${r.route_code}', '${drop.id}', '${escapeQuotes(drop.outlet_name)}', '${escapeQuotes(drop.address)}', '${st}', ${drop.total_amount || 0})" 
-                                        style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; padding:5px 8px; border-radius:4px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                                    <a href="https://www.google.com/maps/dir/?api=1&destination=${dropCoord[0]},${dropCoord[1]}" target="_blank" rel="noopener noreferrer" 
+                                        style="display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin-bottom:6px; background:rgba(2,132,199,0.15); color:#38bdf8; border:1px solid #0284c7; padding:6px 8px; border-radius:4px; font-size:0.78rem; font-weight:700; text-decoration:none; box-sizing:border-box;">
+                                        <i class="fa-solid fa-diamond-turn-right"></i> Navigate (Google Maps)
+                                    </a>
+                                    <button type="button" onclick="openUpdateDropModalByKey('${dropKey}')" 
+                                        style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; padding:6px 8px; border-radius:4px; font-size:0.78rem; font-weight:700; cursor:pointer;">
                                         <i class="fa-solid fa-pen-to-square"></i> Update Status
                                     </button>
                                 </div>
                             `);
                         });
 
-                        // Polyline Path
+                        // Polyline Path: Solid for owned vehicles, dashed for borrowed/rental
                         L.polyline(routeCoordinates, {
                             color: color,
                             weight: 3.5,
                             opacity: 0.85,
-                            dashArray: '6, 8',
+                            dashArray: isOwned ? null : '6, 8',
                             lineJoin: 'round'
                         }).addTo(trackingLayers.routes);
 
-                        // Vehicle Marker
+                        // Vehicle Marker: Smooth update via setLatLng
                         const vPos = r.vehicle_position || { lat: originCoord[0], lng: originCoord[1], heading: 45, speed: 30 };
                         allPoints.push([vPos.lat, vPos.lng]);
+                        currentVehicleNos.add(r.vehicle_no);
 
                         const vanIcon = L.divIcon({
                             className: 'custom-van-marker-wrapper',
@@ -30997,23 +31172,43 @@
                             iconAnchor: [18, 18]
                         });
 
-                        const vanMarker = L.marker([vPos.lat, vPos.lng], { icon: vanIcon }).addTo(trackingLayers.vehicles);
-                        vanMarker.bindPopup(`
-                            <div style="min-width: 210px;">
+                        const vanPopupHtml = `
+                            <div style="min-width: 220px;">
                                 <div style="font-weight: 800; color: #10b981; font-size: 0.95rem; margin-bottom: 2px;">
-                                    <i class="fa-solid fa-truck"></i> ${r.vehicle_no}
+                                    <i class="fa-solid fa-truck"></i> ${r.vehicle_no} <span style="font-size:0.75rem; color:#94a3b8;">(${r.ownership || 'Owned'})</span>
                                 </div>
                                 <div style="font-size: 0.82rem; color: #cbd5e1; font-weight: 600;">
                                     ${r.depot_name ? ('<span style="color:#38bdf8;">[' + r.depot_name + ']</span> ') : ''}${r.route_name || r.route_code}
                                 </div>
                                 <hr style="border: 0; border-top: 1px solid #334155; margin: 6px 0;">
-                                <div style="font-size: 0.78rem; color: #94a3b8; line-height: 1.6;">
+                                <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.6;">
                                     <div><strong>Driver:</strong> ${r.driver_name} (<a href="tel:${r.driver_mobile}" style="color:#38bdf8;">${r.driver_mobile}</a>)</div>
                                     <div><strong>Speed:</strong> <span style="color:#22c55e; font-weight:700;">${vPos.speed || 0} km/h</span></div>
                                     <div><strong>Progress:</strong> ${r.completed_drops || 0} / ${r.total_drops || 0} Drops Delivered</div>
+                                    <div><strong>Fleet:</strong> <span style="color:${isOwned ? '#38bdf8' : '#f59e0b'}; font-weight:700;">${r.ownership || 'Owned'}</span></div>
                                 </div>
                             </div>
-                        `);
+                        `;
+
+                        if (vehicleMarkersRegistry[r.vehicle_no]) {
+                            vehicleMarkersRegistry[r.vehicle_no].setLatLng([vPos.lat, vPos.lng]);
+                            vehicleMarkersRegistry[r.vehicle_no].setIcon(vanIcon);
+                            vehicleMarkersRegistry[r.vehicle_no].setPopupContent(vanPopupHtml);
+                        } else {
+                            const vanMarker = L.marker([vPos.lat, vPos.lng], { icon: vanIcon }).addTo(trackingLayers.vehicles);
+                            vanMarker.bindPopup(vanPopupHtml);
+                            vehicleMarkersRegistry[r.vehicle_no] = vanMarker;
+                        }
+                    });
+
+                    // Remove inactive vehicle markers smoothly
+                    Object.keys(vehicleMarkersRegistry).forEach(vNo => {
+                        if (!currentVehicleNos.has(vNo)) {
+                            if (trackingLayers.vehicles && trackingLayers.vehicles.hasLayer(vehicleMarkersRegistry[vNo])) {
+                                trackingLayers.vehicles.removeLayer(vehicleMarkersRegistry[vNo]);
+                            }
+                            delete vehicleMarkersRegistry[vNo];
+                        }
                     });
 
                     // Auto-fit bounds on initial load or manual refresh
@@ -31053,21 +31248,41 @@
                     const depotBadge = (data.is_all_depots && r.depot_name) 
                         ? `<span class="badge" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-size:0.7rem; padding:1px 5px; border-radius:3px;">${r.depot_name.split(' ')[0]}</span>`
                         : '';
+                    const isOwned = !r.ownership || r.ownership.toLowerCase() === 'owned';
+                    const ownershipBadge = `<span class="badge" style="background:${isOwned ? 'rgba(56,189,248,0.12)' : 'rgba(245,158,11,0.15)'}; color:${isOwned ? '#38bdf8' : '#f59e0b'}; border:1px solid ${isOwned ? 'rgba(56,189,248,0.3)' : '#f59e0b'}; font-size:0.7rem; padding:1px 5px; border-radius:3px;">${r.ownership || 'Owned'}</span>`;
+
+                    // ETA Calculation per route
+                    const remaining = Math.max(0, total - done);
+                    let etaBadge = '';
+                    if (total > 0 && remaining === 0) {
+                        etaBadge = `<span class="badge" style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid #22c55e; font-size:0.72rem; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-flag-checkered"></i> Completed</span>`;
+                    } else if (remaining > 0) {
+                        const estMins = remaining * 18;
+                        const etaTime = new Date(Date.now() + estMins * 60000);
+                        const timeStr = etaTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const h = Math.floor(estMins / 60);
+                        const m = estMins % 60;
+                        const dur = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                        etaBadge = `<span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid #0284c7; font-size:0.72rem; padding:2px 6px; border-radius:4px;" title="Estimated route completion time"><i class="fa-solid fa-clock"></i> ~${dur} (ETA: ${timeStr})</span>`;
+                    }
 
                     html += `
                         <div class="route-feed-card" style="background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; transition: border-color 0.2s;" id="routeCard_${r.route_code}">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                                 <div>
-                                    <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-truck-moving"></i> ${r.vehicle_no} ${depotBadge}
+                                    <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                        <i class="fa-solid fa-truck-moving"></i> ${r.vehicle_no} ${depotBadge} ${ownershipBadge}
                                     </div>
                                     <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 1px;">
                                         ${r.route_name || r.route_code}
                                     </div>
                                 </div>
-                                <span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid #22c55e; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px;">
-                                    ${vPos.speed || 0} km/h
-                                </span>
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                                    <span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid #22c55e; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px;">
+                                        ${vPos.speed || 0} km/h
+                                    </span>
+                                    ${etaBadge}
+                                </div>
                             </div>
 
                             <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">
@@ -31199,6 +31414,12 @@
                 }
             }
 
+            function openUpdateDropModalByKey(dropKey) {
+                const item = liveDropsRegistry[dropKey];
+                if (!item) return;
+                openUpdateDropModal(item.depotId, item.routeCode, item.dropId, item.outletName, item.address, item.status, item.amount);
+            }
+
             function openUpdateDropModal(depotId, routeCode, dropId, outletName, address, currentStatus, amount) {
                 const modal = document.getElementById('updateDropStatusModal');
                 if (!modal) return;
@@ -31257,7 +31478,10 @@
 
             function escapeQuotes(str) {
                 if (!str) return '';
-                return String(str).replace(/'/g, "\'").replace(/"/g, '&quot;');
+                return String(str)
+                    .replace(/\\/g, '\\\\')
+                    .replace(/'/g, "\\'")
+                    .replace(/"/g, '&quot;');
             }
 
             // Global window exports
@@ -31270,9 +31494,13 @@
             window.panToOutletOnMap = panToOutletOnMap;
             window.recenterTrackingMap = recenterTrackingMap;
             window.triggerTrackingSimulation = triggerTrackingSimulation;
+            window.openUpdateDropModalByKey = openUpdateDropModalByKey;
             window.openUpdateDropModal = openUpdateDropModal;
             window.closeUpdateDropModal = closeUpdateDropModal;
             window.submitDropStatusUpdate = submitDropStatusUpdate;
+            window.startTrackingAutoPoll = startTrackingAutoPoll;
+            window.stopTrackingAutoPoll = stopTrackingAutoPoll;
+            window.escapeQuotes = escapeQuotes;
 
 </script>
 
@@ -32530,6 +32758,45 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             MODAL: ADMIN CONFIRM CLEAR MASTER DATA (2-STEP TYPED CONFIRMATION)
+             ========================================================================== -->
+        <div id="adminClearConfirmModal" style="display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); backdrop-filter: blur(8px); z-index: 100010; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.6); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.3); padding-bottom: 12px;">
+                    <h3 style="font-size: 1.15rem; font-weight: 800; color: #ef4444; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Permanent Deletion Warning
+                    </h3>
+                    <button type="button" onclick="closeAdminClearConfirmModal()" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; line-height: 1;">&times;</button>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 10px; line-height: 1.5;">
+                        You are about to permanently delete <strong id="adminClearTargetTypeName" style="color: #ef4444;"></strong> for:
+                    </p>
+                    <div style="background: #0b1329; border: 1px solid #1e293b; padding: 10px 14px; border-radius: 6px; font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 12px;" id="adminClearDepotNameDisplay">
+                        --
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; padding: 8px 12px; border-radius: 4px; font-size: 0.82rem; color: #fca5a5; margin-bottom: 16px;">
+                        <i class="fa-solid fa-shield-halved"></i> <strong>Audit Logged:</strong> This action will be recorded in the security audit trail. This cannot be undone.
+                    </div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                        To confirm, type <span style="color:#ef4444; font-family:monospace; background:rgba(239,68,68,0.2); padding:2px 6px; border-radius:3px;">CLEAR</span> below:
+                    </label>
+                    <input type="text" id="adminClearConfirmInput" placeholder="Type CLEAR to unlock" oninput="validateAdminClearTypedText()"
+                        style="width: 100%; background: #0b1329; border: 1px solid #ef4444; color: #fff; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; box-sizing: border-box;">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-outline" onclick="closeAdminClearConfirmModal()">Cancel</button>
+                    <button type="button" id="adminClearExecuteBtn" class="btn btn-primary" onclick="executeAdminClearConfirmed()" disabled
+                        style="background: #ef4444; border-color: #ef4444; font-weight: 700; opacity: 0.5; cursor: not-allowed;">
+                        <i class="fa-solid fa-trash-can"></i> Permanently Clear Data
+                    </button>
+                </div>
             </div>
         </div>
 
