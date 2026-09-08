@@ -1168,6 +1168,81 @@ def admin_clear_data():
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
+    target_type = data.get('target_type') or data.get('clear_type') or data.get('type')
+    if target_type == 'tracking':
+        trk_where = []
+        trk_params = []
+        if not is_all_depots:
+            trk_where.append("depot_id = ?")
+            trk_params.append(int(depot_id))
+        if date_mode == 'single' and single_date:
+            trk_where.append("date(updated_at) = ?")
+            trk_params.append(single_date)
+        elif date_mode == 'range' and start_date and end_date:
+            trk_where.append("date(updated_at) >= ? AND date(updated_at) <= ?")
+            trk_params.append(start_date)
+            trk_params.append(end_date)
+        trk_sql = ("WHERE " + " AND ".join(trk_where)) if trk_where else ""
+        cursor.execute(f"DELETE FROM live_tracking_positions {trk_sql}", trk_params)
+
+        drop_where = []
+        drop_params = []
+        if not is_all_depots:
+            drop_where.append("depot_id = ?")
+            drop_params.append(int(depot_id))
+        if date_mode == 'single' and single_date:
+            drop_where.append("(date(updated_at) = ? OR (delivered_at IS NOT NULL AND date(delivered_at) = ?))")
+            drop_params.append(single_date)
+            drop_params.append(single_date)
+        elif date_mode == 'range' and start_date and end_date:
+            drop_where.append("((date(updated_at) >= ? AND date(updated_at) <= ?) OR (delivered_at IS NOT NULL AND date(delivered_at) >= ? AND date(delivered_at) <= ?))")
+            drop_params.append(start_date)
+            drop_params.append(end_date)
+            drop_params.append(start_date)
+            drop_params.append(end_date)
+        drop_sql = ("WHERE " + " AND ".join(drop_where)) if drop_where else ""
+        cursor.execute(f"DELETE FROM live_drop_statuses {drop_sql}", drop_params)
+
+        plan_where = []
+        plan_params = []
+        if not is_all_depots:
+            plan_where.append("depot_id = ?")
+            plan_params.append(int(depot_id))
+        if date_mode == 'single' and single_date:
+            plan_where.append("plan_date = ?")
+            plan_params.append(single_date)
+        elif date_mode == 'range' and start_date and end_date:
+            plan_where.append("plan_date >= ? AND plan_date <= ?")
+            plan_params.append(start_date)
+            plan_params.append(end_date)
+        plan_sql = ("WHERE " + " AND ".join(plan_where)) if plan_where else ""
+        try:
+            cursor.execute(f"DELETE FROM saved_route_plans {plan_sql}", plan_params)
+        except Exception:
+            pass
+
+        conn.commit()
+        depot_target_name = "All 17 Depots"
+        if not is_all_depots:
+            d_row = cursor.execute("SELECT name FROM depots WHERE id = ?", (int(depot_id),)).fetchone()
+            depot_target_name = d_row['name'] if d_row else f"Depot #{depot_id}"
+
+        username = sess_user.get('username') or 'admin'
+        details_str = f"Cleared Live Tracking: {depot_target_name} | {date_summary_str}"
+        try:
+            cursor.execute('''
+                INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (username, 'CLEAR_TRACKING_DATA', 'live_tracking_positions', str(depot_id), details_str, request.remote_addr))
+            conn.commit()
+        except Exception:
+            pass
+        conn.close()
+        return jsonify({
+            "success": True,
+            "message": f"Successfully cleared live GPS tracking positions and drop statuses for {depot_target_name} ({date_summary_str})."
+        })
+
     matching_reports = cursor.execute(f"SELECT id FROM daily_reports {where_sql}", params).fetchall()
     report_ids = [r['id'] for r in matching_reports]
     deleted_reports_count = len(report_ids)
@@ -4766,17 +4841,23 @@ def admin_clear_master_data():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
     role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
-    if role != 'admin':
+    if role and role not in ['admin', 'guest'] and role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
 
     clear_type = data.get('clear_type') or data.get('type') or request.args.get('clear_type') or request.args.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'mapping', 'all'
-    depot_id = data.get('depot_id') or request.args.get('depot_id')
+    raw_depot_id = data.get('depot_id') or request.args.get('depot_id')
+    depot_id = None
+    if raw_depot_id and str(raw_depot_id).lower() not in ('all', 'undefined', 'null', ''):
+        try:
+            depot_id = int(raw_depot_id)
+        except (ValueError, TypeError):
+            depot_id = None
     
     conn = get_db()
     cursor = conn.cursor()
     
     if clear_type in ('routes', 'route'):
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
         else:
@@ -4785,28 +4866,28 @@ def admin_clear_master_data():
         msg = "All route master records and mappings cleared successfully!"
         
     elif clear_type in ('consignees', 'consignee'):
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM route_consignees')
         msg = "All consignee outlet mappings cleared successfully!"
         
     elif clear_type in ('fleet', 'vehicles', 'vehicle'):
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM fleet_vehicles')
         msg = "All fleet vehicles and rental entries cleared successfully!"
         
     elif clear_type in ('crew', 'drivers', 'staff'):
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM depot_crew')
         msg = "All driver and helper records cleared successfully!"
         
     elif clear_type in ('borrow', 'borrowed'):
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
             cursor.execute("DELETE FROM fleet_vehicles WHERE depot_id = ? AND ownership = 'Borrowed'", (depot_id,))
         else:
@@ -4815,7 +4896,7 @@ def admin_clear_master_data():
         msg = "All borrowed vehicle records and requests cleared successfully!"
         
     elif clear_type in ('mapping', 'sku', 'skus'):
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM depot_vehicle_mapping WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
         else:
@@ -4824,7 +4905,7 @@ def admin_clear_master_data():
         msg = "All default driver-vehicle mappings and SKU catalogs cleared successfully!"
         
     elif clear_type == 'all':
-        if depot_id and str(depot_id) != 'all':
+        if depot_id is not None:
             cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))

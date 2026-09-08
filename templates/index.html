@@ -2639,6 +2639,9 @@
                                 <button type="button" class="btn btn-sm btn-export admin-only-btn" id="trackingExcelReportBtn" onclick="exportTrackingToExcel()" style="padding: 7px 14px; font-size: 0.82rem; font-weight:700;" title="Download Live Fleet Tracking Run-Sheet as Excel">
                                     <i class="fa-solid fa-file-excel"></i> Excel Report
                                 </button>
+                                <button type="button" class="btn btn-sm btn-outline admin-only-btn" id="btnTrackingClearData" onclick="openAdminClearModal('tracking')" style="border-color: #ef4444; color: #f87171; font-weight: 700; padding: 7px 14px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px;" title="Clear GPS tracking positions & telematics drop statuses by Date Range">
+                                    <i class="fa-solid fa-trash-can"></i> 🧹 Clear Tracking Data
+                                </button>
                             </div>
                         </div>
 
@@ -27998,6 +28001,9 @@
                 const summaryText = document.getElementById('adminClearSummaryText');
                 if (!summaryText) return;
                 
+                const isTracking = pendingAdminClear && pendingAdminClear.clearType === 'tracking';
+                const scopePrefix = isTracking ? '<strong>Scope:</strong> Live Fleet Tracking & Drop History &nbsp;|&nbsp; ' : '';
+
                 if (currentAdminClearOptionMode === 'specific') {
                     const depotSelect = document.getElementById('adminClearDepotSelect');
                     const singleInput = document.getElementById('adminClearSingleDate');
@@ -28006,13 +28012,13 @@
                         depotLabel = depotSelect.options[depotSelect.selectedIndex].textContent;
                     }
                     const dateVal = (singleInput && singleInput.value) || 'Today';
-                    summaryText.innerHTML = `<strong>Mode:</strong> Specific Depot &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Date:</strong> ${dateVal}`;
+                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> Specific Depot &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Date:</strong> ${dateVal}`;
                 } else {
                     const startInput = document.getElementById('adminClearStartDate');
                     const endInput = document.getElementById('adminClearEndDate');
                     const fromVal = (startInput && startInput.value) || 'Start';
                     const toVal = (endInput && endInput.value) || 'End';
-                    summaryText.innerHTML = `<strong>Mode:</strong> All 17 Paragon Depots &nbsp;|&nbsp; <strong>Date Range:</strong> ${fromVal} ➔ ${toVal}`;
+                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> All 17 Paragon Depots &nbsp;|&nbsp; <strong>Date Range:</strong> ${fromVal} ➔ ${toVal}`;
                 }
             }
 
@@ -28037,12 +28043,24 @@
                     ? targetDepotId 
                     : (document.getElementById('filterDepot')?.value || '1');
 
-                const isCustomClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report');
+                if (clearType === 'tracking') {
+                    const trackingSel = document.getElementById('trackingDepotSelect');
+                    if (trackingSel && trackingSel.value && trackingSel.value !== 'all') {
+                        activeDepot = trackingSel.value;
+                    }
+                }
 
-                if (isCustomClear) {
+                const isDateFilteredClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report' || clearType === 'tracking');
+
+                if (isDateFilteredClear) {
                     if (presetContainer) presetContainer.style.display = 'none';
                     if (interactiveContainer) interactiveContainer.style.display = 'block';
-                    if (headingEl) headingEl.textContent = 'Clear Operational Distribution Data';
+                    
+                    if (clearType === 'tracking') {
+                        if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-satellite-dish" style="color: #38bdf8;"></i> Clear Live Fleet Tracking & Drop History';
+                    } else {
+                        if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-trash-can"></i> Clear Operational Distribution Data';
+                    }
 
                     populateAdminClearDepotsDropdown(activeDepot);
 
@@ -28053,6 +28071,7 @@
                     if (startDateEl) startDateEl.value = activeDate;
                     if (endDateEl) endDateEl.value = activeDate;
 
+                    pendingAdminClear = { clearType, targetDepotId: activeDepot, targetDepotName: '' };
                     setAdminClearOptionMode('specific');
                     onAdminClearConfigChange();
                 } else {
@@ -28061,12 +28080,14 @@
 
                     let targetName = '';
                     let depotName = '';
-                    let depotId = targetDepotId !== undefined ? targetDepotId : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
+                    let depotId = (targetDepotId !== undefined && targetDepotId !== null) 
+                        ? targetDepotId 
+                        : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
 
                     if (clearType === 'reseed') {
                         targetName = 'RESET & RE-SEED Initial Demo Distribution Reports & Invoices';
                         depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE DEMO SEEDING)';
-                        if (headingEl) headingEl.textContent = 'Re-Seed Demo Data';
+                        if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-rotate text-cyan"></i> Re-Seed Demo Data';
                     } else {
                         const typeNames = {
                             'routes': 'Routes & Route Directories',
@@ -28074,8 +28095,8 @@
                             'fleet': 'Depot Fleet & Registered Vehicles',
                             'crew': 'Drivers & Delivery Staff',
                             'borrow': 'Inter-Depot Borrowed Vehicles & History',
-                            'mapping': 'SKU Line-Items & Driver Mappings',
-                            'all': 'ALL Master Directory Data'
+                            'mapping': 'Default Driver-Vehicle Mappings & Capacities',
+                            'all': 'ALL Master Directory Data (Complete Depot Reset)'
                         };
                         targetName = typeNames[clearType] || clearType;
                         const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
@@ -28084,16 +28105,15 @@
                             const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
                             depotName = depotObj.name;
                         }
-                        if (headingEl) headingEl.textContent = 'Clear Master Directory Data';
+                        if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-trash-can text-red"></i> Clear Master Directory Data';
                     }
 
                     if (targetNameEl) targetNameEl.textContent = targetName;
                     if (depotNameEl) depotNameEl.textContent = depotName;
+                    pendingAdminClear = { clearType, targetDepotId: depotId, targetDepotName: depotName };
                 }
 
-                pendingAdminClear = { clearType, targetDepotId, targetDepotName };
-
-                // Ready to execute directly without typing
+                // Ready to execute directly
                 if (execBtn) {
                     execBtn.disabled = false;
                     execBtn.style.opacity = '1';
@@ -28102,8 +28122,8 @@
                 if (modal) modal.style.display = 'flex';
             }
 
-            function adminClearMasterData(clearType) {
-                openAdminClearModal(clearType);
+            function adminClearMasterData(clearType, targetDepotId, targetDepotName) {
+                openAdminClearModal(clearType, targetDepotId, targetDepotName);
             }
 
             function closeAdminClearConfirmModal() {
@@ -28125,9 +28145,75 @@
                 closeAdminClearConfirmModal();
 
                 const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
+                const depotId = (targetDepotId !== undefined && targetDepotId !== null) 
+                    ? targetDepotId 
+                    : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
+
+                // 1. LIVE FLEET TRACKING CLEAR (SPECIFIC DEPOT + DATE OR ALL DEPOTS + DATE RANGE)
+                if (clearType === 'tracking') {
+                    let selectedDepotId = 'all';
+                    let dateMode = 'single';
+                    let singleDate = '';
+                    let startDate = '';
+                    let endDate = '';
+
+                    if (currentAdminClearOptionMode === 'specific') {
+                        const depotSelect = document.getElementById('adminClearDepotSelect');
+                        selectedDepotId = depotSelect ? depotSelect.value : 'all';
+                        dateMode = 'single';
+                        singleDate = document.getElementById('adminClearSingleDate')?.value || '';
+                    } else {
+                        selectedDepotId = 'all';
+                        dateMode = 'range';
+                        startDate = document.getElementById('adminClearStartDate')?.value || '';
+                        endDate = document.getElementById('adminClearEndDate')?.value || '';
+                    }
+
+                    try {
+                        const res = await fetch('/api/admin/clear-data', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Admin-Role': adminRoleHeader
+                            },
+                            body: JSON.stringify({
+                                target_type: 'tracking',
+                                depot_id: selectedDepotId,
+                                date_mode: dateMode,
+                                date: singleDate,
+                                start_date: startDate,
+                                end_date: endDate,
+                                role: adminRoleHeader
+                            })
+                        });
+                        const data = await res.json();
+                        if (data && data.success) {
+                            showToast(`🛰️ ${data.message}`, 'success');
+                        } else {
+                            showToast((data && data.message) || 'Failed to clear tracking data.', 'error');
+                        }
+                    } catch (err) {
+                        showToast('Error clearing tracking data: ' + err.message, 'error');
+                    }
+
+                    // Reset tracking markers on Leaflet map & reload
+                    if (typeof trackingVanMarkers !== 'undefined' && trackingVanMarkers) {
+                        Object.values(trackingVanMarkers).forEach(m => { try { if (m.marker && trackingMap) trackingMap.removeLayer(m.marker); } catch (e) {} });
+                        trackingVanMarkers = {};
+                    }
+                    if (typeof trackingDropMarkers !== 'undefined' && trackingDropMarkers) {
+                        Object.values(trackingDropMarkers).forEach(m => { try { if (trackingMap) trackingMap.removeLayer(m); } catch (e) {} });
+                        trackingDropMarkers = {};
+                    }
+                    if (typeof loadLiveTrackingData === 'function') {
+                        await loadLiveTrackingData(true);
+                    }
+                    return;
+                }
+
                 const isCustomClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report');
 
-                // 1. SELECTIVE OPERATIONAL DATA CLEAR (SPECIFIC DEPOT + DATE OR ALL DEPOTS + DATE RANGE)
+                // 2. SELECTIVE OPERATIONAL DATA CLEAR (SPECIFIC DEPOT + DATE OR ALL DEPOTS + DATE RANGE)
                 if (isCustomClear) {
                     let selectedDepotId = 'all';
                     let dateMode = 'single';
@@ -28189,7 +28275,7 @@
                     return;
                 }
 
-                // 2. RE-SEED INITIAL DEMO DATA
+                // 3. RE-SEED INITIAL DEMO DATA
                 if (clearType === 'reseed') {
                     try {
                         const res = await fetch('/api/admin/reseed-demo-data', {
@@ -28242,30 +28328,30 @@
                         if (clearType === 'routes' || clearType === 'consignees' || clearType === 'all') {
                             masterRoutesCache = [];
                             masterConsigneesCache = [];
-                            loadRoutesMaster(depotId);
-                            loadConsigneesMaster(depotId);
+                            if (typeof loadRoutesMaster === 'function') loadRoutesMaster(depotId);
+                            if (typeof loadConsigneesMaster === 'function') loadConsigneesMaster(depotId);
                         }
                         if (clearType === 'fleet' || clearType === 'all') {
                             masterFleetCache = [];
-                            loadFleetMaster(depotId);
+                            if (typeof loadFleetMaster === 'function') loadFleetMaster(depotId);
                         }
                         if (clearType === 'crew' || clearType === 'all') {
                             masterCrewCache = [];
-                            loadCrewMaster(depotId);
+                            if (typeof loadCrewMaster === 'function') loadCrewMaster(depotId);
                         }
                         if (clearType === 'borrow' || clearType === 'all') {
                             currentPlanData.vans = (currentPlanData.vans || []).filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
-                            renderActiveVans();
-                            updateDayGrandTotals();
-                            updateDepotFleetStatusBar();
+                            if (typeof renderActiveVans === 'function') renderActiveVans();
+                            if (typeof updateDayGrandTotals === 'function') updateDayGrandTotals();
+                            if (typeof updateDepotFleetStatusBar === 'function') updateDepotFleetStatusBar();
                             masterBorrowedCache = [];
-                            loadBorrowableFleet(depotId);
-                            loadFleetMaster(depotId);
+                            if (typeof loadBorrowableFleet === 'function') loadBorrowableFleet(depotId);
+                            if (typeof loadFleetMaster === 'function') loadFleetMaster(depotId);
                         }
                         if (clearType === 'mapping' || clearType === 'all') {
                             masterMappingCache = [];
-                            if (typeof resetSkuMappingForm === 'function') resetSkuMappingForm();
-                            loadMappingMaster(depotId);
+                            if (typeof resetMappingForm === 'function') resetMappingForm();
+                            if (typeof loadMappingMaster === 'function') loadMappingMaster(depotId);
                         }
                     } else {
                         showToast((data && data.message) || 'Failed to clear master data.', 'error');
@@ -28273,11 +28359,11 @@
                 } catch (err) {
                     if (clearType === 'borrow' || clearType === 'all') {
                         currentPlanData.vans = (currentPlanData.vans || []).filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
-                        renderActiveVans();
-                        updateDayGrandTotals();
-                        updateDepotFleetStatusBar();
+                        if (typeof renderActiveVans === 'function') renderActiveVans();
+                        if (typeof updateDayGrandTotals === 'function') updateDayGrandTotals();
+                        if (typeof updateDepotFleetStatusBar === 'function') updateDepotFleetStatusBar();
                         masterBorrowedCache = [];
-                        renderActiveBorrowedTable([]);
+                        if (typeof renderActiveBorrowedTable === 'function') renderActiveBorrowedTable([]);
                         showToast('🧹 Borrowed fleet cleared in local session!', 'success');
                     } else {
                         showToast('Error clearing master data: ' + err.message, 'error');
@@ -31249,7 +31335,7 @@
             window.onPlanDateChange = onPlanDateChange;
             window.onPlanDepotChange = onPlanDepotChange;
             window.openAdminClearModal = openAdminClearModal;
-            window.adminClearMasterData = openAdminClearModal;
+            window.adminClearMasterData = adminClearMasterData;
             window.adminClearAllUploadedData = adminClearAllUploadedData;
             window.triggerMasterReset = triggerMasterReset;
             window.deleteDepotReport = deleteDepotReport;
