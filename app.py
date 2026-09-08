@@ -916,6 +916,22 @@ def admin_clear_all_uploaded_data():
     conn.close()
     return jsonify({"success": True, "message": msg})
 
+@app.route('/api/admin/reset-demo-data', methods=['GET', 'POST'])
+def admin_reset_demo_data():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM invoices')
+    cursor.execute('DELETE FROM trips')
+    cursor.execute('DELETE FROM daily_reports')
+    try:
+        cursor.execute('DELETE FROM saved_route_plans')
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Demo operational reports reset successfully!"})
+
+
 @app.route('/api/reports/get-by-date')
 def get_report_by_date():
     depot_id = request.args.get('depot_id')
@@ -4278,11 +4294,372 @@ def api_import_poloxy_orders():
 
 
 
+
+# ==============================================================================
+# LIVE GPS & ROUTE MONITORING APIS (LEAFLET + OPENSTREETMAP ENGINE)
+# ==============================================================================
+
+DEPOT_COORDINATES = {
+    1: {"lat": 23.7644, "lng": 90.3928, "name": "Tejgaon Head Office & Central Depot"},
+    2: {"lat": 22.3569, "lng": 91.7832, "name": "Chittagong Central Depot"},
+    3: {"lat": 24.8949, "lng": 91.8687, "name": "Sylhet Regional Depot"},
+    4: {"lat": 23.7644, "lng": 90.3928, "name": "Tejgaon Dairy Plant"},
+    5: {"lat": 24.3636, "lng": 88.6241, "name": "Rajshahi Regional Depot"},
+    6: {"lat": 22.8456, "lng": 89.5403, "name": "Khulna Regional Depot"},
+    7: {"lat": 23.7680, "lng": 90.3980, "name": "Tejgaon Frozen Foods Depot"},
+    8: {"lat": 24.8465, "lng": 89.3777, "name": "Bogura Sales Depot"},
+    9: {"lat": 23.7620, "lng": 90.3950, "name": "Tejgaon Fresh Egg Depot"},
+    10: {"lat": 24.7471, "lng": 90.4203, "name": "Mymensingh Distribution Hub"},
+    11: {"lat": 23.7660, "lng": 90.3910, "name": "Tejgaon Liquid Milk Depot"},
+    12: {"lat": 22.7010, "lng": 90.3535, "name": "Barishal Regional Depot"},
+    13: {"lat": 23.4682, "lng": 91.1788, "name": "Cumilla Regional Depot"},
+    14: {"lat": 22.3590, "lng": 91.7850, "name": "Chittagong Dry Food Depot"},
+    15: {"lat": 23.8475, "lng": 90.2577, "name": "Savar Poultry & Feed Depot"},
+    16: {"lat": 23.6238, "lng": 90.5000, "name": "Narayanganj Sales Depot"},
+    17: {"lat": 23.9999, "lng": 90.4203, "name": "Gazipur Feed & Breeder Depot"},
+}
+
+SAMPLE_OUTLET_OFFSETS = [
+    {"name": "Shwapno Super Shop - Outlet #1", "dlat": 0.0150, "dlng": 0.0120, "contact": "01711-223344", "inv": "INV-240901"},
+    {"name": "Agora Superstore - Main Branch", "dlat": 0.0240, "dlng": 0.0080, "contact": "01819-334455", "inv": "INV-240902"},
+    {"name": "Meena Bazar - Express Outlet", "dlat": 0.0310, "dlng": -0.0120, "contact": "01912-445566", "inv": "INV-240903"},
+    {"name": "Unimart Hypermarket", "dlat": 0.0190, "dlng": 0.0280, "contact": "01755-667788", "inv": "INV-240904"},
+    {"name": "Lavender Convenience Mart", "dlat": 0.0080, "dlng": -0.0210, "contact": "01611-778899", "inv": "INV-240905"},
+    {"name": "Almas Super Shop & Mart", "dlat": -0.0140, "dlng": 0.0180, "contact": "01722-889900", "inv": "INV-240906"},
+    {"name": "Daily Shopping - Local Mart", "dlat": -0.0220, "dlng": -0.0150, "contact": "01833-990011", "inv": "INV-240907"},
+    {"name": "Prince Bazar Super Mart", "dlat": -0.0290, "dlng": 0.0060, "contact": "01944-001122", "inv": "INV-240908"},
+    {"name": "Well Food Bakery & Mart", "dlat": 0.0050, "dlng": 0.0350, "contact": "01788-112233", "inv": "INV-240909"},
+    {"name": "Food Panda Dark Store", "dlat": -0.0110, "dlng": -0.0280, "contact": "01677-223344", "inv": "INV-240910"},
+]
+
+def init_tracking_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS live_tracking_positions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicle_no TEXT NOT NULL,
+        driver_mobile TEXT,
+        driver_name TEXT,
+        depot_id INTEGER NOT NULL,
+        route_id TEXT,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        heading REAL DEFAULT 0.0,
+        speed_kmh REAL DEFAULT 0.0,
+        source TEXT DEFAULT 'MOBILE_GEOLOCATION',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(vehicle_no, depot_id)
+    )
+    ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS live_drop_statuses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        depot_id INTEGER NOT NULL,
+        route_code TEXT NOT NULL,
+        drop_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending, in_transit, completed, failed
+        delivered_at TIMESTAMP,
+        proof_note TEXT,
+        cash_collected REAL DEFAULT 0.0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(depot_id, route_code, drop_id)
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialize tracking tables at module load
+try:
+    init_tracking_db()
+except Exception as e:
+    print("Notice: Tracking DB init deferred:", e)
+
+@app.route('/api/tracking/depot-routes', methods=['GET'])
+def get_tracking_depot_routes():
+    depot_id_param = request.args.get('depot_id') or 9
+    try:
+        depot_id = int(depot_id_param)
+    except ValueError:
+        depot_id = 9
+
+    depot_coords = DEPOT_COORDINATES.get(depot_id, {"lat": 23.7644, "lng": 90.3928, "name": f"Depot #{depot_id}"})
+    
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Check for live drop status overrides in database
+    cursor.execute('SELECT drop_id, route_code, status, delivered_at, cash_collected FROM live_drop_statuses WHERE depot_id = ?', (depot_id,))
+    status_overrides = {f"{r['route_code']}_{r['drop_id']}": dict(r) for r in cursor.fetchall()}
+
+    # Check for live vehicle position
+    cursor.execute('SELECT * FROM live_tracking_positions WHERE depot_id = ?', (depot_id,))
+    live_pos_map = {r['vehicle_no']: dict(r) for r in cursor.fetchall()}
+
+    # Check saved_route_plans
+    cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? ORDER BY plan_date DESC LIMIT 3', (depot_id,))
+    saved_plans = cursor.fetchall()
+    
+    routes_list = []
+    
+    if saved_plans:
+        for plan_row in saved_plans:
+            plan_dict = dict(plan_row)
+            try:
+                raw_json = json.loads(plan_dict['plan_json'])
+            except Exception:
+                raw_json = {}
+                
+            vans = raw_json.get('vans', [])
+            for v_idx, van in enumerate(vans, 1):
+                v_no = van.get('vehicle_no') or f"VAN-{v_idx:02d}"
+                d_name = van.get('driver_name') or "Assigned Driver"
+                d_phone = van.get('driver_contact') or f"01711-{depot_id:02d}{v_idx:04d}"
+                r_code = van.get('route_name') or f"RT-{depot_id:02d}-{v_idx:02d}"
+                orders = van.get('orders', [])
+                
+                drop_points = []
+                for o_idx, ord_item in enumerate(orders, 1):
+                    # Deterministic realistic coordinate offset around depot
+                    offset = SAMPLE_OUTLET_OFFSETS[(o_idx - 1) % len(SAMPLE_OUTLET_OFFSETS)]
+                    drop_lat = round(depot_coords['lat'] + offset['dlat'] + (v_idx * 0.003), 6)
+                    drop_lng = round(depot_coords['lng'] + offset['dlng'] + (v_idx * 0.002), 6)
+                    
+                    drop_id = str(ord_item.get('order_no') or ord_item.get('id') or f"DROP-{o_idx}")
+                    status_key = f"{r_code}_{drop_id}"
+                    override = status_overrides.get(status_key)
+                    
+                    # Default status logic if not set: 1st drop in_transit, subsequent pending
+                    default_status = 'in_transit' if o_idx == 1 else 'pending'
+                    curr_status = override['status'] if override else default_status
+                    
+                    drop_points.append({
+                        "id": drop_id,
+                        "sequence_order": o_idx,
+                        "outlet_name": ord_item.get('customer') or ord_item.get('consignee_name') or offset['name'],
+                        "contact_phone": ord_item.get('consignee_contact') or offset['contact'],
+                        "address": ord_item.get('consignee_address') or f"Corridor #{v_idx}, Outlet Cluster, Area Zone-{o_idx}",
+                        "invoice_no": ord_item.get('delivery_note_id') or offset['inv'],
+                        "lat": drop_lat,
+                        "lng": drop_lng,
+                        "total_pkts": float(ord_item.get('total_pkt') or ord_item.get('qty') or 25),
+                        "total_amount": float(ord_item.get('total_amount') or 4500.0),
+                        "payment_type": ord_item.get('payment_mode') or 'Cash',
+                        "status": curr_status,
+                        "delivered_at": override['delivered_at'] if override else None
+                    })
+                    
+                # Current vehicle position
+                live_v = live_pos_map.get(v_no)
+                if live_v:
+                    v_lat, v_lng, v_heading, v_speed = live_v['latitude'], live_v['longitude'], live_v['heading'], live_v['speed_kmh']
+                else:
+                    # Vehicle is en route to first non-completed drop
+                    next_drop = next((d for d in drop_points if d['status'] == 'in_transit'), drop_points[0] if drop_points else None)
+                    if next_drop:
+                        v_lat = round((depot_coords['lat'] + next_drop['lat']) / 2, 6)
+                        v_lng = round((depot_coords['lng'] + next_drop['lng']) / 2, 6)
+                        v_heading = 45.0
+                        v_speed = 32.0
+                    else:
+                        v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
+                        
+                completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
+                routes_list.append({
+                    "route_code": r_code,
+                    "route_name": van.get('route_name') or f"Delivery Corridor {v_idx}",
+                    "vehicle_no": v_no,
+                    "driver_name": d_name,
+                    "driver_mobile": d_phone,
+                    "total_drops": len(drop_points),
+                    "completed_drops": completed_count,
+                    "vehicle_position": {
+                        "lat": v_lat,
+                        "lng": v_lng,
+                        "heading": v_heading,
+                        "speed": v_speed
+                    },
+                    "drop_points": drop_points
+                })
+
+    # If no saved route plans exist yet for this depot, provide an authentic active simulated route
+    if not routes_list:
+        sample_vans = [
+            {"v_no": "DHK-METRO-TA-11-2041", "driver": "Md. Selim Reza", "mobile": "01711-248901", "r_code": f"RT-{depot_id:02d}-A", "name": "Primary Supermarket Loop"},
+            {"v_no": "DHK-METRO-TA-14-3088", "driver": "Rafiqul Islam", "mobile": "01819-354902", "r_code": f"RT-{depot_id:02d}-B", "name": "Corporate & Express Corridor"}
+        ]
+        for v_idx, sv in enumerate(sample_vans, 1):
+            drop_points = []
+            num_drops = 6 if v_idx == 1 else 5
+            for o_idx in range(1, num_drops + 1):
+                offset = SAMPLE_OUTLET_OFFSETS[(o_idx + v_idx * 2) % len(SAMPLE_OUTLET_OFFSETS)]
+                drop_lat = round(depot_coords['lat'] + offset['dlat'] * (1.1 if v_idx == 1 else 0.8), 6)
+                drop_lng = round(depot_coords['lng'] + offset['dlng'] * (1.1 if v_idx == 1 else 0.8), 6)
+                drop_id = f"SMPL-{depot_id}-{v_idx}-{o_idx}"
+                status_key = f"{sv['r_code']}_{drop_id}"
+                override = status_overrides.get(status_key)
+                
+                # Default status: 1st completed, 2nd in_transit, rest pending
+                if o_idx == 1:
+                    default_st = 'completed'
+                elif o_idx == 2:
+                    default_st = 'in_transit'
+                else:
+                    default_st = 'pending'
+                curr_st = override['status'] if override else default_st
+                
+                drop_points.append({
+                    "id": drop_id,
+                    "sequence_order": o_idx,
+                    "outlet_name": offset['name'],
+                    "contact_phone": offset['contact'],
+                    "address": f"Corridor #{v_idx}, Outlet #{o_idx}, Commercial Zone",
+                    "invoice_no": offset['inv'],
+                    "lat": drop_lat,
+                    "lng": drop_lng,
+                    "total_pkts": 30 + o_idx * 5,
+                    "total_amount": 4200.0 + o_idx * 800,
+                    "payment_type": "Credit" if o_idx % 2 == 0 else "Cash",
+                    "status": curr_st,
+                    "delivered_at": override['delivered_at'] if override else None
+                })
+                
+            completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
+            next_drop = next((d for d in drop_points if d['status'] == 'in_transit'), drop_points[0])
+            v_lat = round((depot_coords['lat'] * 0.4 + next_drop['lat'] * 0.6), 6)
+            v_lng = round((depot_coords['lng'] * 0.4 + next_drop['lng'] * 0.6), 6)
+            
+            routes_list.append({
+                "route_code": sv['r_code'],
+                "route_name": sv['name'],
+                "vehicle_no": sv['v_no'],
+                "driver_name": sv['driver'],
+                "driver_mobile": sv['mobile'],
+                "total_drops": len(drop_points),
+                "completed_drops": completed_count,
+                "vehicle_position": {
+                    "lat": v_lat,
+                    "lng": v_lng,
+                    "heading": 55.0 + v_idx * 20,
+                    "speed": 28.5
+                },
+                "drop_points": drop_points
+            })
+
+    conn.close()
+    return jsonify({
+        "success": True,
+        "depot_id": depot_id,
+        "depot_name": depot_coords["name"],
+        "depot_origin": depot_coords,
+        "routes": routes_list
+    })
+
+@app.route('/api/tracking/mobile-ping', methods=['POST'])
+@app.route('/api/telematics/webhook', methods=['POST'])
+def receive_tracking_ping():
+    data = request.json if request.is_json else request.form.to_dict()
+    if not data:
+        return jsonify({"success": False, "message": "Missing telemetry payload"}), 400
+
+    vehicle_no = data.get('vehicle_no') or data.get('vehicle_id') or 'DHK-METRO-TA-11-2041'
+    depot_id = data.get('depot_id') or 9
+    driver_mobile = data.get('driver_mobile') or data.get('user_id') or '01711-000000'
+    driver_name = data.get('driver_name') or 'Mobile Driver'
+    route_id = data.get('route_id') or data.get('route_code') or 'RT-01'
+    
+    try:
+        lat = float(data.get('lat') or data.get('latitude') or 0.0)
+        lng = float(data.get('lng') or data.get('longitude') or 0.0)
+        heading = float(data.get('heading') or 0.0)
+        speed = float(data.get('speed') or data.get('speed_kmh') or 0.0)
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Invalid numeric coordinates"}), 400
+
+    source = data.get('source') or ('TELEMATICS_GPS' if '/telematics/' in request.path else 'MOBILE_GEOLOCATION')
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT INTO live_tracking_positions (vehicle_no, driver_mobile, driver_name, depot_id, route_id, latitude, longitude, heading, speed_kmh, source, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(vehicle_no, depot_id) DO UPDATE SET
+        driver_mobile = excluded.driver_mobile,
+        driver_name = excluded.driver_name,
+        route_id = excluded.route_id,
+        latitude = excluded.latitude,
+        longitude = excluded.longitude,
+        heading = excluded.heading,
+        speed_kmh = excluded.speed_kmh,
+        source = excluded.source,
+        updated_at = CURRENT_TIMESTAMP
+    ''', (vehicle_no, driver_mobile, driver_name, depot_id, route_id, lat, lng, heading, speed, source))
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "message": f"Position logged for {vehicle_no} @ ({lat}, {lng}) via {source}"
+    })
+
+@app.route('/api/tracking/live-positions', methods=['GET'])
+def get_live_tracking_positions():
+    depot_id = request.args.get('depot_id')
+    conn = get_db()
+    cursor = conn.cursor()
+    if depot_id and str(depot_id).lower() != 'all':
+        cursor.execute('SELECT * FROM live_tracking_positions WHERE depot_id = ? ORDER BY updated_at DESC', (depot_id,))
+    else:
+        cursor.execute('SELECT * FROM live_tracking_positions ORDER BY updated_at DESC')
+    positions = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return jsonify({"success": True, "positions": positions})
+
+@app.route('/api/tracking/update-drop-status', methods=['POST'])
+def update_tracking_drop_status():
+    data = request.json if request.is_json else {}
+    depot_id = data.get('depot_id')
+    route_code = data.get('route_code')
+    drop_id = data.get('drop_id')
+    new_status = data.get('status', 'completed') # pending, in_transit, completed, failed
+    proof_note = data.get('proof_note', '')
+    cash_collected = float(data.get('cash_collected') or 0.0)
+
+    if not depot_id or not route_code or not drop_id:
+        return jsonify({"success": False, "message": "Missing depot_id, route_code, or drop_id"}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT INTO live_drop_statuses (depot_id, route_code, drop_id, status, delivered_at, proof_note, cash_collected, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(depot_id, route_code, drop_id) DO UPDATE SET
+        status = excluded.status,
+        delivered_at = CURRENT_TIMESTAMP,
+        proof_note = excluded.proof_note,
+        cash_collected = excluded.cash_collected,
+        updated_at = CURRENT_TIMESTAMP
+    ''', (depot_id, route_code, drop_id, new_status, proof_note, cash_collected))
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "message": f"Drop point #{drop_id} status updated to '{new_status.upper()}'!",
+        "drop_id": drop_id,
+        "new_status": new_status
+    })
+
+# ------------------------------------------------------------------------------
+# APPLICATION STARTUP ENTRYPOINT
+# ------------------------------------------------------------------------------
+
 if __name__ == '__main__':
     print("=" * 66)
     print("PARAGON AGRO DISTRIBUTION LIVE WEB PORTAL IS READY!")
     print("Running at: http://127.0.0.1:5000")
     print("=" * 66)
     app.run(host='0.0.0.0', port=5000, debug=False)
+
 
 

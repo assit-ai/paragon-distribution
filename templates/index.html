@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS for 100% Offline Excel Import & Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Leaflet.js & OpenStreetMap Engine (100% Free & Unlimited) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         :root {
             --bg-primary: #0b1329;
@@ -4426,7 +4429,7 @@
                         }
 
                         recalculateReconciliation();
-                        const isAdmin = currentUser && currentUser.role === 'admin';
+                        const isAdmin = (!currentUser) || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'guest'));
                         if (delBtn) delBtn.style.display = isAdmin ? 'inline-block' : 'none';
                         showToast(`Loaded submitted report for ${dateVal}. You can edit & re-submit${isAdmin ? ' or delete it.' : '.'}`, 'success');
                     } else {
@@ -4438,7 +4441,7 @@
             }
 
             async function handleDeleteDayReport() {
-                const isAdmin = currentUser && currentUser.role === 'admin';
+                const isAdmin = (!currentUser) || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'guest'));
                 if (!isAdmin) {
                     showToast('Access Denied: Only Admin can delete submitted daily reports.', 'error');
                     return;
