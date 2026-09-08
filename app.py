@@ -1063,13 +1063,42 @@ def get_dashboard_summary():
         "daily_entry_compliance": compliance_stats
     })
 
-@app.route('/api/admin/clear-all-demo-data', methods=['POST'])
+@app.route('/api/admin/clear-all-demo-data', methods=['GET', 'POST', 'DELETE'])
 def clear_all_demo_data():
+    data = request.json if request.is_json else {}
+    sess_user = session.get('user') or {}
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational data"}), 403
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM invoices')
     cursor.execute('DELETE FROM trips')
     cursor.execute('DELETE FROM daily_reports')
+    try:
+        cursor.execute('DELETE FROM saved_route_plans')
+    except Exception:
+        pass
+    try:
+        cursor.execute('DELETE FROM live_tracking_positions')
+        cursor.execute('DELETE FROM live_drop_statuses')
+    except Exception:
+        pass
+    try:
+        cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+    except Exception:
+        pass
+
+    username = sess_user.get('username') or 'admin'
+    try:
+        cursor.execute('''
+            INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (username, 'CLEAR_DEMO_DATA', 'operational_reports', 'ALL', 'All demo & operational distribution reports cleared', request.remote_addr))
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "All demo & historical distribution reports have been cleared. Database is clean."})
@@ -1238,7 +1267,7 @@ def admin_clear_all_uploaded_data():
     conn.close()
     return jsonify({"success": True, "message": msg})
 
-@app.route('/api/admin/reset-demo-data', methods=['GET', 'POST'])
+@app.route('/api/admin/reset-demo-data', methods=['GET', 'POST', 'DELETE'])
 def admin_reset_demo_data():
     conn = get_db()
     cursor = conn.cursor()
@@ -1249,9 +1278,27 @@ def admin_reset_demo_data():
         cursor.execute('DELETE FROM saved_route_plans')
     except Exception:
         pass
+    try:
+        cursor.execute('DELETE FROM live_tracking_positions')
+        cursor.execute('DELETE FROM live_drop_statuses')
+    except Exception:
+        pass
+    try:
+        cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+    except Exception:
+        pass
+
+    try:
+        cursor.execute('''
+            INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', ('admin', 'RESET_DEMO_DATA', 'operational_reports', 'ALL', 'All operational reports cleared via reset-demo-data', request.remote_addr))
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": "Demo operational reports reset successfully!"})
+    return jsonify({"success": True, "message": "Demo operational reports and plans cleared successfully!"})
 
 
 @app.route('/api/reports/get-by-date')
@@ -1314,18 +1361,376 @@ def delete_report_by_date():
     conn.close()
     return jsonify({"success": True, "message": f"Report for date {report_date} has been deleted successfully!"})
 
-@app.route('/api/admin/reset-demo-data', methods=['POST'])
-def reset_demo_data():
-    init_db()
-    return jsonify({"success": True, "message": "Demo data reset successfully to clean initial state!"})
+@app.route('/api/admin/reseed-demo-data', methods=['POST'])
+def admin_reseed_demo_data():
+    conn = get_db()
+    cursor = conn.cursor()
+    seed_sample_daily_reports(cursor)
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Demo distribution reports and invoices re-seeded successfully!"})
+
+def generate_live_master_excel(date_param=None, depot_id=None):
+    if not date_param:
+        date_param = datetime.date.today().strftime('%Y-%m-%d')
+        
+    conn = get_db()
+    
+    if depot_id and str(depot_id).lower() != 'all':
+        depots = conn.execute('SELECT * FROM depots WHERE id = ? ORDER BY id ASC', (depot_id,)).fetchall()
+        reports = conn.execute('''
+            SELECT r.*, d.name as depot_name, d.category as depot_category, d.region as depot_region, d.default_uom
+            FROM daily_reports r
+            JOIN depots d ON r.depot_id = d.id
+            WHERE r.report_date = ? AND r.depot_id = ?
+            ORDER BY r.depot_id ASC
+        ''', (date_param, depot_id)).fetchall()
+        invoices = conn.execute('''
+            SELECT i.*, d.name as depot_name, r.report_date, t.vehicle_no, t.route_name
+            FROM invoices i
+            JOIN daily_reports r ON i.report_id = r.id
+            JOIN depots d ON r.depot_id = d.id
+            LEFT JOIN trips t ON i.trip_id = t.id
+            WHERE r.report_date = ? AND r.depot_id = ?
+            ORDER BY i.id ASC
+        ''', (date_param, depot_id)).fetchall()
+        vehicles = conn.execute('''
+            SELECT v.*, d.name as depot_name, c.name as driver_name, c.phone as driver_contact
+            FROM fleet_vehicles v
+            LEFT JOIN depots d ON v.depot_id = d.id
+            LEFT JOIN depot_crew c ON v.default_driver_id = c.id
+            WHERE v.depot_id = ?
+            ORDER BY v.id ASC
+        ''', (depot_id,)).fetchall()
+    else:
+        depots = conn.execute('SELECT * FROM depots ORDER BY id ASC').fetchall()
+        reports = conn.execute('''
+            SELECT r.*, d.name as depot_name, d.category as depot_category, d.region as depot_region, d.default_uom
+            FROM daily_reports r
+            JOIN depots d ON r.depot_id = d.id
+            WHERE r.report_date = ?
+            ORDER BY r.depot_id ASC
+        ''', (date_param,)).fetchall()
+        invoices = conn.execute('''
+            SELECT i.*, d.name as depot_name, r.report_date, t.vehicle_no, t.route_name
+            FROM invoices i
+            JOIN daily_reports r ON i.report_id = r.id
+            JOIN depots d ON r.depot_id = d.id
+            LEFT JOIN trips t ON i.trip_id = t.id
+            WHERE r.report_date = ?
+            ORDER BY i.id ASC
+        ''', (date_param,)).fetchall()
+        vehicles = conn.execute('''
+            SELECT v.*, d.name as depot_name, c.name as driver_name, c.phone as driver_contact
+            FROM fleet_vehicles v
+            LEFT JOIN depots d ON v.depot_id = d.id
+            LEFT JOIN depot_crew c ON v.default_driver_id = c.id
+            ORDER BY v.depot_id ASC, v.id ASC
+        ''').fetchall()
+    conn.close()
+
+    output = io.BytesIO()
+    wb = xlsxwriter.Workbook(output, {'in_memory': True})
+    font_fam = 'Segoe UI'
+
+    # Typography & Styles
+    hdr_title = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 14, 'font_color': '#FFFFFF', 'bg_color': '#0F172A', 'align': 'center', 'valign': 'vcenter', 'border': 1})
+    hdr_sub = wb.add_format({'font_name': font_fam, 'font_size': 9.5, 'font_color': '#CBD5E1', 'bg_color': '#1E293B', 'align': 'center', 'valign': 'vcenter', 'italic': True})
+    th_pri = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 9.5, 'font_color': '#FFFFFF', 'bg_color': '#1E3A8A', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'text_wrap': True})
+    th_sec = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 9.5, 'font_color': '#FFFFFF', 'bg_color': '#0284C7', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'text_wrap': True})
+    
+    td_txt = wb.add_format({'font_name': font_fam, 'font_size': 9, 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'})
+    td_bld = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 9, 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'})
+    td_ctr = wb.add_format({'font_name': font_fam, 'font_size': 9, 'align': 'center', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'})
+    td_num = wb.add_format({'font_name': font_fam, 'font_size': 9, 'align': 'right', 'num_format': '#,##0', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'})
+    td_money = wb.add_format({'font_name': font_fam, 'font_size': 9, 'align': 'right', 'num_format': '৳ #,##0.00', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'})
+    td_pct = wb.add_format({'font_name': font_fam, 'font_size': 9, 'align': 'center', 'num_format': '0.0%', 'border': 1, 'border_color': '#CBD5E1', 'valign': 'vcenter'})
+    td_done = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 8.5, 'align': 'center', 'font_color': '#15803D', 'bg_color': '#DCFCE7', 'border': 1, 'border_color': '#86EFAC', 'valign': 'vcenter'})
+    td_pend = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 8.5, 'align': 'center', 'font_color': '#B91C1C', 'bg_color': '#FEE2E2', 'border': 1, 'border_color': '#FCA5A5', 'valign': 'vcenter'})
+
+    kpi_lbl = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 8.5, 'align': 'center', 'valign': 'vcenter', 'font_color': '#475569', 'bg_color': '#F8FAFC', 'border': 1, 'border_color': '#CBD5E1'})
+    kpi_val = wb.add_format({'bold': True, 'font_name': font_fam, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'font_color': '#0284C7', 'bg_color': '#F0F9FF', 'border': 1, 'border_color': '#BAE6FD'})
+
+    # 1. Executive Summary
+    ws1 = wb.add_worksheet('01_Executive_Summary')
+    ws1.merge_range('A1:I1', 'PARAGON AGRO LIMITED — MASTER DISTRIBUTION EXECUTIVE REPORT', hdr_title)
+    ws1.merge_range('A2:I2', f'Report Date: {date_param} | System Depots: {len(depots)} Locations | Live Production Database Export', hdr_sub)
+    ws1.set_row(0, 26)
+    ws1.set_row(1, 18)
+
+    tot_disp = sum(r['dispatched_gross_val'] or 0 for r in reports)
+    tot_deliv = sum(r['delivered_net_val'] or 0 for r in reports)
+    tot_ret = sum(r['returned_val'] or 0 for r in reports)
+    tot_vans = sum(r['total_vehicles'] or 0 for r in reports)
+    tot_invs = sum(r['total_invoices'] or 0 for r in reports)
+    succ_rate = (tot_deliv / tot_disp) if tot_disp > 0 else 0
+
+    ws1.set_column(0, 0, 8)
+    ws1.set_column(1, 1, 32)
+    ws1.set_column(2, 2, 14)
+    ws1.set_column(3, 3, 20)
+    ws1.set_column(4, 4, 20)
+    ws1.set_column(5, 5, 18)
+    ws1.set_column(6, 6, 16)
+    ws1.set_column(7, 7, 14)
+    ws1.set_column(8, 8, 14)
+
+    ws1.merge_range('A4:B4', 'TOTAL DISPATCHED VALUE', kpi_lbl)
+    ws1.merge_range('A5:B5', f'৳ {tot_disp:,.2f}', kpi_val)
+    ws1.merge_range('C4:D4', 'TOTAL DELIVERED VALUE', kpi_lbl)
+    ws1.merge_range('C5:D5', f'৳ {tot_deliv:,.2f}', kpi_val)
+    ws1.merge_range('E4:F4', 'TOTAL RETURNS', kpi_lbl)
+    ws1.merge_range('E5:F5', f'৳ {tot_ret:,.2f}', kpi_val)
+    ws1.write('G4', 'SUCCESS RATE', kpi_lbl)
+    ws1.write('G5', f'{succ_rate*100:.1f}%', kpi_val)
+    ws1.write('H4', 'ACTIVE VANS', kpi_lbl)
+    ws1.write('H5', str(tot_vans), kpi_val)
+    ws1.write('I4', 'INVOICES', kpi_lbl)
+    ws1.write('I5', str(tot_invs), kpi_val)
+
+    # Category Breakdown
+    cat_names = [
+        'Frozen Food & RTC', 'Processed Chicken', 'Sweets & Savory', 'Fresh Eggs',
+        'Dairy (Sirajganj & Tejgaon)', 'Dry Food & Bakery', 'Momo & Dimsum', 'Tea Distribution & Packing'
+    ]
+    ws1.merge_range('A7:I7', 'PRODUCT CATEGORY PERFORMANCE BREAKDOWN', th_sec)
+    ws1.set_row(6, 20)
+    cat_hdrs = ['SL', 'Category Name', 'Primary UOM', 'Dispatched Gross (৳)', 'Delivered Net (৳)', 'Returned Value (৳)', 'Success Rate (%)', 'Active Vans', 'Total Invoices']
+    for c, h in enumerate(cat_hdrs):
+        ws1.write(7, c, h, th_pri)
+    ws1.set_row(7, 22)
+
+    for idx, cname in enumerate(cat_names, 8):
+        c_disp = sum(r['dispatched_gross_val'] or 0 for r in reports if cname.lower() in (r['depot_category'] or '').lower() or (r['depot_category'] or '').lower() in cname.lower())
+        c_deliv = sum(r['delivered_net_val'] or 0 for r in reports if cname.lower() in (r['depot_category'] or '').lower() or (r['depot_category'] or '').lower() in cname.lower())
+        c_ret = sum(r['returned_val'] or 0 for r in reports if cname.lower() in (r['depot_category'] or '').lower() or (r['depot_category'] or '').lower() in cname.lower())
+        c_v = sum(r['total_vehicles'] or 0 for r in reports if cname.lower() in (r['depot_category'] or '').lower() or (r['depot_category'] or '').lower() in cname.lower())
+        c_inv = sum(r['total_invoices'] or 0 for r in reports if cname.lower() in (r['depot_category'] or '').lower() or (r['depot_category'] or '').lower() in cname.lower())
+        c_succ = (c_deliv / c_disp) if c_disp > 0 else 0
+        
+        ws1.write(idx, 0, idx - 7, td_ctr)
+        ws1.write(idx, 1, cname, td_bld)
+        ws1.write(idx, 2, 'Pkt/Kg/Pcs', td_ctr)
+        ws1.write(idx, 3, c_disp, td_money)
+        ws1.write(idx, 4, c_deliv, td_money)
+        ws1.write(idx, 5, c_ret, td_money)
+        ws1.write(idx, 6, c_succ, td_pct)
+        ws1.write(idx, 7, c_v, td_num)
+        ws1.write(idx, 8, c_inv, td_num)
+
+    # 2. Depots Compliance
+    ws2 = wb.add_worksheet('02_Depots_Compliance')
+    ws2.merge_range('A1:J1', 'PARAGON AGRO LIMITED — 17 DEPOTS SUBMISSION COMPLIANCE', hdr_title)
+    ws2.merge_range('A2:J2', f'Report Date: {date_param} | Target: 17 Depots System Wide', hdr_sub)
+    ws2.set_row(0, 24)
+    ws2.set_row(1, 18)
+
+    hdrs2 = ['ID', 'Depot / Factory Name', 'Category', 'Region', 'Incharge Name', 'Contact Phone', 'Default UOM', 'Submission Status', 'Dispatched Gross (৳)', 'Delivered Net (৳)']
+    for c, h in enumerate(hdrs2):
+        ws2.write(3, c, h, th_pri)
+    ws2.set_row(3, 22)
+
+    rep_map = {r['depot_id']: r for r in reports}
+    for idx, d in enumerate(depots, 4):
+        d_rep = rep_map.get(d['id'])
+        is_done = d_rep is not None
+        ws2.write(idx, 0, d['id'], td_ctr)
+        ws2.write(idx, 1, d['name'], td_bld)
+        ws2.write(idx, 2, d['category'], td_txt)
+        ws2.write(idx, 3, d['region'] or 'Central', td_ctr)
+        ws2.write(idx, 4, d['incharge_name'] or '-', td_txt)
+        ws2.write(idx, 5, d['contact'] or '-', td_ctr)
+        ws2.write(idx, 6, d['default_uom'] or 'Pkt', td_ctr)
+        ws2.write(idx, 7, 'DONE' if is_done else 'PENDING', td_done if is_done else td_pend)
+        ws2.write(idx, 8, (d_rep['dispatched_gross_val'] if d_rep else 0) or 0, td_money)
+        ws2.write(idx, 9, (d_rep['delivered_net_val'] if d_rep else 0) or 0, td_money)
+
+    ws2.set_column(0, 0, 6)
+    ws2.set_column(1, 1, 32)
+    ws2.set_column(2, 2, 20)
+    ws2.set_column(3, 3, 14)
+    ws2.set_column(4, 4, 26)
+    ws2.set_column(5, 5, 16)
+    ws2.set_column(6, 6, 12)
+    ws2.set_column(7, 7, 14)
+    ws2.set_column(8, 8, 20)
+    ws2.set_column(9, 9, 20)
+
+    # 3. Daily Reports Log
+    ws3 = wb.add_worksheet('03_Daily_Reports_Log')
+    ws3.merge_range('A1:L1', 'PARAGON AGRO LIMITED — DAILY DISTRIBUTION REPORTS (DDR) LOG', hdr_title)
+    ws3.merge_range('A2:L2', f'Date Filter: {date_param}', hdr_sub)
+    ws3.set_row(0, 24)
+    ws3.set_row(1, 18)
+
+    hdrs3 = ['Report ID', 'Date', 'Depot Name', 'Category', 'Incharge Name', 'Vehicles', 'Invoices', 'Dispatched Gross (৳)', 'Delivered Net (৳)', 'Returned Val (৳)', 'Stock Mismatch', 'Audit Status']
+    for c, h in enumerate(hdrs3):
+        ws3.write(3, c, h, th_pri)
+    ws3.set_row(3, 22)
+
+    if reports:
+        for idx, r in enumerate(reports, 4):
+            ws3.write(idx, 0, r['id'], td_ctr)
+            ws3.write(idx, 1, r['report_date'], td_ctr)
+            ws3.write(idx, 2, r['depot_name'], td_bld)
+            ws3.write(idx, 3, r['depot_category'], td_txt)
+            ws3.write(idx, 4, r['incharge_name'], td_txt)
+            ws3.write(idx, 5, r['total_vehicles'] or 0, td_num)
+            ws3.write(idx, 6, r['total_invoices'] or 0, td_num)
+            ws3.write(idx, 7, r['dispatched_gross_val'] or 0, td_money)
+            ws3.write(idx, 8, r['delivered_net_val'] or 0, td_money)
+            ws3.write(idx, 9, r['returned_val'] or 0, td_money)
+            ws3.write(idx, 10, r['stock_mismatch_qty'] or 0, td_num)
+            ws3.write(idx, 11, r['audit_status'] or 'Verified', td_ctr)
+    else:
+        ws3.merge_range('A5:L5', 'No operational daily distribution reports found for this date.', td_ctr)
+
+    ws3.set_column(0, 0, 10)
+    ws3.set_column(1, 1, 12)
+    ws3.set_column(2, 2, 30)
+    ws3.set_column(3, 3, 18)
+    ws3.set_column(4, 4, 24)
+    ws3.set_column(5, 6, 10)
+    ws3.set_column(7, 9, 20)
+    ws3.set_column(10, 10, 14)
+    ws3.set_column(11, 11, 16)
+
+    # 4. Delivery Invoices
+    ws4 = wb.add_worksheet('04_Delivery_Invoices')
+    ws4.merge_range('A1:K1', 'PARAGON AGRO LIMITED — DELIVERY INVOICES & OUTLET BREAKDOWN', hdr_title)
+    ws4.merge_range('A2:K2', f'Date Filter: {date_param} | Total Invoices: {len(invoices)}', hdr_sub)
+    ws4.set_row(0, 24)
+    ws4.set_row(1, 18)
+
+    hdrs4 = ['SL', 'Invoice No', 'Date', 'Depot Name', 'Customer / Outlet Name', 'Vehicle Reg No', 'Route Name', 'Dispatched Val (৳)', 'Delivered Val (৳)', 'Returned Val (৳)', 'Amount Collected (৳)']
+    for c, h in enumerate(hdrs4):
+        ws4.write(3, c, h, th_pri)
+    ws4.set_row(3, 22)
+
+    if invoices:
+        for idx, inv in enumerate(invoices, 4):
+            inv_keys = inv.keys() if hasattr(inv, 'keys') else []
+            v_no = inv['vehicle_no'] if 'vehicle_no' in inv_keys else '-'
+            r_no = inv['route_name'] if 'route_name' in inv_keys else '-'
+            ws4.write(idx, 0, idx - 3, td_ctr)
+            ws4.write(idx, 1, inv['invoice_no'] or f'INV-{inv["id"]}', td_bld)
+            ws4.write(idx, 2, inv['report_date'], td_ctr)
+            ws4.write(idx, 3, inv['depot_name'], td_txt)
+            ws4.write(idx, 4, inv['customer_name'] or 'Outlet', td_txt)
+            ws4.write(idx, 5, v_no or '-', td_ctr)
+            ws4.write(idx, 6, r_no or '-', td_txt)
+            ws4.write(idx, 7, inv['dispatched_val'] or 0, td_money)
+            ws4.write(idx, 8, inv['delivered_val'] or 0, td_money)
+            ws4.write(idx, 9, inv['returned_val'] or 0, td_money)
+            ws4.write(idx, 10, inv['amount_collected'] or 0, td_money)
+    else:
+        ws4.merge_range('A5:K5', 'No delivery invoices found for this selection.', td_ctr)
+
+    ws4.set_column(0, 0, 6)
+    ws4.set_column(1, 1, 18)
+    ws4.set_column(2, 2, 12)
+    ws4.set_column(3, 3, 26)
+    ws4.set_column(4, 4, 32)
+    ws4.set_column(5, 5, 18)
+    ws4.set_column(6, 6, 26)
+    ws4.set_column(7, 10, 18)
+
+    # 5. Fleet Vehicles
+    ws5 = wb.add_worksheet('05_Fleet_Directory')
+    ws5.merge_range('A1:I1', 'PARAGON AGRO LIMITED — FLEET VEHICLES & CAPACITIES MASTER', hdr_title)
+    ws5.merge_range('A2:I2', f'Active Registered Vehicles: {len(vehicles)} Units', hdr_sub)
+    ws5.set_row(0, 24)
+    ws5.set_row(1, 18)
+
+    hdrs5 = ['ID', 'Vehicle Reg No', 'Vehicle Type', 'Depot Name', 'Driver Name', 'Driver Mobile', 'Capacity (Kg/Units)', 'Ownership', 'Daily Rate (৳)']
+    for c, h in enumerate(hdrs5):
+        ws5.write(3, c, h, th_pri)
+    ws5.set_row(3, 22)
+
+    if vehicles:
+        for idx, v in enumerate(vehicles, 4):
+            v_keys = v.keys() if hasattr(v, 'keys') else []
+            d_name = v['driver_name'] if 'driver_name' in v_keys else '-'
+            d_phone = v['driver_contact'] if 'driver_contact' in v_keys else '-'
+            rent_cost = v['rental_cost_per_day'] if 'rental_cost_per_day' in v_keys else 0
+            ws5.write(idx, 0, v['id'], td_ctr)
+            ws5.write(idx, 1, v['vehicle_no'], td_bld)
+            ws5.write(idx, 2, v['vehicle_type'], td_txt)
+            ws5.write(idx, 3, v['depot_name'] or '-', td_txt)
+            ws5.write(idx, 4, d_name or '-', td_txt)
+            ws5.write(idx, 5, d_phone or '-', td_ctr)
+            ws5.write(idx, 6, f"{v['capacity_kg'] or 0} {v['capacity_units'] or 'Kg'}", td_ctr)
+            ws5.write(idx, 7, v['ownership'] or 'Owned', td_ctr)
+            ws5.write(idx, 8, rent_cost or 0, td_money)
+    else:
+        ws5.merge_range('A5:I5', 'No fleet vehicles found.', td_ctr)
+
+    ws5.set_column(0, 0, 6)
+    ws5.set_column(1, 1, 20)
+    ws5.set_column(2, 2, 22)
+    ws5.set_column(3, 3, 28)
+    ws5.set_column(4, 4, 24)
+    ws5.set_column(5, 5, 16)
+    ws5.set_column(6, 6, 18)
+    ws5.set_column(7, 7, 14)
+    ws5.set_column(8, 8, 16)
+
+    # 6. SOP & Anti-Theft Protocols
+    ws6 = wb.add_worksheet('06_SOP_&_Zero_Theft')
+    ws6.merge_range('A1:E1', 'PARAGON AGRO LIMITED — DISTRIBUTION STANDARD OPERATING PROCEDURES (SOP)', hdr_title)
+    ws6.merge_range('A2:E2', 'Zero-Theft, Cold Chain Compliance & Security Protocols', hdr_sub)
+    ws6.set_row(0, 24)
+    ws6.set_row(1, 18)
+
+    hdrs6 = ['Rule #', 'Operational Area', 'Compliance Standard', 'Verification Mechanism', 'Violation Penalty']
+    for c, h in enumerate(hdrs6):
+        ws6.write(3, c, h, th_pri)
+    ws6.set_row(3, 22)
+
+    sop_data = [
+        ('SOP-01', 'Cold Chain Verification', 'Temperature loggers must show <= -18°C for Frozen and 2-4°C for Dairy at dispatch and drop points.', 'Digital logger upload & receiver signature', 'Consignment rejection & driver disciplinary review'),
+        ('SOP-02', 'Vehicle Digital Seal', 'All van cargo bays must have tamper-evident numerical seals verified by Depot Security.', 'Security gate register & driver counter-sign', 'Immediate investigation; suspension pending audit'),
+        ('SOP-03', 'Cash Collection & Reconciliation', '100% of cash collected must be deposited to depot cashier within 2 hours of route completion.', 'Bank deposit slip & ERP voucher reconciliation', 'Immediate salary hold; financial recovery protocol'),
+        ('SOP-04', 'Zero Returns Handling', 'Undelivered goods must be physically inspected, counted and returned to cold storage within 30 min.', 'Return Goods Voucher (RGV) signed by Incharge', 'Unaccounted stock deducted from depot balance'),
+        ('SOP-05', 'GPS Route Deviation Audit', 'Any route deviation > 1.5 km or unscheduled stop > 15 mins triggers immediate security alert.', 'Live telematics tracking server alert', 'Depot Incharge formal explanation within 12 hours')
+    ]
+    for idx, s in enumerate(sop_data, 4):
+        ws6.write(idx, 0, s[0], td_bld)
+        ws6.write(idx, 1, s[1], td_txt)
+        ws6.write(idx, 2, s[2], td_txt)
+        ws6.write(idx, 3, s[3], td_txt)
+        ws6.write(idx, 4, s[4], td_txt)
+
+    ws6.set_column(0, 0, 10)
+    ws6.set_column(1, 1, 26)
+    ws6.set_column(2, 2, 45)
+    ws6.set_column(3, 3, 35)
+    ws6.set_column(4, 4, 38)
+
+    wb.close()
+    output.seek(0)
+    return output
 
 @app.route('/api/export/excel')
 def export_master_excel():
     date_param = request.args.get('date', datetime.date.today().strftime('%Y-%m-%d'))
-    master_file = r'd:\AI project\Distribution\Paragon_Distribution_Master_Report.xlsx'
-    if os.path.exists(master_file):
-        return send_file(master_file, as_attachment=True, download_name=f"Paragon_Master_Distribution_{date_param}.xlsx")
-    return jsonify({"error": "Master excel not found"}), 404
+    depot_param = request.args.get('depot')
+    try:
+        excel_stream = generate_live_master_excel(date_param, depot_param)
+        filename = f"Paragon_Master_Distribution_{date_param}.xlsx"
+        if depot_param and str(depot_param).lower() != 'all':
+            filename = f"Paragon_Depot_{depot_param}_Distribution_{date_param}.xlsx"
+        return send_file(
+            excel_stream,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        master_file = r'd:\AI project\Distribution\Paragon_Distribution_Master_Report.xlsx'
+        if os.path.exists(master_file):
+            return send_file(master_file, as_attachment=True, download_name=f"Paragon_Master_Distribution_{date_param}.xlsx")
+        return jsonify({"error": f"Failed to generate excel: {str(e)}"}), 500
 
 
 # ----------------- BULK EXCEL TEMPLATE (CRYSTAL CLEAR HIGH-VISIBILITY TYPOGRAPHY) -----------------
@@ -4221,7 +4626,7 @@ def get_distribution_plan_history():
 def admin_clear_master_data():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    role = session.get('role') or sess_user.get('role')
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
     if role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
 
@@ -4332,7 +4737,7 @@ def get_borrowed_vehicles():
 def admin_clear_route_plan():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    role = session.get('role') or sess_user.get('role')
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
     if role != 'admin':
         return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
 

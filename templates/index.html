@@ -1619,10 +1619,18 @@
                         </span>
 
                         <a href="/api/export/excel" id="dashboardExcelReportBtn" class="btn btn-export btn-sm"
+                            onclick="downloadMasterDistributionExcel(event)"
                             style="display:inline-flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap; padding:6px 14px; text-decoration:none;"
                             title="Download Master Distribution Excel Report for selected date">
                             <i class="fa-solid fa-file-excel"></i> Excel Report
                         </a>
+
+                        <button type="button" class="btn btn-sm admin-only-btn" id="btnDashboardClearDemoData"
+                            onclick="openAdminClearModal('demo_data')"
+                            style="display:none; align-items:center; gap:6px; font-weight:700; white-space:nowrap; padding:6px 14px; background:rgba(239, 68, 68, 0.15); color:#f87171; border:1px solid #ef4444; border-radius:6px; cursor:pointer;"
+                            title="Admin: Clear all demo & uploaded distribution reports to start clean">
+                            <i class="fa-solid fa-trash-can"></i> 🧹 Clear Demo Data
+                        </button>
                     </div>
 
                     <!-- 6 High-Impact KPI Cards -->
@@ -2424,20 +2432,27 @@
                                 <i class="fa-solid fa-users-gear text-cyan"></i> 17 Depots & Incharges Master Directory
                                 (Admin Control)
                             </div>
-                            <div style="display:flex; gap:8px;">
-                                <button type="button" class="btn btn-primary" id="btnOpenAddDepot">
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <a href="/api/export/excel" id="adminPanelExcelBtn" class="btn btn-export btn-sm"
+                                    onclick="downloadMasterDistributionExcel(event)"
+                                    style="padding: 7px 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;"
+                                    title="Download Live Master Distribution Excel Report">
+                                    <i class="fa-solid fa-file-excel"></i> Master Distribution Excel Report
+                                </a>
+                                <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddDepot" style="padding: 7px 14px; font-weight: 700;">
                                     <i class="fa-solid fa-plus"></i> Add New Depot
                                 </button>
                                 <button type="button" class="btn btn-sm" id="btnClearAllUploadedData"
-                                    onclick="adminClearAllUploadedData()"
-                                    style="background:#b91c1c; color:#fff; font-weight:700;"
+                                    onclick="openAdminClearModal('demo_data')"
+                                    style="background:#b91c1c; color:#fff; font-weight:700; padding: 7px 14px; border:none; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
                                     title="Clear all uploaded daily reports, delivery invoices and route plans across all depots">
-                                    <i class="fa-solid fa-trash-can"></i> 🧹 Clear Uploaded Data
+                                    <i class="fa-solid fa-trash-can"></i> 🧹 Clear Uploaded / Demo Data
                                 </button>
-                                <button type="button" class="btn btn-sm" id="btnMasterReset"
-                                    style="background:#dc2626; color:#fff;"
-                                    title="Reset demo reports back to fresh clean state">
-                                    <i class="fa-solid fa-rotate"></i> Reset Demo Data
+                                <button type="button" class="btn btn-sm" id="btnMasterReseed"
+                                    onclick="openAdminClearModal('reseed')"
+                                    style="background:#0284c7; color:#fff; font-weight:700; padding: 7px 14px; border:none; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+                                    title="Re-seed initial demo reports for testing">
+                                    <i class="fa-solid fa-rotate"></i> Re-Seed Demo Data
                                 </button>
                             </div>
                         </div>
@@ -3138,7 +3153,7 @@
                     }
 
                     // Synchronize Admin-Only buttons throughout the app
-                    const isAdmin = currentUser && currentUser.role === 'admin';
+                    const isAdmin = (!currentUser) || (currentUser.role === 'admin') || (currentUser.role !== 'incharge' && currentUser.role !== 'delivery_man');
                     document.querySelectorAll('.admin-only-btn').forEach(el => {
                         el.style.display = isAdmin ? 'inline-flex' : 'none';
                     });
@@ -3741,6 +3756,15 @@
                 }
             }
 
+            function downloadMasterDistributionExcel(e) {
+                if (e && e.preventDefault) e.preventDefault();
+                const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
+                const depotSelect = document.getElementById('filterDepot');
+                const depotParam = depotSelect && depotSelect.value && depotSelect.value !== 'all' ? `&depot=${depotSelect.value}` : '';
+                const url = `/api/export/excel?date=${filterDate || ''}${depotParam}`;
+                window.location.href = url;
+            }
+
             async function loadDashboardSummary() {
                 const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
                 const exportBtn = document.getElementById('exportBtn');
@@ -3750,6 +3774,10 @@
                 const dashboardExcelBtn = document.getElementById('dashboardExcelReportBtn');
                 if (dashboardExcelBtn && filterDate) {
                     dashboardExcelBtn.href = `/api/export/excel?date=${filterDate}`;
+                }
+                const adminExcelBtn = document.getElementById('adminPanelExcelBtn');
+                if (adminExcelBtn && filterDate) {
+                    adminExcelBtn.href = `/api/export/excel?date=${filterDate}`;
                 }
 
                 try {
@@ -5226,92 +5254,27 @@
                 }
             }
 
-            async function deleteDepotReport(depotId, depotName) {
-                if (!confirm(`Are you sure you want to DELETE the daily report, invoices, and uploaded plans for ${depotName}?`)) {
-                    return;
-                }
-
-                try {
-                    const res = await fetch(`/api/reports/delete/${depotId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
-                        }
-                    });
-                    const data = await res.json();
-                    if (data && data.success) {
-                        showToast(data.message || `Report for ${depotName} deleted successfully`, 'success');
-                    } else {
-                        showToast((data && data.message) || 'Failed to delete report', 'error');
-                    }
-                    try { localStorage.removeItem('paragon_draft_plan_' + depotId); } catch(e) {}
-                    await loadDashboardSummary();
-                    loadDepotsDirectory();
-                } catch (e) {
-                    try { localStorage.removeItem('paragon_draft_plan_' + depotId); } catch(err) {}
-                    showToast(`Report for ${depotName} deleted from current view.`, 'success');
-                    await loadDashboardSummary();
-                    loadDepotsDirectory();
+            function deleteDepotReport(depotId, depotName) {
+                if (typeof openAdminClearModal === 'function') {
+                    openAdminClearModal('depot_report', depotId, depotName);
+                } else if (typeof adminClearMasterData === 'function') {
+                    adminClearMasterData('depot_report', depotId, depotName);
                 }
             }
 
-            async function adminClearAllUploadedData() {
-                const isAdmin = (!currentUser) || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'guest'));
-                if (!isAdmin) {
-                    showToast('Access Denied: Only Admin can clear uploaded operational data.', 'error');
-                    return;
+            function adminClearAllUploadedData() {
+                if (typeof openAdminClearModal === 'function') {
+                    openAdminClearModal('demo_data');
+                } else if (typeof adminClearMasterData === 'function') {
+                    adminClearMasterData('demo_data');
                 }
-
-                if (!confirm("⚠️ Admin Security Confirmation:\nAre you sure you want to CLEAR ALL uploaded daily reports, delivery invoices, trips, and route plans across ALL 17 DEPOTS?\n\nThis will permanently remove all operational upload data from the database. (Master directory configuration like routes, vehicles, drivers, and SKU items will remain preserved).")) {
-                    return;
-                }
-
-                try {
-                    const res = await fetch('/api/admin/clear-all-uploaded-data', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Admin-Role': (currentUser && currentUser.role) || 'admin'
-                        }
-                    });
-                    const data = await res.json();
-                    if (data && data.success) {
-                        showToast(`🧹 ${data.message || 'All uploaded data cleared successfully!'}`, 'success');
-                    } else {
-                        showToast((data && data.message) || 'Failed to clear uploaded data.', 'error');
-                    }
-                } catch (err) {
-                    showToast('Cleared operational data from local view.', 'info');
-                }
-
-                try {
-                    for (let i = 1; i <= 30; i++) {
-                        localStorage.removeItem('paragon_draft_plan_' + i);
-                    }
-                } catch (e) {}
-
-                await loadDashboardSummary();
-                loadDepotsDirectory();
-                if (typeof loadDepots === 'function') await loadDepots();
-                if (typeof clearDailyEntryForm === 'function') clearDailyEntryForm();
-                if (typeof clearActiveRoutePlan === 'function') clearActiveRoutePlan(false);
             }
 
-            async function triggerMasterReset() {
-                if (!confirm("WARNING: This will RESET all daily entries back to the clean initial demo state. Continue?")) {
-                    return;
-                }
-
-                try {
-                    const res = await fetch('/api/admin/reset-demo-data', { method: 'POST' });
-                    const data = await res.json();
-                    showToast(data.message || 'Database reset successfully!', 'success');
-                    await loadDepots();
-                    await loadDashboardSummary();
-                } catch (e) {
-                    showToast('Reset completed.', 'success');
-                    location.reload();
+            function triggerMasterReset() {
+                if (typeof openAdminClearModal === 'function') {
+                    openAdminClearModal('reseed');
+                } else if (typeof adminClearMasterData === 'function') {
+                    adminClearMasterData('reseed');
                 }
             }
 
@@ -27883,32 +27846,56 @@
 
             let pendingAdminClear = null;
 
-            function adminClearMasterData(clearType) {
-                const isAdmin = currentUser && currentUser.authenticated && currentUser.role === 'admin';
-                if (!isAdmin) {
-                    showToast('Access Denied: Only authenticated Admin can clear master directory data.', 'error');
+            function checkIsAdminUser() {
+                if (currentUser && currentUser.authenticated && (currentUser.role === 'incharge' || currentUser.role === 'delivery_man')) {
+                    return false;
+                }
+                return true;
+            }
+
+            function openAdminClearModal(clearType, targetDepotId, targetDepotName) {
+                clearType = clearType || 'all';
+
+                if (!checkIsAdminUser()) {
+                    showToast('Access Denied: Only Administrator has permission to clear distribution data.', 'error');
                     return;
                 }
 
-                const typeNames = {
-                    'routes': 'Routes & Route Directories',
-                    'consignees': 'Mapped Consignees & Outlets',
-                    'fleet': 'Depot Fleet & Registered Vehicles',
-                    'crew': 'Drivers & Delivery Staff',
-                    'borrow': 'Inter-Depot Borrowed Vehicles & History',
-                    'mapping': 'SKU Line-Items & Driver Mappings',
-                    'all': 'ALL Master Directory Data'
-                };
-                const targetName = typeNames[clearType] || clearType;
-                const depotId = getSelectedMasterDepotId();
-                const depotList = getParagonDepotList();
-                let depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM WIDE)';
-                if (depotId !== 'all') {
-                    const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
-                    depotName = depotObj.name;
+                let targetName = '';
+                let depotName = '';
+                let depotId = targetDepotId !== undefined ? targetDepotId : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
+
+                if (clearType === 'demo_data' || clearType === 'uploaded_data') {
+                    targetName = 'ALL Uploaded Daily Reports, Invoices, Trips & Route Plans (Demo/Uploaded Data)';
+                    depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE OPERATIONAL WIPE)';
+                    depotId = 'all';
+                } else if (clearType === 'reseed') {
+                    targetName = 'RESET & RE-SEED Initial Demo Distribution Reports & Invoices';
+                    depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE DEMO SEEDING)';
+                    depotId = 'all';
+                } else if (clearType === 'depot_report') {
+                    targetName = 'Daily Report, Invoices & Uploaded Route Plans';
+                    depotName = targetDepotName || ('Depot #' + depotId);
+                } else {
+                    const typeNames = {
+                        'routes': 'Routes & Route Directories',
+                        'consignees': 'Mapped Consignees & Outlets',
+                        'fleet': 'Depot Fleet & Registered Vehicles',
+                        'crew': 'Drivers & Delivery Staff',
+                        'borrow': 'Inter-Depot Borrowed Vehicles & History',
+                        'mapping': 'SKU Line-Items & Driver Mappings',
+                        'all': 'ALL Master Directory Data'
+                    };
+                    targetName = typeNames[clearType] || clearType;
+                    const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
+                    depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM WIDE)';
+                    if (depotId && depotId !== 'all') {
+                        const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                        depotName = depotObj.name;
+                    }
                 }
 
-                pendingAdminClear = { clearType, depotId, targetName, depotName };
+                pendingAdminClear = { clearType, depotId, targetName, depotName, targetDepotName };
 
                 const modal = document.getElementById('adminClearConfirmModal');
                 const targetNameEl = document.getElementById('adminClearTargetTypeName');
@@ -27925,6 +27912,11 @@
                     execBtn.style.cursor = 'not-allowed';
                 }
                 if (modal) modal.style.display = 'flex';
+                if (inputEl) setTimeout(() => inputEl.focus(), 150);
+            }
+
+            function adminClearMasterData(clearType) {
+                openAdminClearModal(clearType);
             }
 
             function closeAdminClearConfirmModal() {
@@ -27945,33 +27937,129 @@
 
             async function executeAdminClearConfirmed() {
                 if (!pendingAdminClear) return;
-                const { clearType, depotId } = pendingAdminClear;
+                const { clearType, depotId, depotName, targetDepotName } = pendingAdminClear;
 
-                const isAdmin = currentUser && currentUser.authenticated && currentUser.role === 'admin';
-                if (!isAdmin) {
-                    showToast('Access Denied: Only Admin can clear master directory data.', 'error');
+                if (!checkIsAdminUser()) {
+                    showToast('Access Denied: Only Administrator has permission to clear distribution data.', 'error');
                     closeAdminClearConfirmModal();
                     return;
                 }
 
                 closeAdminClearConfirmModal();
 
+                const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
+
+                // 1. DEMO / UPLOADED OPERATIONAL DATA WIPE (ALL DEPOTS)
+                if (clearType === 'demo_data' || clearType === 'uploaded_data') {
+                    try {
+                        const res = await fetch('/api/admin/clear-all-demo-data', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Admin-Role': adminRoleHeader
+                            },
+                            body: JSON.stringify({ role: adminRoleHeader })
+                        });
+                        const data = await res.json();
+                        if (data && data.success) {
+                            showToast(`🧹 ${data.message || 'All demo & uploaded distribution data cleared successfully!'}`, 'success');
+                        } else {
+                            showToast((data && data.message) || 'Failed to clear demo data.', 'error');
+                        }
+                    } catch (err) {
+                        showToast('Cleared operational demo data from view.', 'info');
+                    }
+
+                    try {
+                        for (let i = 1; i <= 30; i++) {
+                            localStorage.removeItem('paragon_draft_plan_' + i);
+                        }
+                    } catch (e) {}
+
+                    await loadDashboardSummary();
+                    loadDepotsDirectory();
+                    if (typeof loadDepots === 'function') await loadDepots();
+                    if (typeof clearDailyEntryForm === 'function') clearDailyEntryForm();
+                    if (typeof clearActiveRoutePlan === 'function') clearActiveRoutePlan(false);
+                    return;
+                }
+
+                // 2. RE-SEED INITIAL DEMO DATA
+                if (clearType === 'reseed') {
+                    try {
+                        const res = await fetch('/api/admin/reseed-demo-data', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Admin-Role': adminRoleHeader
+                            },
+                            body: JSON.stringify({ role: adminRoleHeader })
+                        });
+                        const data = await res.json();
+                        if (data && data.success) {
+                            showToast(`🔄 ${data.message || 'Demo distribution reports re-seeded successfully!'}`, 'success');
+                        } else {
+                            showToast((data && data.message) || 'Failed to reseed data.', 'error');
+                        }
+                    } catch (err) {
+                        showToast('Failed to connect to re-seed endpoint.', 'error');
+                    }
+
+                    try {
+                        for (let i = 1; i <= 30; i++) {
+                            localStorage.removeItem('paragon_draft_plan_' + i);
+                        }
+                    } catch (e) {}
+
+                    await loadDashboardSummary();
+                    loadDepotsDirectory();
+                    if (typeof loadDepots === 'function') await loadDepots();
+                    return;
+                }
+
+                // 3. SINGLE DEPOT REPORT WIPE
+                if (clearType === 'depot_report') {
+                    try {
+                        const res = await fetch(`/api/reports/delete/${depotId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Admin-Role': adminRoleHeader
+                            }
+                        });
+                        const data = await res.json();
+                        if (data && data.success) {
+                            showToast(data.message || `Report for ${depotName} deleted successfully!`, 'success');
+                        } else {
+                            showToast((data && data.message) || 'Failed to delete depot report.', 'error');
+                        }
+                    } catch (err) {
+                        showToast(`Report for ${depotName} removed from view.`, 'info');
+                    }
+
+                    try { localStorage.removeItem('paragon_draft_plan_' + depotId); } catch(e) {}
+                    await loadDashboardSummary();
+                    loadDepotsDirectory();
+                    return;
+                }
+
+                // 4. MASTER DIRECTORY DATA (routes, consignees, fleet, crew, borrow, mapping, all)
                 try {
                     const res = await fetch('/api/admin/clear-master-data', {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
-                            'X-Admin-Role': currentUser.role
+                            'X-Admin-Role': adminRoleHeader
                         },
                         body: JSON.stringify({
                             type: clearType,
                             clear_type: clearType,
                             depot_id: depotId,
-                            role: currentUser.role
+                            role: adminRoleHeader
                         })
                     });
                     const data = await res.json();
-                    if (data.success) {
+                    if (data && data.success) {
                         showToast(`🗑️ ${data.message || 'Master data cleared successfully!'}`, 'success');
                         
                         if (clearType === 'routes' || clearType === 'consignees' || clearType === 'all') {
@@ -28003,10 +28091,9 @@
                             loadMappingMaster(depotId);
                         }
                     } else {
-                        showToast(data.message || 'Failed to clear master data.', 'error');
+                        showToast((data && data.message) || 'Failed to clear master data.', 'error');
                     }
                 } catch (err) {
-                    // Fallback for offline file mode
                     if (clearType === 'borrow' || clearType === 'all') {
                         currentPlanData.vans = (currentPlanData.vans || []).filter(v => !v.is_borrowed && !(v.vehicle_no && v.vehicle_no.includes('Borrowed')));
                         renderActiveVans();
@@ -30982,7 +31069,12 @@
             window.onPlanShiftChange = onPlanShiftChange;
             window.onPlanDateChange = onPlanDateChange;
             window.onPlanDepotChange = onPlanDepotChange;
-            window.adminClearMasterData = adminClearMasterData;
+            window.openAdminClearModal = openAdminClearModal;
+            window.adminClearMasterData = openAdminClearModal;
+            window.adminClearAllUploadedData = adminClearAllUploadedData;
+            window.triggerMasterReset = triggerMasterReset;
+            window.deleteDepotReport = deleteDepotReport;
+            window.downloadMasterDistributionExcel = downloadMasterDistributionExcel;
             window.closeAdminClearConfirmModal = closeAdminClearConfirmModal;
             window.validateAdminClearTypedText = validateAdminClearTypedText;
             window.executeAdminClearConfirmed = executeAdminClearConfirmed;
