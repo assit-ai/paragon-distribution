@@ -78,6 +78,9 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            row-gap: 14px;
+            column-gap: 16px;
             background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
@@ -91,6 +94,7 @@
             display: flex;
             align-items: center;
             gap: 14px;
+            flex-shrink: 0;
         }
 
         .logo-badge {
@@ -121,19 +125,21 @@
         /* NAV TABS */
         .nav-tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             background: var(--bg-primary);
             padding: 5px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            max-width: 100%;
         }
 
         .nav-tab {
             background: transparent;
             border: none;
             color: var(--text-muted);
-            padding: 8px 18px;
-            font-size: 0.9rem;
+            padding: 8px 16px;
+            font-size: 0.88rem;
             font-weight: 600;
             font-family: var(--font-main);
             border-radius: var(--radius-sm);
@@ -142,6 +148,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
         }
 
         .nav-tab:hover {
@@ -159,7 +166,10 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
+            flex-shrink: 0;
+            margin-left: auto;
+            flex-wrap: wrap;
         }
 
         .date-selector {
@@ -202,14 +212,25 @@
         }
 
         .btn-export {
-            background: #166534;
-            color: #ffffff;
+            background: linear-gradient(135deg, #166534, #15803d);
+            color: #ffffff !important;
             border: 1px solid #22c55e;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 10px rgba(34, 197, 94, 0.25);
+            text-decoration: none;
+            transition: all 0.2s ease;
         }
 
         .btn-export:hover {
-            background: #15803d;
-            box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+            background: linear-gradient(135deg, #15803d, #16a34a);
+            box-shadow: 0 0 16px rgba(34, 197, 94, 0.45);
+            color: #ffffff !important;
+            transform: translateY(-1px);
         }
 
         .btn-primary {
@@ -1494,8 +1515,8 @@
                         <label for="filterDate"><i class="fa-regular fa-calendar"></i> Date:</label>
                         <input type="date" id="filterDate">
                     </div>
-                    <a href="/api/export/excel" id="exportBtn" class="btn btn-export">
-                        <i class="fa-solid fa-file-excel"></i> Export Master Excel
+                    <a href="/api/export/excel" id="exportBtn" class="btn btn-export" title="Download Master Distribution Excel Report">
+                        <i class="fa-solid fa-file-excel"></i> Excel Report
                     </a>
                 </div>
             </header>
@@ -1596,6 +1617,12 @@
                             <i class="fa-solid fa-chart-line text-green"></i> Showing: <strong>All 17 Depots
                                 Consolidated</strong>
                         </span>
+
+                        <a href="/api/export/excel" id="dashboardExcelReportBtn" class="btn btn-export btn-sm"
+                            style="display:inline-flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap; padding:6px 14px; text-decoration:none;"
+                            title="Download Master Distribution Excel Report for selected date">
+                            <i class="fa-solid fa-file-excel"></i> Excel Report
+                        </a>
                     </div>
 
                     <!-- 6 High-Impact KPI Cards -->
@@ -1677,6 +1704,71 @@
                             <div class="kpi-footer"><i class="fa-solid fa-lock"></i> <strong>Click for Zero-Theft Rules
                                     &raquo;</strong></div>
                         </a>
+                    </div>
+
+                    <!-- Admin-Only Section: Depot Daily Entry Compliance & Submission Summary -->
+                    <div class="card table-card" id="dailyEntrySummaryCard" style="display: none; margin-bottom: 24px; border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+                        <div class="card-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                            <div>
+                                <div class="card-title" style="font-size: 1.12rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-calendar-check text-cyan"></i> Depot Daily Entry Compliance & Submission Summary (Admin Only)
+                                </div>
+                                <p style="font-size: 0.82rem; color: #94a3b8; margin: 3px 0 0;">
+                                    Real-time tracking of incharge submissions for selected date. Click any depot/user row to navigate directly to its detailed Daily Entry & Reconciliation view.
+                                </p>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <!-- KPI Counters -->
+                                <div id="entrySummaryKPIBadges" style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="badge" id="badgeSummaryDone" style="background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid #22c55e; font-size: 0.82rem; padding: 5px 12px; border-radius: 20px; font-weight: 700;">
+                                        <i class="fa-solid fa-circle-check"></i> <span id="summaryDoneCount">0</span> / 17 Done
+                                    </span>
+                                    <span class="badge" id="badgeSummaryPending" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid #ef4444; font-size: 0.82rem; padding: 5px 12px; border-radius: 20px; font-weight: 700;">
+                                        <i class="fa-solid fa-clock"></i> <span id="summaryPendingCount">0</span> Pending
+                                    </span>
+                                </div>
+
+                                <!-- Quick Filter Pills -->
+                                <div class="btn-group" style="display: inline-flex; background: #0b1329; border: 1px solid #334155; border-radius: 6px; padding: 2px;">
+                                    <button type="button" class="btn btn-sm summary-filter-pill active" id="filterSummaryAll" onclick="filterDailyEntrySummary('all')" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: var(--primary-blue); color: #fff; border-radius: 4px; border:none; cursor:pointer;">
+                                        All (17)
+                                    </button>
+                                    <button type="button" class="btn btn-sm summary-filter-pill" id="filterSummaryDone" onclick="filterDailyEntrySummary('done')" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #94a3b8; border-radius: 4px; border:none; cursor:pointer;">
+                                        Done
+                                    </button>
+                                    <button type="button" class="btn btn-sm summary-filter-pill" id="filterSummaryPending" onclick="filterDailyEntrySummary('pending')" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #94a3b8; border-radius: 4px; border:none; cursor:pointer;">
+                                        Pending Only
+                                    </button>
+                                </div>
+
+                                <!-- Excel Report Button for Compliance Summary -->
+                                <button type="button" class="btn btn-export btn-sm" id="btnExportComplianceExcel" onclick="exportDailyEntrySummaryToExcel()" style="padding: 6px 14px; font-weight: 700; font-size: 0.82rem;" title="Download Depot Daily Entry Compliance Summary as Excel">
+                                    <i class="fa-solid fa-file-excel"></i> Excel Report
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table" id="dailyEntrySummaryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Depot / Plant & Incharge User</th>
+                                        <th>Product Category</th>
+                                        <th>Region</th>
+                                        <th class="text-center">Submission Status</th>
+                                        <th class="text-center">Pending Days</th>
+                                        <th class="text-center">Last Entry Date</th>
+                                        <th class="text-right">Gross Dispatched (৳)</th>
+                                        <th class="text-right">Delivered Net (৳)</th>
+                                        <th class="text-center">Action / Hyperlink</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dailyEntrySummaryTbody">
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Section 1: Depot Performance Table -->
@@ -1891,9 +1983,9 @@
                                     <i class="fa-solid fa-print"></i> Print Run Sheets
                                 </button>
 
-                                <button type="button" class="btn btn-outline" onclick="exportCurrentPlanToExcel()"
-                                    style="border-color: #22c55e; color: #4ade80; padding: 9px 14px; font-weight: 700; font-size: 0.85rem;">
-                                    <i class="fa-solid fa-download"></i> Export Excel
+                                <button type="button" class="btn btn-export" id="planExcelReportBtn" onclick="exportCurrentPlanToExcel()"
+                                    style="padding: 9px 16px; font-weight: 700; font-size: 0.85rem;" title="Download Route Plan & Van Dispatch Run-Sheets as Excel">
+                                    <i class="fa-solid fa-file-excel"></i> Excel Report
                                 </button>
                             </div>
                         </div>
@@ -2162,10 +2254,15 @@
                                 <i class="fa-solid fa-file-signature text-cyan"></i> Daily Distribution & Reconciliation
                                 Report (DDR) Entry
                             </div>
-                            <button type="button" class="btn btn-export btn-sm" id="inchargeDownloadBtn"
-                                style="display:none;">
-                                <i class="fa-solid fa-file-arrow-down"></i> Download My Daily Report (Excel)
-                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="btn btn-export btn-sm" id="entryExcelReportBtn" onclick="downloadCurrentDepotReportExcel()" style="padding: 6px 14px; font-weight: 700;" title="Download Daily Distribution Excel Report">
+                                    <i class="fa-solid fa-file-excel"></i> Excel Report
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" id="inchargeDownloadBtn"
+                                    style="display:none; border-color: #38bdf8; color: #38bdf8;">
+                                    <i class="fa-solid fa-file-arrow-down"></i> Download My Daily Report (Excel)
+                                </button>
+                            </div>
                         </div>
 
                         <form id="ddrForm" class="entry-form">
@@ -2463,7 +2560,7 @@
                                 </div>
                             </div>
 
-                            <!-- Right: Action Buttons (Refresh, Movement Simulator, Center Map) -->
+                            <!-- Right: Action Buttons (Refresh, Movement Simulator, Center Map, Excel Report) -->
                             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <button type="button" class="btn btn-sm btn-outline" id="btnRecenterTracking" onclick="recenterTrackingMap()" title="Fit Map to all vehicles & drops" style="padding: 7px 12px; font-size: 0.82rem; border-color: #475569;">
                                     <i class="fa-solid fa-crosshairs"></i> Center Bounds
@@ -2473,6 +2570,9 @@
                                 </button>
                                 <button type="button" class="btn btn-sm btn-primary" id="btnRefreshTracking" onclick="loadLiveTrackingData(true)" style="padding: 7px 14px; font-size: 0.82rem;">
                                     <i class="fa-solid fa-rotate" id="trackingSpinIcon"></i> Sync Live GPS
+                                </button>
+                                <button type="button" class="btn btn-sm btn-export" id="trackingExcelReportBtn" onclick="exportTrackingToExcel()" style="padding: 7px 14px; font-size: 0.82rem; font-weight:700;" title="Download Live Fleet Tracking Run-Sheet as Excel">
+                                    <i class="fa-solid fa-file-excel"></i> Excel Report
                                 </button>
                             </div>
                         </div>
@@ -3042,6 +3142,10 @@
                     document.querySelectorAll('.admin-only-btn').forEach(el => {
                         el.style.display = isAdmin ? 'inline-flex' : 'none';
                     });
+                    const dailyEntrySummaryCard = document.getElementById('dailyEntrySummaryCard');
+                    if (dailyEntrySummaryCard) {
+                        dailyEntrySummaryCard.style.display = isAdmin ? 'block' : 'none';
+                    }
                 }
             }
 
@@ -3461,11 +3565,191 @@
                 populateFilterDepotsDropdown();
             }
 
+            // ================= DEPOT DAILY ENTRY SUMMARY (ADMIN ONLY) =================
+            let currentDailyEntrySummaryData = [];
+            let currentDailyEntrySummaryFilter = 'all';
+
+            function renderDailyEntrySummaryTable(summaryList, filterType) {
+                if (summaryList) {
+                    currentDailyEntrySummaryData = summaryList;
+                }
+                if (filterType) {
+                    currentDailyEntrySummaryFilter = filterType;
+                }
+
+                const tbody = document.getElementById('dailyEntrySummaryTbody');
+                if (!tbody) return;
+
+                const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
+                const totalDepots = currentDailyEntrySummaryData.length || 17;
+                const doneCount = currentDailyEntrySummaryData.filter(d => d.status === 'Done').length;
+                const pendingCount = totalDepots - doneCount;
+
+                // Update KPI Badges
+                const doneBadge = document.getElementById('summaryDoneCount');
+                if (doneBadge) doneBadge.textContent = doneCount;
+                const pendingBadge = document.getElementById('summaryPendingCount');
+                if (pendingBadge) pendingBadge.textContent = pendingCount;
+
+                const filterBtnAll = document.getElementById('filterSummaryAll');
+                if (filterBtnAll) filterBtnAll.textContent = `All (${totalDepots})`;
+
+                // Filter list
+                let filtered = currentDailyEntrySummaryData;
+                if (currentDailyEntrySummaryFilter === 'done') {
+                    filtered = filtered.filter(d => d.status === 'Done');
+                } else if (currentDailyEntrySummaryFilter === 'pending') {
+                    filtered = filtered.filter(d => d.status === 'Pending');
+                }
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 24px; color:#94a3b8;"><i class="fa-solid fa-circle-info"></i> No depots match current filter (${currentDailyEntrySummaryFilter.toUpperCase()}).</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map(item => {
+                    const isDone = item.status === 'Done';
+                    const statusBadge = isDone
+                        ? `<span class="badge" style="background:rgba(34, 197, 94, 0.2); color:#4ade80; border:1px solid #22c55e; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-circle-check"></i> Done</span>`
+                        : `<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-clock"></i> Pending</span>`;
+
+                    let pendingDaysBadge;
+                    if (isDone) {
+                        pendingDaysBadge = `<span style="color:#4ade80; font-weight:700; font-size:0.82rem;"><i class="fa-solid fa-check-double"></i> Up to Date</span>`;
+                    } else if (item.pending_days > 1) {
+                        pendingDaysBadge = `<span class="badge" style="background:rgba(239, 68, 68, 0.15); color:#f87171; border:1px solid rgba(239, 68, 68, 0.4); font-weight:800; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-triangle-exclamation"></i> ${item.pending_days} Days Pending</span>`;
+                    } else {
+                        pendingDaysBadge = `<span class="badge" style="background:rgba(245, 158, 11, 0.15); color:#fbbf24; border:1px solid rgba(245, 158, 11, 0.4); font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-hourglass-half"></i> 1 Day Pending</span>`;
+                    }
+
+                    const lastDateFormatted = item.last_entry_date && item.last_entry_date !== 'Never'
+                        ? `<span style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; color:#cbd5e1;">${item.last_entry_date}</span>`
+                        : `<span style="color:#64748b; font-style:italic; font-size:0.78rem;">No prior record</span>`;
+
+                    const dispatchedFormatted = isDone ? `৳ ${(item.dispatched_val || 0).toLocaleString()}` : '<span style="color:#64748b;">—</span>';
+                    const deliveredFormatted = isDone ? `৳ ${(item.delivered_val || 0).toLocaleString()}` : '<span style="color:#64748b;">—</span>';
+
+                    return `
+                        <tr style="cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='rgba(56, 189, 248, 0.08)'" onmouseout="this.style.background=''" onclick="navigateToDepotDailyEntry('${item.depot_id}', '${filterDate}')">
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:34px; height:34px; border-radius:8px; background:rgba(56, 189, 248, 0.12); border:1px solid #38bdf8; display:flex; align-items:center; justify-content:center; color:#38bdf8; font-weight:800; font-size:0.85rem;">
+                                        <i class="fa-solid fa-warehouse"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:700; color:#f8fafc; font-size:0.88rem;">${item.depot_name}</div>
+                                        <div style="font-size:0.75rem; color:#94a3b8;">
+                                            <i class="fa-solid fa-user-tie"></i> ${item.incharge_name || 'Incharge'} <span style="color:#38bdf8;">(@${item.incharge_username || 'user'})</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span style="font-size:0.82rem; color:#cbd5e1; font-weight:600;">${item.channel}</span></td>
+                            <td><span class="badge" style="background:#1e293b; color:#94a3b8; border:1px solid #334155; font-size:0.75rem; border-radius:4px;">${item.region}</span></td>
+                            <td class="text-center">${statusBadge}</td>
+                            <td class="text-center">${pendingDaysBadge}</td>
+                            <td class="text-center">${lastDateFormatted}</td>
+                            <td class="text-right" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; font-weight:600; color:#38bdf8;">${dispatchedFormatted}</td>
+                            <td class="text-right" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; font-weight:600; color:#4ade80;">${deliveredFormatted}</td>
+                            <td class="text-center">
+                                <a href="javascript:void(0)" onclick="event.stopPropagation(); navigateToDepotDailyEntry('${item.depot_id}', '${filterDate}')"
+                                   class="btn btn-sm" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4); border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;"
+                                   title="View Daily Entry & Reconciliation for ${item.depot_name}">
+                                    <span>Open DDR</span> <i class="fa-solid fa-arrow-right"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function filterDailyEntrySummary(type) {
+                currentDailyEntrySummaryFilter = type;
+                document.querySelectorAll('.summary-filter-pill').forEach(btn => {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#94a3b8';
+                });
+                if (type === 'all') {
+                    const btn = document.getElementById('filterSummaryAll');
+                    if (btn) { btn.style.background = 'var(--primary-blue)'; btn.style.color = '#fff'; }
+                } else if (type === 'done') {
+                    const btn = document.getElementById('filterSummaryDone');
+                    if (btn) { btn.style.background = 'var(--primary-blue)'; btn.style.color = '#fff'; }
+                } else if (type === 'pending') {
+                    const btn = document.getElementById('filterSummaryPending');
+                    if (btn) { btn.style.background = 'var(--primary-blue)'; btn.style.color = '#fff'; }
+                }
+                renderDailyEntrySummaryTable();
+            }
+
+            function navigateToDepotDailyEntry(depotId, dateStr) {
+                // Switch to entry-tab
+                const entryTabNav = document.querySelector('.nav-tab[data-tab="entry-tab"]');
+                if (entryTabNav) {
+                    entryTabNav.click();
+                }
+
+                setTimeout(() => {
+                    const depotSelect = document.getElementById('entryDepot');
+                    if (depotSelect && depotId) {
+                        depotSelect.value = depotId;
+                        depotSelect.dispatchEvent(new Event('change'));
+                    }
+
+                    if (dateStr) {
+                        const dateInput = document.getElementById('entryDate');
+                        if (dateInput) {
+                            dateInput.value = dateStr;
+                            dateInput.dispatchEvent(new Event('change'));
+                        }
+                    }
+
+                    if (typeof loadDailyReportForDepot === 'function') {
+                        loadDailyReportForDepot(depotId, dateStr);
+                    }
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
+            }
+
+            function exportDailyEntrySummaryToExcel() {
+                const dateStr = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
+                window.location.href = `/api/export/excel?date=${dateStr}`;
+            }
+
+            function downloadCurrentDepotReportExcel() {
+                const depotSelect = document.getElementById('entryDepot');
+                const depotId = depotSelect ? depotSelect.value : '';
+                const dateInput = document.getElementById('entryDate');
+                const dateStr = dateInput ? dateInput.value : '';
+
+                if (depotId) {
+                    window.location.href = `/api/export/excel?depot=${depotId}&date=${dateStr}`;
+                } else {
+                    window.location.href = `/api/export/excel?date=${dateStr}`;
+                }
+            }
+
+            function exportTrackingToExcel() {
+                const trackingDepotSelect = document.getElementById('trackingDepotSelect');
+                const depotVal = trackingDepotSelect ? trackingDepotSelect.value : 'ALL';
+                const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
+                if (depotVal && depotVal !== 'ALL') {
+                    window.location.href = `/api/export/excel?depot=${depotVal}&date=${filterDate}`;
+                } else {
+                    window.location.href = `/api/export/excel?date=${filterDate}`;
+                }
+            }
+
             async function loadDashboardSummary() {
                 const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
                 const exportBtn = document.getElementById('exportBtn');
                 if (exportBtn && filterDate) {
                     exportBtn.href = `/api/export/excel?date=${filterDate}`;
+                }
+                const dashboardExcelBtn = document.getElementById('dashboardExcelReportBtn');
+                if (dashboardExcelBtn && filterDate) {
+                    dashboardExcelBtn.href = `/api/export/excel?date=${filterDate}`;
                 }
 
                 try {
@@ -3474,6 +3758,9 @@
                         const data = await res.json();
                         masterDashboardData = data;
                         applyDashboardFilters();
+                        if (data.daily_entry_summary) {
+                            renderDailyEntrySummaryTable(data.daily_entry_summary);
+                        }
                         return;
                     }
                 } catch (err) {
@@ -30726,6 +31013,11 @@
             window.submitNewCrewMaster = submitNewCrewMaster;
             window.deleteCrewMaster = deleteCrewMaster;
             window.onCrewRoleChange = onCrewRoleChange;
+            window.navigateToDepotDailyEntry = navigateToDepotDailyEntry;
+            window.filterDailyEntrySummary = filterDailyEntrySummary;
+            window.exportDailyEntrySummaryToExcel = exportDailyEntrySummaryToExcel;
+            window.downloadCurrentDepotReportExcel = downloadCurrentDepotReportExcel;
+            window.exportTrackingToExcel = exportTrackingToExcel;
             window.onCrewVehicleSelectChange = onCrewVehicleSelectChange;
             window.populateCrewVehicleOptions = populateCrewVehicleOptions;
             window.handleBulkUpload = handleBulkUpload;

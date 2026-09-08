@@ -216,6 +216,69 @@ def seed_database(cursor):
     VALUES (100, 'rider_tejgaon', 'rider123', 'delivery_man', 1, 'Tejgaon Van Rider (Selim)')
     ''')
 
+    seed_sample_daily_reports(cursor)
+
+def seed_sample_daily_reports(cursor):
+    today = datetime.date.today()
+    today_str = today.strftime('%Y-%m-%d')
+    d1_str = (today - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    d2_str = (today - datetime.timedelta(days=2)).strftime('%Y-%m-%d')
+    d3_str = (today - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
+    d4_str = (today - datetime.timedelta(days=4)).strftime('%Y-%m-%d')
+
+    sample_reports = [
+        # (depot_id, report_date, incharge_name, shift, total_veh, total_inv, util_pct, disp_val, deliv_val, ret_val, stock_var, cash_var, adj_stat, audit_stat, status)
+        (1, today_str, 'Sajedul Islam (AM)', 'Day Shift', 4, 42, 88.5, 145000, 142000, 3000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (2, today_str, 'Delower (AM Dist)', 'Day Shift', 3, 36, 85.0, 98000, 96500, 1500, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (3, today_str, 'Mahmud (Sr. Officer)', 'Day Shift', 5, 58, 92.0, 220000, 216000, 4000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (4, d1_str, 'Rafiqul (Officer)', 'Day Shift', 3, 28, 80.0, 105000, 103000, 2000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (5, d3_str, 'Incharge Vacant', 'Day Shift', 1, 12, 70.0, 35000, 34000, 1000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (6, today_str, 'Dist & Acc Officer', 'Day Shift', 2, 24, 78.0, 75000, 73500, 1500, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (7, today_str, 'Sabbir (Dist Officer)', 'Day Shift', 6, 72, 94.0, 310000, 304000, 6000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (8, today_str, 'Shahin (Officer)', 'Day Shift', 4, 65, 89.0, 185000, 182000, 3000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (9, today_str, 'Mushfik (Officer)', 'Day Shift', 7, 88, 95.0, 420000, 415000, 5000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (10, d2_str, 'Officer (Tea Dist)', 'Day Shift', 2, 18, 75.0, 62000, 60500, 1500, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (11, today_str, 'Mahmudul (AM)', 'Day Shift', 5, 62, 91.0, 195000, 191500, 3500, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (12, today_str, 'Shohag (Supervisor)', 'Day Shift', 3, 38, 83.0, 120000, 118000, 2000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (13, today_str, 'Monjurul (Asst Officer)', 'Day Shift', 4, 45, 87.0, 175000, 171500, 3500, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (14, d1_str, 'Monjurul (Asst Officer)', 'Day Shift', 2, 22, 79.0, 68000, 66500, 1500, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (15, today_str, 'Shohag (Supervisor)', 'Day Shift', 3, 30, 82.0, 110000, 108000, 2000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (16, d4_str, 'Shohag (Supervisor)', 'Day Shift', 1, 14, 68.0, 42000, 41000, 1000, 0, 0, '100% Adjusted', 'OK / Verified', 'active'),
+        (17, d2_str, 'Dist Officer', 'Day Shift', 2, 20, 76.0, 70000, 68500, 1500, 0, 0, '100% Adjusted', 'OK / Verified', 'active')
+    ]
+
+    for rep in sample_reports:
+        cursor.execute('''
+        INSERT INTO daily_reports (
+            depot_id, report_date, incharge_name, shift, total_vehicles, total_invoices,
+            capacity_util_pct, dispatched_gross_val, delivered_net_val, returned_val,
+            stock_mismatch_qty, cash_mismatch_val, adjustment_status, audit_status, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', rep)
+        report_id = cursor.lastrowid
+
+        # Sample trip
+        cursor.execute('''
+        INSERT INTO trips (
+            report_id, trip_no, vehicle_no, vehicle_type, driver_name, delivery_man,
+            route_name, planned_invoices, capacity_kg, loaded_kg, util_pct, trip_status, reefer_temp
+        ) VALUES (?, 'TRIP-01', 'DM-SHA-11-2041', '1.5 Ton Reefer Van', 'Md. Rafiq', 'Selim Hossain',
+                 'Route A - Primary Superstores', ?, 1500, 1350, 90.0, 'Completed', '-18°C')
+        ''', (report_id, rep[5]))
+        trip_id = cursor.lastrowid
+
+        # Sample invoice
+        cursor.execute('''
+        INSERT INTO invoices (
+            report_id, trip_id, invoice_no, customer_name, customer_code, customer_address,
+            customer_type, trip_no, product_category, sku_uom, dispatched_qty, dispatched_val,
+            delivery_status, delivered_qty, delivered_val, returned_qty, returned_val, return_reason,
+            collection_mode, amount_collected, reconciliation_status
+        ) VALUES (?, ?, 'INV-' || ?, 'Shwapno Superstore - Central Hub', 'CUST-001', 'Dhaka Central',
+                 'Superstore', 'TRIP-01', 'Consumer Products', 'Pkt', 250, ?, 'Delivered', 245, ?, 5, ?,
+                 'None', 'Bank / Online', ?, '100% Reconciled')
+        ''', (report_id, trip_id, report_id, rep[7], rep[8], rep[9], rep[8]))
+
 # Initialize DB on start if not present
 if not os.path.exists(DB_PATH):
     init_db()
@@ -226,6 +289,14 @@ else:
     c.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='users'")
     if c.fetchone()[0] == 0:
         init_db()
+    else:
+        try:
+            c.execute("SELECT COUNT(*) FROM daily_reports")
+            if c.fetchone()[0] == 0:
+                seed_sample_daily_reports(c)
+                conn.commit()
+        except Exception:
+            pass
     conn.close()
 
 def get_default_category_capacities(cap_val=1500, veh_type='Covered Van'):
@@ -853,6 +924,126 @@ def get_dashboard_summary():
             {"code": "R-06", "reason": "Route Delay / Traffic Breakdown", "qty_est": f"{round(tot_returned * 0.04 / 100)} Pkt/Kg", "invoices": max(1, round(tot_invoices * 0.01)), "val": round(tot_returned * 0.04), "pct": 3.8}
         ]
     
+    # Calculate Depot Daily Entry Compliance & Submission Summary for all 17 depots
+    incharge_users = conn.execute('''
+        SELECT 
+            d.id as depot_id,
+            d.name as depot_name,
+            d.slug as depot_slug,
+            d.category,
+            d.region,
+            d.incharge_name,
+            d.contact,
+            d.default_uom,
+            u.id as user_id,
+            u.username,
+            u.display_name as user_display_name
+        FROM depots d
+        LEFT JOIN users u ON d.id = u.depot_id AND u.role = 'incharge'
+        ORDER BY d.id ASC
+    ''').fetchall()
+
+    daily_entry_summary = []
+    total_done_entries = 0
+    total_pending_entries = 0
+
+    try:
+        target_date_obj = datetime.datetime.strptime(date_param, '%Y-%m-%d').date()
+    except Exception:
+        target_date_obj = datetime.date.today()
+
+    for dep in incharge_users:
+        dep_id = dep['depot_id']
+        # Check if active report exists for date_param
+        rep = conn.execute('''
+            SELECT id, report_date, incharge_name, shift, total_vehicles, total_invoices, 
+                   dispatched_gross_val, delivered_net_val, returned_val, status, created_at
+            FROM daily_reports
+            WHERE depot_id = ? AND report_date = ? AND status != 'cancelled'
+            ORDER BY id DESC LIMIT 1
+        ''', (dep_id, date_param)).fetchone()
+
+        if rep:
+            status = 'Done'
+            pending_days = 0
+            last_entry_date = date_param
+            total_done_entries += 1
+            entry_info = {
+                'depot_id': dep_id,
+                'depot_name': dep['depot_name'],
+                'depot_slug': dep['depot_slug'],
+                'category': dep['category'],
+                'region': dep['region'],
+                'incharge_name': rep['incharge_name'] or dep['incharge_name'],
+                'contact': dep['contact'],
+                'user_id': dep['user_id'],
+                'username': dep['username'] or dep['depot_slug'],
+                'user_display_name': dep['user_display_name'] or dep['incharge_name'],
+                'status': 'Done',
+                'pending_days': 0,
+                'last_entry_date': last_entry_date,
+                'report_id': rep['id'],
+                'total_vehicles': rep['total_vehicles'] or 0,
+                'total_invoices': rep['total_invoices'] or 0,
+                'dispatched_gross_val': rep['dispatched_gross_val'] or 0,
+                'delivered_net_val': rep['delivered_net_val'] or 0,
+                'returned_val': rep['returned_val'] or 0,
+                'submitted_at': str(rep['created_at']) if rep['created_at'] else None
+            }
+        else:
+            status = 'Pending'
+            total_pending_entries += 1
+            # Find the most recent entry before date_param
+            prior_rep = conn.execute('''
+                SELECT report_date, created_at FROM daily_reports
+                WHERE depot_id = ? AND report_date < ? AND status != 'cancelled'
+                ORDER BY report_date DESC LIMIT 1
+            ''', (dep_id, date_param)).fetchone()
+
+            if prior_rep and prior_rep['report_date']:
+                try:
+                    prior_date_obj = datetime.datetime.strptime(prior_rep['report_date'], '%Y-%m-%d').date()
+                    pending_days = max(1, (target_date_obj - prior_date_obj).days)
+                    last_entry_date = prior_rep['report_date']
+                except Exception:
+                    pending_days = 1
+                    last_entry_date = prior_rep['report_date']
+            else:
+                days_since_month_start = (target_date_obj - target_date_obj.replace(day=1)).days + 1
+                pending_days = max(1, days_since_month_start)
+                last_entry_date = None
+
+            entry_info = {
+                'depot_id': dep_id,
+                'depot_name': dep['depot_name'],
+                'depot_slug': dep['depot_slug'],
+                'category': dep['category'],
+                'region': dep['region'],
+                'incharge_name': dep['incharge_name'],
+                'contact': dep['contact'],
+                'user_id': dep['user_id'],
+                'username': dep['username'] or dep['depot_slug'],
+                'user_display_name': dep['user_display_name'] or dep['incharge_name'],
+                'status': 'Pending',
+                'pending_days': pending_days,
+                'last_entry_date': last_entry_date,
+                'report_id': None,
+                'total_vehicles': 0,
+                'total_invoices': 0,
+                'dispatched_gross_val': 0,
+                'delivered_net_val': 0,
+                'returned_val': 0,
+                'submitted_at': None
+            }
+        daily_entry_summary.append(entry_info)
+
+    compliance_stats = {
+        'total_depots': len(incharge_users),
+        'total_done': total_done_entries,
+        'total_pending': total_pending_entries,
+        'completion_rate': round((total_done_entries / len(incharge_users) * 100), 1) if incharge_users else 0
+    }
+
     conn.close()
     return jsonify({
         "kpis": {
@@ -867,7 +1058,9 @@ def get_dashboard_summary():
         },
         "depots": depot_list,
         "categories": categories,
-        "return_reasons": return_reasons
+        "return_reasons": return_reasons,
+        "daily_entry_summary": daily_entry_summary,
+        "daily_entry_compliance": compliance_stats
     })
 
 @app.route('/api/admin/clear-all-demo-data', methods=['POST'])
