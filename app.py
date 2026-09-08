@@ -864,17 +864,19 @@ def submit_report():
 def delete_report(report_id):
     conn = get_db()
     cursor = conn.cursor()
-    # 1. Delete by specific report ID
-    cursor.execute('DELETE FROM invoices WHERE report_id = ?', (report_id,))
-    cursor.execute('DELETE FROM trips WHERE report_id = ?', (report_id,))
-    cursor.execute('DELETE FROM daily_reports WHERE id = ?', (report_id,))
-    
-    # 2. Also delete if target is depot_id (when called from Admin Incharges & Depots directory)
-    cursor.execute('DELETE FROM invoices WHERE report_id IN (SELECT id FROM daily_reports WHERE depot_id = ?)', (report_id,))
-    cursor.execute('DELETE FROM trips WHERE report_id IN (SELECT id FROM daily_reports WHERE depot_id = ?)', (report_id,))
+    # Find all report ids that match either report_id or are associated with this depot_id
+    cursor.execute('SELECT id FROM daily_reports WHERE id = ? OR depot_id = ?', (report_id, report_id))
+    matching_report_ids = [row['id'] for row in cursor.fetchall()]
+    if report_id not in matching_report_ids:
+        matching_report_ids.append(report_id)
+        
+    for r_id in matching_report_ids:
+        cursor.execute('DELETE FROM invoices WHERE report_id = ?', (r_id,))
+        cursor.execute('DELETE FROM trips WHERE report_id = ?', (r_id,))
+        cursor.execute('DELETE FROM daily_reports WHERE id = ?', (r_id,))
+        
     cursor.execute('DELETE FROM daily_reports WHERE depot_id = ?', (report_id,))
     
-    # 3. Also delete saved route plans for this depot
     try:
         cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ?', (report_id,))
     except Exception:
@@ -882,7 +884,7 @@ def delete_report(report_id):
     
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": f"Daily report, invoices & uploaded route plans for Depot #{report_id} deleted successfully!"})
+    return jsonify({"success": True, "message": f"Daily report, invoices & uploaded route plans for Depot / Report #{report_id} deleted successfully!"})
 
 @app.route('/api/admin/clear-all-uploaded-data', methods=['GET', 'POST', 'DELETE'])
 def admin_clear_all_uploaded_data():
@@ -3928,7 +3930,7 @@ def admin_clear_master_data():
     conn = get_db()
     cursor = conn.cursor()
     
-    if clear_type == 'routes':
+    if clear_type in ('routes', 'route'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
@@ -3937,28 +3939,28 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM routes')
         msg = "All route master records and mappings cleared successfully!"
         
-    elif clear_type == 'consignees':
+    elif clear_type in ('consignees', 'consignee'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM route_consignees WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM route_consignees')
         msg = "All consignee outlet mappings cleared successfully!"
         
-    elif clear_type == 'fleet':
+    elif clear_type in ('fleet', 'vehicles', 'vehicle'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM fleet_vehicles')
         msg = "All fleet vehicles and rental entries cleared successfully!"
         
-    elif clear_type == 'crew':
+    elif clear_type in ('crew', 'drivers', 'driver', 'staff'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
         else:
             cursor.execute('DELETE FROM depot_crew')
         msg = "All drivers & delivery staff cleared successfully!"
         
-    elif clear_type == 'borrow':
+    elif clear_type in ('borrow', 'borrowed'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
             cursor.execute('DELETE FROM fleet_vehicles WHERE (depot_id = ? OR home_depot_id = ?) AND (ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%")', (depot_id, depot_id))
@@ -3967,7 +3969,7 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM fleet_vehicles WHERE ownership = "Borrowed" OR vehicle_no LIKE "%(Borrowed)%"')
         msg = "All borrowed vehicles and borrowing requests cleared successfully!"
         
-    elif clear_type == 'mapping':
+    elif clear_type in ('mapping', 'mappings', 'sku', 'skus'):
         if depot_id and str(depot_id) != 'all':
             cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
             try:
@@ -4649,6 +4651,44 @@ def update_tracking_drop_status():
         "drop_id": drop_id,
         "new_status": new_status
     })
+
+@app.route('/api/tracking/simulate-movement', methods=['GET', 'POST'])
+def simulate_vehicle_movement():
+    data = request.json if request.is_json else {}
+    depot_id = int(data.get('depot_id') or request.args.get('depot_id') or 9)
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM live_tracking_positions WHERE depot_id = ?', (depot_id,))
+    rows = cursor.fetchall()
+    depot_coords = DEPOT_COORDINATES.get(depot_id, {"lat": 23.7644, "lng": 90.3928, "name": f"Depot #{depot_id}"})
+    if not rows:
+        v1 = ("DHK-METRO-TA-11-2041", "01711-248901", "Md. Selim Reza", depot_id, f"RT-{depot_id:02d}-A", round(depot_coords['lat'] + 0.008, 6), round(depot_coords['lng'] + 0.006, 6), 65.0, 32.5, "SIMULATOR")
+        v2 = ("DHK-METRO-TA-14-3088", "01819-354902", "Rafiqul Islam", depot_id, f"RT-{depot_id:02d}-B", round(depot_coords['lat'] - 0.009, 6), round(depot_coords['lng'] + 0.007, 6), 135.0, 29.0, "SIMULATOR")
+        for v in [v1, v2]:
+            cursor.execute('''
+            INSERT INTO live_tracking_positions (vehicle_no, driver_mobile, driver_name, depot_id, route_id, latitude, longitude, heading, speed_kmh, source, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(vehicle_no, depot_id) DO UPDATE SET
+                latitude = excluded.latitude, longitude = excluded.longitude, heading = excluded.heading, speed_kmh = excluded.speed_kmh, updated_at = CURRENT_TIMESTAMP
+            ''', v)
+    else:
+        for r in rows:
+            new_lat = r['latitude'] + (0.0012 if (r['id'] % 2 == 1) else -0.0010)
+            new_lng = r['longitude'] + (0.0015 if (r['id'] % 2 == 1) else 0.0011)
+            if abs(new_lat - depot_coords['lat']) > 0.06:
+                new_lat = depot_coords['lat'] + 0.005
+            if abs(new_lng - depot_coords['lng']) > 0.06:
+                new_lng = depot_coords['lng'] + 0.005
+            new_speed = round(max(15.0, min(55.0, (r['speed_kmh'] or 30.0) + (1.5 if r['id'] % 2 == 0 else -1.2))), 1)
+            new_heading = round(((r['heading'] or 45.0) + 12.0) % 360, 1)
+            cursor.execute('''
+            UPDATE live_tracking_positions SET latitude = ?, longitude = ?, heading = ?, speed_kmh = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''', (round(new_lat, 6), round(new_lng, 6), new_heading, new_speed, r['id']))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Simulation step applied!"})
+
 
 # ------------------------------------------------------------------------------
 # APPLICATION STARTUP ENTRYPOINT
