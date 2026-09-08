@@ -3382,6 +3382,8 @@
                     passInp.value = (username === 'admin') ? 'admin123' : 'depot123';
                 }
                 showToast(`Selected User ID: ${username}`, 'success');
+            }
+
             function quickFillRoleLogin(username, password) {
                 const userInp = document.getElementById('loginUsernameInput');
                 const passInp = document.getElementById('loginPasswordInput');
@@ -3467,6 +3469,13 @@
                 applyUserPermissions();
                 showToast('Logged out successfully.', 'success');
             }
+
+            window.toggleShowPassword = toggleShowPassword;
+            window.filterDepotUserSuggestion = filterDepotUserSuggestion;
+            window.selectSuggestion = selectSuggestion;
+            window.quickFillRoleLogin = quickFillRoleLogin;
+            window.submitLogin = submitLogin;
+            window.handleLogout = handleLogout;
 
             // ================= TABS & FILTERS =================
             function initDatePicker() {
@@ -4667,6 +4676,14 @@
                     });
                 }
 
+                const loginForm = document.getElementById('loginForm');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        submitLogin();
+                    });
+                }
+
                 const form = document.getElementById('ddrForm');
                 if (form) {
                     form.addEventListener('submit', handleFormSubmit);
@@ -5564,10 +5581,10 @@
             // Register & Force Update Service Worker
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/static/sw.js?v=15.0')
+                    navigator.serviceWorker.register('/static/sw.js?v=16.0')
                         .then(reg => {
                             reg.update();
-                            console.log('[ServiceWorker v15] Active & Updated:', reg.scope);
+                            console.log('[ServiceWorker v16] Active & Updated:', reg.scope);
                         })
                         .catch(err => console.log('[ServiceWorker] Registration error:', err));
                 });
@@ -31209,6 +31226,7 @@
             window.togglePasswordVisibility = togglePasswordVisibility;
             window.submitChangePassword = submitChangePassword;
             window.quickFillRoleLogin = quickFillRoleLogin;
+            window.submitLogin = submitLogin;
             window.openRentalVanModal = openRentalVanModal;
             window.closeRentalVanModal = closeRentalVanModal;
             window.submitRentalVan = submitRentalVan;

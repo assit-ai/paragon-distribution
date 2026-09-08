@@ -1,5 +1,5 @@
-// Paragon Agro Distribution Management System - Offline Service Worker (v15.0)
-const CACHE_NAME = 'paragon-distribution-cache-v15';
+// Paragon Agro Distribution Management System - Offline Service Worker (v16.0)
+const CACHE_NAME = 'paragon-distribution-cache-v16';
 const ASSETS_TO_CACHE = [
     '/static/css/style.css',
     '/static/manifest.json',
