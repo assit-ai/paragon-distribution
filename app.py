@@ -1103,6 +1103,136 @@ def clear_all_demo_data():
     conn.close()
     return jsonify({"success": True, "message": "All demo & historical distribution reports have been cleared. Database is clean."})
 
+@app.route('/api/admin/clear-data', methods=['POST'])
+def admin_clear_data():
+    """
+    Selectively clears operational distribution data (reports, invoices, trips, saved route plans)
+    based on flexible depot selection and date filtering (single date, date range, or all historical dates).
+    """
+    data = request.json if request.is_json else {}
+    sess_user = session.get('user') or {}
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational distribution data"}), 403
+
+    depot_id = data.get('depot_id', 'all')
+    date_mode = data.get('date_mode', 'single')  # 'single', 'range', 'all'
+    single_date = data.get('date') or data.get('report_date')
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    where_clauses = []
+    params = []
+
+    is_all_depots = str(depot_id).lower() == 'all' or not depot_id
+    if not is_all_depots:
+        where_clauses.append("depot_id = ?")
+        params.append(int(depot_id))
+
+    date_summary_str = ""
+    if date_mode == 'single':
+        if not single_date:
+            single_date = datetime.date.today().strftime('%Y-%m-%d')
+        where_clauses.append("report_date = ?")
+        params.append(single_date)
+        date_summary_str = f"Date: {single_date}"
+    elif date_mode == 'range':
+        if not start_date or not end_date:
+            conn.close()
+            return jsonify({"success": False, "message": "Both start_date and end_date are required for date range clear."}), 400
+        where_clauses.append("report_date >= ? AND report_date <= ?")
+        params.append(start_date)
+        params.append(end_date)
+        date_summary_str = f"Date Range: {start_date} to {end_date}"
+    elif date_mode == 'all':
+        date_summary_str = "All Historical Dates"
+    else:
+        if single_date:
+            where_clauses.append("report_date = ?")
+            params.append(single_date)
+            date_summary_str = f"Date: {single_date}"
+        else:
+            date_summary_str = "All Historical Dates"
+
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+    matching_reports = cursor.execute(f"SELECT id FROM daily_reports {where_sql}", params).fetchall()
+    report_ids = [r['id'] for r in matching_reports]
+    deleted_reports_count = len(report_ids)
+
+    deleted_invoices_count = 0
+    deleted_trips_count = 0
+    if report_ids:
+        id_placeholders = ",".join("?" for _ in report_ids)
+        c_inv = cursor.execute(f"SELECT COUNT(*) as cnt FROM invoices WHERE report_id IN ({id_placeholders})", report_ids).fetchone()
+        deleted_invoices_count = c_inv['cnt'] if c_inv else 0
+        cursor.execute(f"DELETE FROM invoices WHERE report_id IN ({id_placeholders})", report_ids)
+
+        c_trip = cursor.execute(f"SELECT COUNT(*) as cnt FROM trips WHERE report_id IN ({id_placeholders})", report_ids).fetchone()
+        deleted_trips_count = c_trip['cnt'] if c_trip else 0
+        cursor.execute(f"DELETE FROM trips WHERE report_id IN ({id_placeholders})", report_ids)
+
+        cursor.execute(f"DELETE FROM daily_reports WHERE id IN ({id_placeholders})", report_ids)
+
+    plan_where = []
+    plan_params = []
+    if not is_all_depots:
+        plan_where.append("depot_id = ?")
+        plan_params.append(int(depot_id))
+    if date_mode == 'single' and single_date:
+        plan_where.append("plan_date = ?")
+        plan_params.append(single_date)
+    elif date_mode == 'range' and start_date and end_date:
+        plan_where.append("plan_date >= ? AND plan_date <= ?")
+        plan_params.append(start_date)
+        plan_params.append(end_date)
+    
+    plan_sql = ("WHERE " + " AND ".join(plan_where)) if plan_where else ""
+    try:
+        cursor.execute(f"DELETE FROM saved_route_plans {plan_sql}", plan_params)
+    except Exception:
+        pass
+
+    if is_all_depots and date_mode == 'all':
+        try:
+            cursor.execute('DELETE FROM live_tracking_positions')
+            cursor.execute('DELETE FROM live_drop_statuses')
+            cursor.execute('DELETE FROM inter_depot_vehicle_requests')
+        except Exception:
+            pass
+
+    depot_target_name = "All 17 Depots"
+    if not is_all_depots:
+        d_row = cursor.execute("SELECT name FROM depots WHERE id = ?", (int(depot_id),)).fetchone()
+        depot_target_name = d_row['name'] if d_row else f"Depot #{depot_id}"
+
+    username = sess_user.get('username') or 'admin'
+    details_str = f"Cleared: {depot_target_name} | {date_summary_str} (Removed {deleted_reports_count} reports, {deleted_invoices_count} invoices)"
+    try:
+        cursor.execute('''
+            INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (username, 'CLEAR_OPERATIONAL_DATA', 'daily_reports', str(depot_id), details_str, request.remote_addr))
+    except Exception:
+        pass
+
+    conn.commit()
+    conn.close()
+
+    msg = f"Successfully cleared operational data for {depot_target_name} ({date_summary_str}). Removed {deleted_reports_count} daily report(s) and {deleted_invoices_count} delivery invoice(s)."
+    return jsonify({
+        "success": True,
+        "message": msg,
+        "deleted_reports": deleted_reports_count,
+        "deleted_invoices": deleted_invoices_count,
+        "deleted_trips": deleted_trips_count,
+        "target_depot": depot_target_name,
+        "date_summary": date_summary_str
+    })
+
 # ----------------- REPORT SUBMISSION & ADMIN MANAGEMENT -----------------
 @app.route('/api/reports/submit', methods=['POST'])
 def submit_report():

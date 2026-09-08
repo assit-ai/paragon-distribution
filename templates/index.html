@@ -1625,11 +1625,11 @@
                             <i class="fa-solid fa-file-excel"></i> Excel Report
                         </a>
 
-                        <button type="button" class="btn btn-sm admin-only-btn" id="btnDashboardClearDemoData"
-                            onclick="openAdminClearModal('demo_data')"
+                        <button type="button" class="btn btn-sm admin-only-btn" id="btnDashboardClearData"
+                            onclick="openAdminClearModal('custom_clear')"
                             style="display:none; align-items:center; gap:6px; font-weight:700; white-space:nowrap; padding:6px 14px; background:rgba(239, 68, 68, 0.15); color:#f87171; border:1px solid #ef4444; border-radius:6px; cursor:pointer;"
-                            title="Admin: Clear all demo & uploaded distribution reports to start clean">
-                            <i class="fa-solid fa-trash-can"></i> 🧹 Clear Demo Data
+                            title="Admin: Selectively clear operational distribution data by depot, date, or date range">
+                            <i class="fa-solid fa-trash-can"></i> 🧹 Clear Data
                         </button>
                     </div>
 
@@ -27845,6 +27845,7 @@
             }
 
             let pendingAdminClear = null;
+            let currentAdminClearDateMode = 'single';
 
             function checkIsAdminUser() {
                 if (currentUser && currentUser.authenticated && (currentUser.role === 'incharge' || currentUser.role === 'delivery_man')) {
@@ -27853,58 +27854,175 @@
                 return true;
             }
 
+            function populateAdminClearDepotsDropdown(selectedDepotId) {
+                const selectEl = document.getElementById('adminClearDepotSelect');
+                if (!selectEl) return;
+                
+                const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
+                let html = '<option value="all">🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE)</option>';
+                
+                depotList.forEach(d => {
+                    const sel = (selectedDepotId && String(d.id) === String(selectedDepotId)) ? 'selected' : '';
+                    html += `<option value="${d.id}" ${sel}>${d.id} — ${d.name} (${d.category || 'Depot'})</option>`;
+                });
+                
+                selectEl.innerHTML = html;
+                if (selectedDepotId && selectedDepotId !== 'all') {
+                    selectEl.value = String(selectedDepotId);
+                } else {
+                    selectEl.value = 'all';
+                }
+            }
+
+            function setAdminClearDateMode(mode) {
+                currentAdminClearDateMode = mode || 'single';
+                
+                const btnSingle = document.getElementById('btnDateModeSingle');
+                const btnRange = document.getElementById('btnDateModeRange');
+                const btnAll = document.getElementById('btnDateModeAll');
+                
+                const singleGrp = document.getElementById('adminClearSingleDateGroup');
+                const rangeGrp = document.getElementById('adminClearDateRangeGroup');
+                const allAlert = document.getElementById('adminClearAllDatesAlert');
+                
+                if (btnSingle) {
+                    btnSingle.style.background = mode === 'single' ? '#1e3a8a' : '#0f172a';
+                    btnSingle.style.color = mode === 'single' ? '#fff' : '#94a3b8';
+                    btnSingle.style.borderColor = mode === 'single' ? '#3b82f6' : '#334155';
+                    btnSingle.style.fontWeight = mode === 'single' ? '700' : '600';
+                }
+                if (btnRange) {
+                    btnRange.style.background = mode === 'range' ? '#1e3a8a' : '#0f172a';
+                    btnRange.style.color = mode === 'range' ? '#fff' : '#94a3b8';
+                    btnRange.style.borderColor = mode === 'range' ? '#3b82f6' : '#334155';
+                    btnRange.style.fontWeight = mode === 'range' ? '700' : '600';
+                }
+                if (btnAll) {
+                    btnAll.style.background = mode === 'all' ? '#1e3a8a' : '#0f172a';
+                    btnAll.style.color = mode === 'all' ? '#fff' : '#94a3b8';
+                    btnAll.style.borderColor = mode === 'all' ? '#3b82f6' : '#334155';
+                    btnAll.style.fontWeight = mode === 'all' ? '700' : '600';
+                }
+                
+                if (singleGrp) singleGrp.style.display = mode === 'single' ? 'block' : 'none';
+                if (rangeGrp) rangeGrp.style.display = mode === 'range' ? 'block' : 'none';
+                if (allAlert) allAlert.style.display = mode === 'all' ? 'block' : 'none';
+                
+                onAdminClearConfigChange();
+            }
+
+            function onAdminClearConfigChange() {
+                const depotSelect = document.getElementById('adminClearDepotSelect');
+                const summaryText = document.getElementById('adminClearSummaryText');
+                const singleInput = document.getElementById('adminClearSingleDate');
+                const startInput = document.getElementById('adminClearStartDate');
+                const endInput = document.getElementById('adminClearEndDate');
+                
+                if (!summaryText) return;
+                
+                let depotLabel = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE)';
+                if (depotSelect && depotSelect.value !== 'all') {
+                    const selOption = depotSelect.options[depotSelect.selectedIndex];
+                    depotLabel = selOption ? selOption.textContent : `Depot #${depotSelect.value}`;
+                }
+                
+                let dateLabel = '';
+                if (currentAdminClearDateMode === 'single') {
+                    const sVal = (singleInput && singleInput.value) || 'Today';
+                    dateLabel = `Date: ${sVal}`;
+                } else if (currentAdminClearDateMode === 'range') {
+                    const fromVal = (startInput && startInput.value) || 'Start';
+                    const toVal = (endInput && endInput.value) || 'End';
+                    dateLabel = `Date Range: ${fromVal} ➔ ${toVal}`;
+                } else if (currentAdminClearDateMode === 'all') {
+                    dateLabel = '⚠️ All Historical Dates (Complete Operational Wipe)';
+                }
+                
+                summaryText.innerHTML = `<strong>Scope:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Period:</strong> ${dateLabel}`;
+            }
+
             function openAdminClearModal(clearType, targetDepotId, targetDepotName) {
-                clearType = clearType || 'all';
+                clearType = clearType || 'custom_clear';
 
                 if (!checkIsAdminUser()) {
                     showToast('Access Denied: Only Administrator has permission to clear distribution data.', 'error');
                     return;
                 }
 
-                let targetName = '';
-                let depotName = '';
-                let depotId = targetDepotId !== undefined ? targetDepotId : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
-
-                if (clearType === 'demo_data' || clearType === 'uploaded_data') {
-                    targetName = 'ALL Uploaded Daily Reports, Invoices, Trips & Route Plans (Demo/Uploaded Data)';
-                    depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE OPERATIONAL WIPE)';
-                    depotId = 'all';
-                } else if (clearType === 'reseed') {
-                    targetName = 'RESET & RE-SEED Initial Demo Distribution Reports & Invoices';
-                    depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE DEMO SEEDING)';
-                    depotId = 'all';
-                } else if (clearType === 'depot_report') {
-                    targetName = 'Daily Report, Invoices & Uploaded Route Plans';
-                    depotName = targetDepotName || ('Depot #' + depotId);
-                } else {
-                    const typeNames = {
-                        'routes': 'Routes & Route Directories',
-                        'consignees': 'Mapped Consignees & Outlets',
-                        'fleet': 'Depot Fleet & Registered Vehicles',
-                        'crew': 'Drivers & Delivery Staff',
-                        'borrow': 'Inter-Depot Borrowed Vehicles & History',
-                        'mapping': 'SKU Line-Items & Driver Mappings',
-                        'all': 'ALL Master Directory Data'
-                    };
-                    targetName = typeNames[clearType] || clearType;
-                    const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
-                    depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM WIDE)';
-                    if (depotId && depotId !== 'all') {
-                        const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
-                        depotName = depotObj.name;
-                    }
-                }
-
-                pendingAdminClear = { clearType, depotId, targetName, depotName, targetDepotName };
-
                 const modal = document.getElementById('adminClearConfirmModal');
+                const headingEl = document.getElementById('adminClearModalHeading');
+                const presetContainer = document.getElementById('adminClearPresetContainer');
+                const interactiveContainer = document.getElementById('adminClearInteractiveContainer');
                 const targetNameEl = document.getElementById('adminClearTargetTypeName');
                 const depotNameEl = document.getElementById('adminClearDepotNameDisplay');
                 const inputEl = document.getElementById('adminClearConfirmInput');
                 const execBtn = document.getElementById('adminClearExecuteBtn');
 
-                if (targetNameEl) targetNameEl.textContent = targetName;
-                if (depotNameEl) depotNameEl.textContent = depotName;
+                let activeDate = document.getElementById('filterDate')?.value || new Date().toISOString().split('T')[0];
+                let activeDepot = (targetDepotId !== undefined && targetDepotId !== null) 
+                    ? targetDepotId 
+                    : (document.getElementById('filterDepot')?.value || 'all');
+
+                const isCustomClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report');
+
+                if (isCustomClear) {
+                    if (presetContainer) presetContainer.style.display = 'none';
+                    if (interactiveContainer) interactiveContainer.style.display = 'block';
+                    if (headingEl) headingEl.textContent = 'Admin Selective Data Clear';
+
+                    populateAdminClearDepotsDropdown(activeDepot);
+
+                    const singleDateEl = document.getElementById('adminClearSingleDate');
+                    const startDateEl = document.getElementById('adminClearStartDate');
+                    const endDateEl = document.getElementById('adminClearEndDate');
+                    if (singleDateEl) singleDateEl.value = activeDate;
+                    if (startDateEl) startDateEl.value = activeDate;
+                    if (endDateEl) endDateEl.value = activeDate;
+
+                    if (clearType === 'demo_data' || clearType === 'uploaded_data') {
+                        setAdminClearDateMode('all');
+                    } else {
+                        setAdminClearDateMode('single');
+                    }
+                    onAdminClearConfigChange();
+                } else {
+                    if (presetContainer) presetContainer.style.display = 'block';
+                    if (interactiveContainer) interactiveContainer.style.display = 'none';
+
+                    let targetName = '';
+                    let depotName = '';
+                    let depotId = targetDepotId !== undefined ? targetDepotId : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
+
+                    if (clearType === 'reseed') {
+                        targetName = 'RESET & RE-SEED Initial Demo Distribution Reports & Invoices';
+                        depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE DEMO SEEDING)';
+                        if (headingEl) headingEl.textContent = 'Re-Seed Demo Data';
+                    } else {
+                        const typeNames = {
+                            'routes': 'Routes & Route Directories',
+                            'consignees': 'Mapped Consignees & Outlets',
+                            'fleet': 'Depot Fleet & Registered Vehicles',
+                            'crew': 'Drivers & Delivery Staff',
+                            'borrow': 'Inter-Depot Borrowed Vehicles & History',
+                            'mapping': 'SKU Line-Items & Driver Mappings',
+                            'all': 'ALL Master Directory Data'
+                        };
+                        targetName = typeNames[clearType] || clearType;
+                        const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
+                        depotName = '🌐 ALL 17 PARAGON DEPOTS (SYSTEM WIDE)';
+                        if (depotId && depotId !== 'all') {
+                            const depotObj = depotList.find(d => d.id == depotId) || { name: `Depot #${depotId}` };
+                            depotName = depotObj.name;
+                        }
+                        if (headingEl) headingEl.textContent = 'Clear Master Directory Data';
+                    }
+
+                    if (targetNameEl) targetNameEl.textContent = targetName;
+                    if (depotNameEl) depotNameEl.textContent = depotName;
+                }
+
+                pendingAdminClear = { clearType, targetDepotId, targetDepotName };
+
                 if (inputEl) inputEl.value = '';
                 if (execBtn) {
                     execBtn.disabled = true;
@@ -27937,7 +28055,7 @@
 
             async function executeAdminClearConfirmed() {
                 if (!pendingAdminClear) return;
-                const { clearType, depotId, depotName, targetDepotName } = pendingAdminClear;
+                const { clearType, targetDepotId, targetDepotName } = pendingAdminClear;
 
                 if (!checkIsAdminUser()) {
                     showToast('Access Denied: Only Administrator has permission to clear distribution data.', 'error');
@@ -27948,31 +28066,48 @@
                 closeAdminClearConfirmModal();
 
                 const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
+                const isCustomClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report');
 
-                // 1. DEMO / UPLOADED OPERATIONAL DATA WIPE (ALL DEPOTS)
-                if (clearType === 'demo_data' || clearType === 'uploaded_data') {
+                // 1. SELECTIVE OPERATIONAL DATA CLEAR (BY DEPOT, DATE, OR DATE RANGE)
+                if (isCustomClear) {
+                    const depotSelect = document.getElementById('adminClearDepotSelect');
+                    const selectedDepotId = depotSelect ? depotSelect.value : 'all';
+                    const dateMode = currentAdminClearDateMode || 'single';
+                    const singleDate = document.getElementById('adminClearSingleDate')?.value || '';
+                    const startDate = document.getElementById('adminClearStartDate')?.value || '';
+                    const endDate = document.getElementById('adminClearEndDate')?.value || '';
+
                     try {
-                        const res = await fetch('/api/admin/clear-all-demo-data', {
+                        const res = await fetch('/api/admin/clear-data', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-Admin-Role': adminRoleHeader
                             },
-                            body: JSON.stringify({ role: adminRoleHeader })
+                            body: JSON.stringify({
+                                depot_id: selectedDepotId,
+                                date_mode: dateMode,
+                                date: singleDate,
+                                start_date: startDate,
+                                end_date: endDate,
+                                role: adminRoleHeader
+                            })
                         });
                         const data = await res.json();
                         if (data && data.success) {
-                            showToast(`🧹 ${data.message || 'All demo & uploaded distribution data cleared successfully!'}`, 'success');
+                            showToast(`🧹 ${data.message}`, 'success');
                         } else {
-                            showToast((data && data.message) || 'Failed to clear demo data.', 'error');
+                            showToast((data && data.message) || 'Failed to clear data.', 'error');
                         }
                     } catch (err) {
-                        showToast('Cleared operational demo data from view.', 'info');
+                        showToast('Error clearing distribution data: ' + err.message, 'error');
                     }
 
                     try {
-                        for (let i = 1; i <= 30; i++) {
-                            localStorage.removeItem('paragon_draft_plan_' + i);
+                        if (selectedDepotId === 'all') {
+                            for (let i = 1; i <= 30; i++) localStorage.removeItem('paragon_draft_plan_' + i);
+                        } else {
+                            localStorage.removeItem('paragon_draft_plan_' + selectedDepotId);
                         }
                     } catch (e) {}
 
@@ -28006,40 +28141,12 @@
                     }
 
                     try {
-                        for (let i = 1; i <= 30; i++) {
-                            localStorage.removeItem('paragon_draft_plan_' + i);
-                        }
+                        for (let i = 1; i <= 30; i++) localStorage.removeItem('paragon_draft_plan_' + i);
                     } catch (e) {}
 
                     await loadDashboardSummary();
                     loadDepotsDirectory();
                     if (typeof loadDepots === 'function') await loadDepots();
-                    return;
-                }
-
-                // 3. SINGLE DEPOT REPORT WIPE
-                if (clearType === 'depot_report') {
-                    try {
-                        const res = await fetch(`/api/reports/delete/${depotId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Admin-Role': adminRoleHeader
-                            }
-                        });
-                        const data = await res.json();
-                        if (data && data.success) {
-                            showToast(data.message || `Report for ${depotName} deleted successfully!`, 'success');
-                        } else {
-                            showToast((data && data.message) || 'Failed to delete depot report.', 'error');
-                        }
-                    } catch (err) {
-                        showToast(`Report for ${depotName} removed from view.`, 'info');
-                    }
-
-                    try { localStorage.removeItem('paragon_draft_plan_' + depotId); } catch(e) {}
-                    await loadDashboardSummary();
-                    loadDepotsDirectory();
                     return;
                 }
 
@@ -31075,6 +31182,8 @@
             window.triggerMasterReset = triggerMasterReset;
             window.deleteDepotReport = deleteDepotReport;
             window.downloadMasterDistributionExcel = downloadMasterDistributionExcel;
+            window.setAdminClearDateMode = setAdminClearDateMode;
+            window.onAdminClearConfigChange = onAdminClearConfigChange;
             window.closeAdminClearConfirmModal = closeAdminClearConfirmModal;
             window.validateAdminClearTypedText = validateAdminClearTypedText;
             window.executeAdminClearConfirmed = executeAdminClearConfirmed;
@@ -33146,29 +33255,101 @@
         </div>
 
         <!-- ==========================================================================
-             MODAL: ADMIN CONFIRM CLEAR MASTER DATA (2-STEP TYPED CONFIRMATION)
+             MODAL: ADMIN CONFIRM CLEAR DATA (SELECTIVE DEPOT & DATE RANGE / 2-STEP CONFIRMATION)
              ========================================================================== -->
         <div id="adminClearConfirmModal" style="display: none; position: fixed; inset: 0; background: rgba(11, 17, 32, 0.9); backdrop-filter: blur(8px); z-index: 100010; align-items: center; justify-content: center; padding: 20px;">
-            <div style="background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.6); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.3);">
+            <div style="background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.6); border-radius: var(--radius-lg); width: 100%; max-width: 540px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.35); max-height: 90vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.3); padding-bottom: 12px;">
                     <h3 style="font-size: 1.15rem; font-weight: 800; color: #ef4444; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-triangle-exclamation"></i> Permanent Deletion Warning
+                        <i class="fa-solid fa-triangle-exclamation"></i> <span id="adminClearModalHeading">Admin Clear Data</span>
                     </h3>
                     <button type="button" onclick="closeAdminClearConfirmModal()" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; line-height: 1;">&times;</button>
                 </div>
 
                 <div style="margin-bottom: 16px;">
-                    <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 10px; line-height: 1.5;">
-                        You are about to permanently delete <strong id="adminClearTargetTypeName" style="color: #ef4444;"></strong> for:
-                    </p>
-                    <div style="background: #0b1329; border: 1px solid #1e293b; padding: 10px 14px; border-radius: 6px; font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 12px;" id="adminClearDepotNameDisplay">
-                        --
+                    <!-- Preset Info (used for master data / reseed) -->
+                    <div id="adminClearPresetContainer" style="display: none; margin-bottom: 12px;">
+                        <p style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px;">Target Scope:</p>
+                        <div style="background: #0b1329; border: 1px solid #1e293b; padding: 10px 14px; border-radius: 6px; font-weight: 700; color: #ef4444; font-size: 0.92rem; margin-bottom: 8px;" id="adminClearTargetTypeName">--</div>
+                        <div style="background: #0b1329; border: 1px solid #1e293b; padding: 10px 14px; border-radius: 6px; font-weight: 700; color: #38bdf8; font-size: 0.92rem;" id="adminClearDepotNameDisplay">--</div>
                     </div>
-                    <div style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; padding: 8px 12px; border-radius: 4px; font-size: 0.82rem; color: #fca5a5; margin-bottom: 16px;">
-                        <i class="fa-solid fa-shield-halved"></i> <strong>Audit Logged:</strong> This action will be recorded in the security audit trail. This cannot be undone.
+
+                    <!-- Interactive Config Container (for flexible custom clear) -->
+                    <div id="adminClearInteractiveContainer" style="display: block;">
+                        <!-- Depot Selector -->
+                        <div style="margin-bottom: 14px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                                <i class="fa-solid fa-warehouse"></i> Select Target Depot:
+                            </label>
+                            <select id="adminClearDepotSelect" onchange="onAdminClearConfigChange()"
+                                style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; font-weight: 600;">
+                                <option value="all">🌐 ALL 17 PARAGON DEPOTS (SYSTEM-WIDE)</option>
+                            </select>
+                        </div>
+
+                        <!-- Date Scope Mode -->
+                        <div style="margin-bottom: 14px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                                <i class="fa-solid fa-calendar-days"></i> Select Date Scope:
+                            </label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                                <button type="button" class="btn btn-sm admin-date-mode-btn" id="btnDateModeSingle" onclick="setAdminClearDateMode('single')"
+                                    style="background: #1e3a8a; color: #fff; border: 1px solid #3b82f6; font-weight: 700; font-size: 0.8rem; padding: 7px 4px; border-radius: 6px; cursor: pointer;">
+                                    Single Date
+                                </button>
+                                <button type="button" class="btn btn-sm admin-date-mode-btn" id="btnDateModeRange" onclick="setAdminClearDateMode('range')"
+                                    style="background: #0f172a; color: #94a3b8; border: 1px solid #334155; font-weight: 600; font-size: 0.8rem; padding: 7px 4px; border-radius: 6px; cursor: pointer;">
+                                    Date Range
+                                </button>
+                                <button type="button" class="btn btn-sm admin-date-mode-btn" id="btnDateModeAll" onclick="setAdminClearDateMode('all')"
+                                    style="background: #0f172a; color: #94a3b8; border: 1px solid #334155; font-weight: 600; font-size: 0.8rem; padding: 7px 4px; border-radius: 6px; cursor: pointer;">
+                                    All Dates
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Date Picker Inputs -->
+                        <!-- 1. Single Date -->
+                        <div id="adminClearSingleDateGroup" style="margin-bottom: 14px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">Specific Date:</label>
+                            <input type="date" id="adminClearSingleDate" onchange="onAdminClearConfigChange()"
+                                style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; box-sizing: border-box;">
+                        </div>
+
+                        <!-- 2. Date Range -->
+                        <div id="adminClearDateRangeGroup" style="display: none; margin-bottom: 14px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">From Date:</label>
+                                    <input type="date" id="adminClearStartDate" onchange="onAdminClearConfigChange()"
+                                        style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; box-sizing: border-box;">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">To Date:</label>
+                                    <input type="date" id="adminClearEndDate" onchange="onAdminClearConfigChange()"
+                                        style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; box-sizing: border-box;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. All Dates Warning -->
+                        <div id="adminClearAllDatesAlert" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; color: #fca5a5; margin-bottom: 14px;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> <strong>Complete History Wipe:</strong> This will delete ALL historical operational records across all dates for the selected depot(s).
+                        </div>
                     </div>
-                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
-                        To confirm, type <span style="color:#ef4444; font-family:monospace; background:rgba(239,68,68,0.2); padding:2px 6px; border-radius:3px;">CLEAR</span> below:
+
+                    <!-- Real-Time Impact Summary Banner -->
+                    <div id="adminClearSummaryBanner" style="background: #0f172a; border-left: 4px solid #ef4444; border-right: 1px solid #1e293b; border-top: 1px solid #1e293b; border-bottom: 1px solid #1e293b; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; color: #f1f5f9; margin-bottom: 14px; line-height: 1.4;">
+                        <span id="adminClearSummaryText">Target: All 17 Depots | Date: Today</span>
+                    </div>
+
+                    <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #93c5fd; margin-bottom: 16px;">
+                        <i class="fa-solid fa-shield-check"></i> Master directory configuration (Vehicles, Drivers, Outlets, Routes & SKU items) will remain preserved.
+                    </div>
+
+                    <!-- Typed Confirmation Input -->
+                    <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+                        To confirm execution, type <span style="color:#ef4444; font-family:monospace; background:rgba(239,68,68,0.2); padding:2px 6px; border-radius:3px;">CLEAR</span> below:
                     </label>
                     <input type="text" id="adminClearConfirmInput" placeholder="Type CLEAR to unlock" oninput="validateAdminClearTypedText()"
                         style="width: 100%; background: #0b1329; border: 1px solid #ef4444; color: #fff; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; box-sizing: border-box;">
@@ -33177,8 +33358,8 @@
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" class="btn btn-outline" onclick="closeAdminClearConfirmModal()">Cancel</button>
                     <button type="button" id="adminClearExecuteBtn" class="btn btn-primary" onclick="executeAdminClearConfirmed()" disabled
-                        style="background: #ef4444; border-color: #ef4444; font-weight: 700; opacity: 0.5; cursor: not-allowed;">
-                        <i class="fa-solid fa-trash-can"></i> Permanently Clear Data
+                        style="background: #ef4444; border-color: #ef4444; font-weight: 700; opacity: 0.5; cursor: not-allowed; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-trash-can"></i> Confirm & Execute Clear
                     </button>
                 </div>
             </div>
