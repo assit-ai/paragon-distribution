@@ -1440,7 +1440,7 @@
                     <button type="button" class="nav-tab" data-tab="settings-tab">
                         <i class="fa-solid fa-users-gear"></i> Incharges & Depots
                     </button>
-                    <button type="button" class="nav-tab" data-tab="tracking-tab" id="navTrackingTab">
+                    <button type="button" class="nav-tab" data-tab="tracking-tab" id="navTrackingTab" onclick="initLiveTracking()">
                         <i class="fa-solid fa-map-location-dot" style="color:#38bdf8;"></i> Live Fleet Tracking
                     </button>
                     <button type="button" class="nav-tab" data-tab="sop-tab">
@@ -30618,7 +30618,7 @@
             window.clearBorrowedFleet = clearBorrowedFleet;
 
             // =========================================================================
-            // LIVE FLEET TRACKING & GPS TELEMATICS CONTROLLER
+            // LIVE FLEET TRACKING & GPS TELEMATICS CONTROLLER (ROBUST V3 - ALL DEPOTS)
             // =========================================================================
             let trackingMap = null;
             let trackingLayers = {
@@ -30631,53 +30631,61 @@
             let trackingAutoPollTimer = null;
             let dropMarkersRegistry = {};
 
-            function initLiveTracking() {
+            async function initLiveTracking() {
                 console.log("[Live Tracking] Initializing tracking module...");
-                // 1. Populate tracking depot selector
-                populateTrackingDepotDropdown();
+                // 1. Populate tracking depot selector with All Depots + 17 individual depots
+                await populateTrackingDepotDropdown();
 
-                // 2. Initialize Leaflet Map if not created yet
-                if (!trackingMap) {
-                    const mapEl = document.getElementById('liveTrackingMap');
-                    if (!mapEl) {
-                        console.error("[Live Tracking] liveTrackingMap container not found!");
-                        return;
+                // 2. Initialize Leaflet Map safely
+                const mapEl = document.getElementById('liveTrackingMap');
+                if (!mapEl) {
+                    console.error("[Live Tracking] liveTrackingMap DOM element not found!");
+                    return;
+                }
+
+                if (typeof L === 'undefined') {
+                    console.warn("[Live Tracking] Leaflet library (L) is loading. Retrying in 250ms...");
+                    setTimeout(initLiveTracking, 250);
+                    return;
+                }
+
+                try {
+                    if (!trackingMap) {
+                        if (mapEl._leaflet_id) {
+                            mapEl._leaflet_id = null;
+                        }
+                        trackingMap = L.map('liveTrackingMap', {
+                            center: [23.8103, 90.4125],
+                            zoom: 8,
+                            zoomControl: true,
+                            attributionControl: false
+                        });
+
+                        // Standard OpenStreetMap Tile Layer (100% reliable & high speed)
+                        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(trackingMap);
+
+                        // Create LayerGroups for clean rendering
+                        trackingLayers.routes = L.layerGroup().addTo(trackingMap);
+                        trackingLayers.drops = L.layerGroup().addTo(trackingMap);
+                        trackingLayers.vehicles = L.layerGroup().addTo(trackingMap);
+                        trackingLayers.depot = L.layerGroup().addTo(trackingMap);
                     }
-
-                    if (typeof L === 'undefined') {
-                        console.error("[Live Tracking] Leaflet library (L) is not loaded yet.");
-                        return;
-                    }
-
-                    trackingMap = L.map('liveTrackingMap', {
-                        center: [23.7644, 90.3928],
-                        zoom: 12,
-                        zoomControl: true,
-                        attributionControl: false
-                    });
-
-                    // Add CartoDB Voyager tiles (crisp & reliable OSM raster)
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                        subdomains: 'abcd',
-                        maxZoom: 19
-                    }).addTo(trackingMap);
-
-                    // Create LayerGroups for clean rendering
-                    trackingLayers.routes = L.layerGroup().addTo(trackingMap);
-                    trackingLayers.drops = L.layerGroup().addTo(trackingMap);
-                    trackingLayers.vehicles = L.layerGroup().addTo(trackingMap);
-                    trackingLayers.depot = L.layerGroup().addTo(trackingMap);
+                } catch (mapErr) {
+                    console.error("[Live Tracking] Leaflet initialization caught error:", mapErr);
                 }
 
                 // Invalidate map size after DOM transition
                 setTimeout(() => {
                     if (trackingMap) {
-                        trackingMap.invalidateSize();
+                        try { trackingMap.invalidateSize(); } catch (e) {}
                     }
-                }, 200);
+                }, 150);
 
-                // 3. Load tracking data
-                loadLiveTrackingData(true);
+                // 3. Load tracking telematics data
+                await loadLiveTrackingData(true);
 
                 // 4. Start auto-refresh timer (every 15s)
                 stopTrackingAutoPoll();
@@ -30698,28 +30706,39 @@
                 }
             }
 
-            function populateTrackingDepotDropdown() {
+            async function populateTrackingDepotDropdown() {
                 const depotSelect = document.getElementById('trackingDepotSelect');
                 if (!depotSelect) return;
 
                 const currentVal = depotSelect.value;
                 depotSelect.innerHTML = '';
 
-                let depotsList = (window.currentDepots && window.currentDepots.length > 0) 
-                    ? window.currentDepots 
-                    : (window.masterDashboardData && window.masterDashboardData.depots ? window.masterDashboardData.depots : []);
-
-                if (depotsList.length === 0) {
-                    depotsList = [
-                        { id: 9, name: "Tejgaon Head Office & Central Depot", category: "Frozen/Ck" },
-                        { id: 1, name: "Ashulia Factory - Frozen", category: "Frozen Food" },
-                        { id: 2, name: "Gazipur Depot - Chicken", category: "Commercial Broiler" },
-                        { id: 3, name: "Chittagong Central Depot", category: "Frozen & Layer" },
-                        { id: 4, name: "Sylhet Regional Depot", category: "Poultry Feed & Chicks" }
-                    ];
+                let depotsList = [];
+                if (typeof currentDepots !== 'undefined' && Array.isArray(currentDepots) && currentDepots.length > 0) {
+                    depotsList = currentDepots;
+                } else if (typeof EMBEDDED_MASTER_DEPOTS !== 'undefined' && Array.isArray(EMBEDDED_MASTER_DEPOTS) && EMBEDDED_MASTER_DEPOTS.length > 0) {
+                    depotsList = EMBEDDED_MASTER_DEPOTS;
+                } else {
+                    try {
+                        const res = await fetch('/api/depots');
+                        if (res.ok) {
+                            depotsList = await res.json();
+                            if (typeof currentDepots !== 'undefined') currentDepots = depotsList;
+                        }
+                    } catch (e) {
+                        console.warn("[Live Tracking] Failed to fetch depots:", e);
+                    }
                 }
 
-                const isDepotUser = currentUser && currentUser.role === 'incharge' && currentUser.depot_id;
+                const isDepotUser = (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'incharge' && currentUser.depot_id);
+
+                // For Executive/Admin: Add All Depots option at the top
+                if (!isDepotUser) {
+                    const allOpt = document.createElement('option');
+                    allOpt.value = 'ALL';
+                    allOpt.textContent = '🌟 All Depots (Nationwide Fleet)';
+                    depotSelect.appendChild(allOpt);
+                }
 
                 depotsList.forEach(d => {
                     if (isDepotUser && d.id !== currentUser.depot_id) return;
@@ -30734,8 +30753,8 @@
                     depotSelect.disabled = true;
                 } else if (currentVal && depotSelect.querySelector(`option[value="${currentVal}"]`)) {
                     depotSelect.value = currentVal;
-                } else if (depotsList.length > 0) {
-                    depotSelect.value = depotsList[0].id;
+                } else {
+                    depotSelect.value = 'ALL';
                 }
             }
 
@@ -30745,10 +30764,10 @@
 
             async function loadLiveTrackingData(shouldFitBounds = false) {
                 const depotSelect = document.getElementById('trackingDepotSelect');
-                let depotId = 9;
+                let depotId = 'ALL';
                 if (depotSelect && depotSelect.value) {
                     depotId = depotSelect.value;
-                } else if (currentUser && currentUser.depot_id) {
+                } else if (typeof currentUser !== 'undefined' && currentUser && currentUser.depot_id) {
                     depotId = currentUser.depot_id;
                 }
 
@@ -30756,11 +30775,12 @@
                 if (spinIcon) spinIcon.classList.add('fa-spin');
 
                 try {
-                    const res = await fetch(`/api/tracking/depot-routes?depot_id=${depotId}`);
+                    const res = await fetch(`/api/tracking/depot-routes?depot_id=${encodeURIComponent(depotId)}`);
                     const data = await res.json();
 
                     if (!data.success) {
                         showToast(data.message || 'Failed to load tracking data', 'error');
+                        renderTrackingFeedSidebar({ routes: [] });
                         return;
                     }
 
@@ -30776,6 +30796,7 @@
                     }
                 } catch (err) {
                     console.error('[Live Tracking] Error loading live tracking telematics:', err);
+                    renderTrackingFeedSidebar({ routes: [] });
                 } finally {
                     if (spinIcon) spinIcon.classList.remove('fa-spin');
                 }
@@ -30812,11 +30833,12 @@
                 const routeFilter = document.getElementById('trackingRouteFilter');
                 if (routeFilter) {
                     const currentFilterVal = routeFilter.value;
-                    routeFilter.innerHTML = '<option value="ALL">All Active Fleet Vans</option>';
+                    routeFilter.innerHTML = `<option value="ALL">All Active Fleet Vans (${routes.length})</option>`;
                     routes.forEach(r => {
                         const opt = document.createElement('option');
                         opt.value = r.route_code;
-                        opt.textContent = `${r.vehicle_no} - ${r.route_name}`;
+                        const depotPrefix = (data.is_all_depots && r.depot_name) ? `[${r.depot_name.split(' ')[0]}] ` : '';
+                        opt.textContent = `${depotPrefix}${r.vehicle_no} - ${r.route_name}`;
                         routeFilter.appendChild(opt);
                     });
                     if (currentFilterVal && routeFilter.querySelector(`option[value="${currentFilterVal}"]`)) {
@@ -30826,156 +30848,183 @@
             }
 
             function renderTrackingMapData(data, shouldFitBounds = false) {
-                if (!trackingMap || typeof L === 'undefined') return;
+                if (!trackingMap || typeof L === 'undefined') {
+                    console.warn("[Live Tracking] renderTrackingMapData skipped: Leaflet map instance not ready");
+                    return;
+                }
 
-                // Clear existing markers
-                trackingLayers.depot.clearLayers();
-                trackingLayers.routes.clearLayers();
-                trackingLayers.drops.clearLayers();
-                trackingLayers.vehicles.clearLayers();
-                dropMarkersRegistry = {};
+                try {
+                    if (!trackingLayers.depot) trackingLayers.depot = L.layerGroup().addTo(trackingMap);
+                    if (!trackingLayers.routes) trackingLayers.routes = L.layerGroup().addTo(trackingMap);
+                    if (!trackingLayers.drops) trackingLayers.drops = L.layerGroup().addTo(trackingMap);
+                    if (!trackingLayers.vehicles) trackingLayers.vehicles = L.layerGroup().addTo(trackingMap);
 
-                const depotOrigin = data.depot_origin || { lat: 23.7644, lng: 90.3928, name: data.depot_name || "Central Depot" };
-                const routes = data.routes || [];
-                const allPoints = [[depotOrigin.lat, depotOrigin.lng]];
+                    // Clear existing markers
+                    trackingLayers.depot.clearLayers();
+                    trackingLayers.routes.clearLayers();
+                    trackingLayers.drops.clearLayers();
+                    trackingLayers.vehicles.clearLayers();
+                    dropMarkersRegistry = {};
 
-                // 1. Render Depot Marker
-                const depotIcon = L.divIcon({
-                    className: 'custom-depot-marker-wrapper',
-                    html: `<div class="custom-depot-pin"><i class="fa-solid fa-warehouse"></i></div>`,
-                    iconSize: [38, 38],
-                    iconAnchor: [19, 19]
-                });
+                    const routes = data.routes || [];
+                    const allPoints = [];
 
-                const depotMarker = L.marker([depotOrigin.lat, depotOrigin.lng], { icon: depotIcon }).addTo(trackingLayers.depot);
-                depotMarker.bindPopup(`
-                    <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px;">
-                        <i class="fa-solid fa-warehouse"></i> ${depotOrigin.name}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #94a3b8;">
-                        Central Dispatch Origin & Fleet Hub<br>
-                        <strong>Active Routes:</strong> ${routes.length} Vans En-Route
-                    </div>
-                `);
+                    // 1. Render Depot Marker(s)
+                    const depotIcon = L.divIcon({
+                        className: 'custom-depot-marker-wrapper',
+                        html: `<div class="custom-depot-pin"><i class="fa-solid fa-warehouse"></i></div>`,
+                        iconSize: [38, 38],
+                        iconAnchor: [19, 19]
+                    });
 
-                const routeColors = ['#38bdf8', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4'];
+                    const depotList = (data.depot_origins && Array.isArray(data.depot_origins) && data.depot_origins.length > 0)
+                        ? data.depot_origins
+                        : [data.depot_origin || { lat: 23.7644, lng: 90.3928, name: data.depot_name || "Central Depot", id: data.depot_id || 1 }];
 
-                // 2. Render each route, drop points & vehicles
-                routes.forEach((r, rIdx) => {
-                    const color = routeColors[rIdx % routeColors.length];
-                    const routeCoordinates = [[depotOrigin.lat, depotOrigin.lng]];
-
-                    // Drops
-                    (r.drop_points || []).forEach((drop, dIdx) => {
-                        const dropCoord = [drop.lat, drop.lng];
-                        routeCoordinates.push(dropCoord);
-                        allPoints.push(dropCoord);
-
-                        const st = (drop.status || 'pending').toLowerCase();
-                        let pinClass = 'drop-pin-pending';
-                        let stIcon = 'fa-hourglass-half';
-                        let stText = 'Pending';
-                        let stBadgeColor = '#f59e0b';
-
-                        if (st === 'completed') {
-                            pinClass = 'drop-pin-completed';
-                            stIcon = 'fa-check';
-                            stText = 'Delivered';
-                            stBadgeColor = '#22c55e';
-                        } else if (st === 'in_transit') {
-                            pinClass = 'drop-pin-intransit';
-                            stIcon = 'fa-truck-fast';
-                            stText = 'En-Route';
-                            stBadgeColor = '#0284c7';
-                        } else if (st === 'failed') {
-                            pinClass = 'drop-pin-failed';
-                            stIcon = 'fa-xmark';
-                            stText = 'Failed';
-                            stBadgeColor = '#ef4444';
-                        }
-
-                        const dropIcon = L.divIcon({
-                            className: 'custom-drop-marker-wrapper',
-                            html: `<div class="custom-drop-pin ${pinClass}">${drop.sequence_order || (dIdx + 1)}</div>`,
-                            iconSize: [28, 28],
-                            iconAnchor: [14, 14]
-                        });
-
-                        const dropMarker = L.marker(dropCoord, { icon: dropIcon }).addTo(trackingLayers.drops);
-                        dropMarkersRegistry[`${r.route_code}_${drop.id}`] = dropMarker;
-
-                        dropMarker.bindPopup(`
-                            <div style="min-width: 220px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                    <span style="font-weight:800; font-size:0.75rem; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px;">
-                                        Stop #${drop.sequence_order || (dIdx + 1)}
-                                    </span>
-                                    <span style="font-size:0.75rem; font-weight:700; color:${stBadgeColor};">
-                                        <i class="fa-solid ${stIcon}"></i> ${stText}
-                                    </span>
-                                </div>
-                                <div style="font-weight:800; font-size:0.95rem; color:#f8fafc; margin-bottom:3px;">
-                                    ${drop.outlet_name}
-                                </div>
-                                <div style="font-size:0.78rem; color:#94a3b8; margin-bottom:6px;">
-                                    <i class="fa-solid fa-location-dot text-cyan"></i> ${drop.address || 'Commercial Cluster'}
-                                </div>
-                                <div style="background:#0b1329; padding:6px 8px; border-radius:6px; font-size:0.78rem; margin-bottom:8px;">
-                                    <div><strong>Inv:</strong> ${drop.invoice_no || 'N/A'} | <strong>Pkts:</strong> ${drop.total_pkts}</div>
-                                    <div><strong>Value:</strong> ৳ ${parseFloat(drop.total_amount || 0).toLocaleString()} (${drop.payment_type || 'Cash'})</div>
-                                </div>
-                                <button type="button" onclick="openUpdateDropModal(${data.depot_id}, '${r.route_code}', '${drop.id}', '${escapeQuotes(drop.outlet_name)}', '${escapeQuotes(drop.address)}', '${st}', ${drop.total_amount || 0})" 
-                                    style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; padding:5px 8px; border-radius:4px; font-size:0.78rem; font-weight:700; cursor:pointer;">
-                                    <i class="fa-solid fa-pen-to-square"></i> Update Status
-                                </button>
+                    depotList.forEach(dOrigin => {
+                        allPoints.push([dOrigin.lat, dOrigin.lng]);
+                        const depotMarker = L.marker([dOrigin.lat, dOrigin.lng], { icon: depotIcon }).addTo(trackingLayers.depot);
+                        const dVans = routes.filter(r => r.depot_id === dOrigin.id);
+                        const vanInfo = dVans.length > 0 ? `${dVans.length} Vans En-Route` : `${routes.length} Active Fleet`;
+                        depotMarker.bindPopup(`
+                            <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px;">
+                                <i class="fa-solid fa-warehouse"></i> ${dOrigin.name}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #94a3b8;">
+                                Central Dispatch Origin & Fleet Hub<br>
+                                <strong>Active Deliveries:</strong> ${vanInfo}
                             </div>
                         `);
                     });
 
-                    // Polyline Path
-                    L.polyline(routeCoordinates, {
-                        color: color,
-                        weight: 4,
-                        opacity: 0.85,
-                        dashArray: '6, 8',
-                        lineJoin: 'round'
-                    }).addTo(trackingLayers.routes);
+                    const routeColors = ['#38bdf8', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4', '#eab308', '#6366f1', '#14b8a6', '#f97316'];
 
-                    // Vehicle Marker
-                    const vPos = r.vehicle_position || { lat: depotOrigin.lat, lng: depotOrigin.lng, heading: 45, speed: 30 };
-                    allPoints.push([vPos.lat, vPos.lng]);
+                    // 2. Render each route, drop points & vehicles
+                    routes.forEach((r, rIdx) => {
+                        const color = routeColors[rIdx % routeColors.length];
+                        const originCoord = (r.depot_origin && r.depot_origin.lat) 
+                            ? [r.depot_origin.lat, r.depot_origin.lng] 
+                            : (depotList[0] ? [depotList[0].lat, depotList[0].lng] : [23.7644, 90.3928]);
+                            
+                        const routeCoordinates = [originCoord];
 
-                    const vanIcon = L.divIcon({
-                        className: 'custom-van-marker-wrapper',
-                        html: `<div class="custom-van-pin" style="transform: rotate(${vPos.heading || 0}deg);"><i class="fa-solid fa-truck"></i></div>`,
-                        iconSize: [36, 36],
-                        iconAnchor: [18, 18]
+                        // Drops
+                        (r.drop_points || []).forEach((drop, dIdx) => {
+                            const dropCoord = [drop.lat, drop.lng];
+                            routeCoordinates.push(dropCoord);
+                            allPoints.push(dropCoord);
+
+                            const st = (drop.status || 'pending').toLowerCase();
+                            let pinClass = 'drop-pin-pending';
+                            let stIcon = 'fa-hourglass-half';
+                            let stText = 'Pending';
+                            let stBadgeColor = '#f59e0b';
+
+                            if (st === 'completed') {
+                                pinClass = 'drop-pin-completed';
+                                stIcon = 'fa-check';
+                                stText = 'Delivered';
+                                stBadgeColor = '#22c55e';
+                            } else if (st === 'in_transit') {
+                                pinClass = 'drop-pin-intransit';
+                                stIcon = 'fa-truck-fast';
+                                stText = 'En-Route';
+                                stBadgeColor = '#0284c7';
+                            } else if (st === 'failed') {
+                                pinClass = 'drop-pin-failed';
+                                stIcon = 'fa-xmark';
+                                stText = 'Failed';
+                                stBadgeColor = '#ef4444';
+                            }
+
+                            const dropIcon = L.divIcon({
+                                className: 'custom-drop-marker-wrapper',
+                                html: `<div class="custom-drop-pin ${pinClass}">${drop.sequence_order || (dIdx + 1)}</div>`,
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
+                            });
+
+                            const dropMarker = L.marker(dropCoord, { icon: dropIcon }).addTo(trackingLayers.drops);
+                            dropMarkersRegistry[`${r.route_code}_${drop.id}`] = dropMarker;
+
+                            const routeDepotId = r.depot_id || data.depot_id || 1;
+
+                            dropMarker.bindPopup(`
+                                <div style="min-width: 220px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                        <span style="font-weight:800; font-size:0.75rem; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px;">
+                                            Stop #${drop.sequence_order || (dIdx + 1)} ${r.depot_name ? ('• ' + r.depot_name.split(' ')[0]) : ''}
+                                        </span>
+                                        <span style="font-size:0.75rem; font-weight:700; color:${stBadgeColor};">
+                                            <i class="fa-solid ${stIcon}"></i> ${stText}
+                                        </span>
+                                    </div>
+                                    <div style="font-weight:800; font-size:0.95rem; color:#f8fafc; margin-bottom:3px;">
+                                        ${drop.outlet_name}
+                                    </div>
+                                    <div style="font-size:0.78rem; color:#94a3b8; margin-bottom:6px;">
+                                        <i class="fa-solid fa-location-dot text-cyan"></i> ${drop.address || 'Commercial Cluster'}
+                                    </div>
+                                    <div style="background:#0b1329; padding:6px 8px; border-radius:6px; font-size:0.78rem; margin-bottom:8px;">
+                                        <div><strong>Inv:</strong> ${drop.invoice_no || 'N/A'} | <strong>Pkts:</strong> ${drop.total_pkts}</div>
+                                        <div><strong>Value:</strong> ৳ ${parseFloat(drop.total_amount || 0).toLocaleString()} (${drop.payment_type || 'Cash'})</div>
+                                    </div>
+                                    <button type="button" onclick="openUpdateDropModal(${routeDepotId}, '${r.route_code}', '${drop.id}', '${escapeQuotes(drop.outlet_name)}', '${escapeQuotes(drop.address)}', '${st}', ${drop.total_amount || 0})" 
+                                        style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; padding:5px 8px; border-radius:4px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                                        <i class="fa-solid fa-pen-to-square"></i> Update Status
+                                    </button>
+                                </div>
+                            `);
+                        });
+
+                        // Polyline Path
+                        L.polyline(routeCoordinates, {
+                            color: color,
+                            weight: 3.5,
+                            opacity: 0.85,
+                            dashArray: '6, 8',
+                            lineJoin: 'round'
+                        }).addTo(trackingLayers.routes);
+
+                        // Vehicle Marker
+                        const vPos = r.vehicle_position || { lat: originCoord[0], lng: originCoord[1], heading: 45, speed: 30 };
+                        allPoints.push([vPos.lat, vPos.lng]);
+
+                        const vanIcon = L.divIcon({
+                            className: 'custom-van-marker-wrapper',
+                            html: `<div class="custom-van-pin" style="transform: rotate(${vPos.heading || 0}deg);"><i class="fa-solid fa-truck"></i></div>`,
+                            iconSize: [36, 36],
+                            iconAnchor: [18, 18]
+                        });
+
+                        const vanMarker = L.marker([vPos.lat, vPos.lng], { icon: vanIcon }).addTo(trackingLayers.vehicles);
+                        vanMarker.bindPopup(`
+                            <div style="min-width: 210px;">
+                                <div style="font-weight: 800; color: #10b981; font-size: 0.95rem; margin-bottom: 2px;">
+                                    <i class="fa-solid fa-truck"></i> ${r.vehicle_no}
+                                </div>
+                                <div style="font-size: 0.82rem; color: #cbd5e1; font-weight: 600;">
+                                    ${r.depot_name ? ('<span style="color:#38bdf8;">[' + r.depot_name + ']</span> ') : ''}${r.route_name || r.route_code}
+                                </div>
+                                <hr style="border: 0; border-top: 1px solid #334155; margin: 6px 0;">
+                                <div style="font-size: 0.78rem; color: #94a3b8; line-height: 1.6;">
+                                    <div><strong>Driver:</strong> ${r.driver_name} (<a href="tel:${r.driver_mobile}" style="color:#38bdf8;">${r.driver_mobile}</a>)</div>
+                                    <div><strong>Speed:</strong> <span style="color:#22c55e; font-weight:700;">${vPos.speed || 0} km/h</span></div>
+                                    <div><strong>Progress:</strong> ${r.completed_drops || 0} / ${r.total_drops || 0} Drops Delivered</div>
+                                </div>
+                            </div>
+                        `);
                     });
 
-                    const vanMarker = L.marker([vPos.lat, vPos.lng], { icon: vanIcon }).addTo(trackingLayers.vehicles);
-                    vanMarker.bindPopup(`
-                        <div style="min-width: 210px;">
-                            <div style="font-weight: 800; color: #10b981; font-size: 0.95rem; margin-bottom: 2px;">
-                                <i class="fa-solid fa-truck"></i> ${r.vehicle_no}
-                            </div>
-                            <div style="font-size: 0.82rem; color: #cbd5e1; font-weight: 600;">
-                                ${r.route_name || r.route_code}
-                            </div>
-                            <hr style="border: 0; border-top: 1px solid #334155; margin: 6px 0;">
-                            <div style="font-size: 0.78rem; color: #94a3b8; line-height: 1.6;">
-                                <div><strong>Driver:</strong> ${r.driver_name} (<a href="tel:${r.driver_mobile}" style="color:#38bdf8;">${r.driver_mobile}</a>)</div>
-                                <div><strong>Speed:</strong> <span style="color:#22c55e; font-weight:700;">${vPos.speed || 0} km/h</span></div>
-                                <div><strong>Progress:</strong> ${r.completed_drops || 0} / ${r.total_drops || 0} Drops Delivered</div>
-                            </div>
-                        </div>
-                    `);
-                });
-
-                // Auto-fit bounds on initial load or manual refresh
-                if (shouldFitBounds && allPoints.length > 0) {
-                    try {
-                        trackingMap.fitBounds(allPoints, { padding: [40, 40], maxZoom: 15 });
-                    } catch (e) { }
+                    // Auto-fit bounds on initial load or manual refresh
+                    if (shouldFitBounds && allPoints.length > 0) {
+                        try {
+                            const maxZ = data.is_all_depots ? 12 : 15;
+                            trackingMap.fitBounds(allPoints, { padding: [35, 35], maxZoom: maxZ });
+                        } catch (e) { }
+                    }
+                } catch (mapRenderErr) {
+                    console.error("[Live Tracking] Error rendering map markers:", mapRenderErr);
                 }
             }
 
@@ -30983,13 +31032,13 @@
                 const container = document.getElementById('trackingRouteFeedContainer');
                 if (!container) return;
 
-                const routes = data.routes || [];
+                const routes = (data && data.routes) ? data.routes : [];
                 if (routes.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; color: #94a3b8; padding: 40px 20px;">
                             <i class="fa-solid fa-truck-ramp-box" style="font-size: 32px; color: #475569; margin-bottom: 12px;"></i>
-                            <h4 style="color: #cbd5e1; margin: 0 0 6px;">No Active Deliveries Today</h4>
-                            <p style="font-size: 0.82rem;">Use Route Planning tab to dispatch vans for this depot.</p>
+                            <h4 style="color: #cbd5e1; margin: 0 0 6px;">No Active Deliveries En-Route</h4>
+                            <p style="font-size: 0.82rem;">Select a different depot or use Route Planning to dispatch vans.</p>
                         </div>
                     `;
                     return;
@@ -31001,13 +31050,16 @@
                     const done = r.completed_drops || 0;
                     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
                     const vPos = r.vehicle_position || { speed: 0 };
+                    const depotBadge = (data.is_all_depots && r.depot_name) 
+                        ? `<span class="badge" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-size:0.7rem; padding:1px 5px; border-radius:3px;">${r.depot_name.split(' ')[0]}</span>`
+                        : '';
 
                     html += `
                         <div class="route-feed-card" style="background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; transition: border-color 0.2s;" id="routeCard_${r.route_code}">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                                 <div>
                                     <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-truck-moving"></i> ${r.vehicle_no}
+                                        <i class="fa-solid fa-truck-moving"></i> ${r.vehicle_no} ${depotBadge}
                                     </div>
                                     <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 1px;">
                                         ${r.route_name || r.route_code}
@@ -31125,7 +31177,7 @@
 
             async function triggerTrackingSimulation() {
                 const depotSelect = document.getElementById('trackingDepotSelect');
-                const depotId = depotSelect ? (depotSelect.value || 9) : 9;
+                const depotVal = depotSelect ? depotSelect.value : 'ALL';
                 const btn = document.getElementById('btnSimulateMovement');
                 if (btn) btn.disabled = true;
 
@@ -31133,7 +31185,7 @@
                     const res = await fetch('/api/tracking/simulate-movement', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ depot_id: depotId })
+                        body: JSON.stringify({ depot_id: depotVal })
                     });
                     const resJson = await res.json();
                     if (resJson.success) {
@@ -31211,6 +31263,7 @@
             // Global window exports
             window.initLiveTracking = initLiveTracking;
             window.loadLiveTrackingData = loadLiveTrackingData;
+            window.populateTrackingDepotDropdown = populateTrackingDepotDropdown;
             window.onTrackingDepotChange = onTrackingDepotChange;
             window.filterTrackingRoutesOnMap = filterTrackingRoutesOnMap;
             window.filterTrackingFeedList = filterTrackingFeedList;
