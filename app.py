@@ -668,6 +668,7 @@ def get_current_user():
         "role": user.get('role', 'admin'),
         "username": user.get('username'),
         "depot_id": user.get('depot_id'),
+        "depot_name": user.get('depot_name'),
         "display_name": user.get('display_name')
     })
 
@@ -679,20 +680,28 @@ def api_login():
     
     conn = get_db()
     user_row = conn.execute("SELECT * FROM users WHERE REPLACE(LOWER(username), '-', '_') = REPLACE(?, '-', '_') AND password = ?", (username, password)).fetchone()
-    conn.close()
     
     if user_row:
         user_dict = dict(user_row)
+        depot_name = None
+        if user_dict.get('depot_id'):
+            d_row = conn.execute("SELECT name FROM depots WHERE id = ?", (user_dict['depot_id'],)).fetchone()
+            if d_row:
+                depot_name = d_row['name']
+        conn.close()
+        
         session['user'] = {
             "authenticated": True,
             "id": user_dict['id'],
             "username": user_dict['username'],
             "role": user_dict['role'],
             "depot_id": user_dict['depot_id'],
+            "depot_name": depot_name,
             "display_name": user_dict['display_name']
         }
         return jsonify({"success": True, "user": session['user']})
     else:
+        conn.close()
         return jsonify({"success": False, "message": "Invalid username or password. Please check your credentials."}), 401
 
 @app.route('/api/logout')
