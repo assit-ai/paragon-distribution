@@ -371,30 +371,52 @@ def get_depot_sku_catalog_key(depot_row):
     else:
         return 'frozen'
 
-def seed_depot_sku_master_table(cursor):
+def seed_depot_vehicle_mapping_table(cursor):
     depots = cursor.execute("SELECT id, name, category, default_uom FROM depots").fetchall()
     for d in depots:
         d_id, d_name, d_cat = d[0], d[1], d[2]
         cat_key = get_depot_sku_catalog_key({'id': d_id, 'name': d_name, 'category': d_cat})
-        catalog_items = DEFAULT_SKU_CATALOG.get(cat_key, DEFAULT_SKU_CATALOG['frozen'])
+        resolved_uom = resolve_sku_uom(d_name, d_cat, cat_key)
         
         # Get vehicles for this depot
-        v_rows = cursor.execute("SELECT vehicle_no FROM fleet_vehicles WHERE depot_id = ? ORDER BY id ASC", (d_id,)).fetchall()
-        v_list = [r[0] for r in v_rows]
-        # Get driver for this depot
-        drv_rows = cursor.execute("SELECT name FROM depot_crew WHERE depot_id = ? AND role = 'driver' ORDER BY id ASC", (d_id,)).fetchall()
-        drv_list = [r[0] for r in drv_rows]
+        v_rows = cursor.execute('''
+            SELECT fv.vehicle_no, fv.capacity_kg, drv.name as driver_name, drv.default_route_name
+            FROM fleet_vehicles fv
+            LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
+            WHERE fv.depot_id = ?
+            ORDER BY fv.id ASC
+        ''', (d_id,)).fetchall()
         
-        for idx, itm in enumerate(catalog_items):
-            uom = resolve_sku_uom(d_name, itm['category'], cat_key)
-            veh_no = v_list[idx % len(v_list)] if v_list else ''
-            drv_name = drv_list[idx % len(drv_list)] if drv_list else ''
-            
-            cursor.execute('''
-            INSERT INTO depot_sku_master 
-            (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (d_id, d_name, d_cat, itm['category'], itm['code'], itm['name'], uom, veh_no, drv_name, itm.get('route', ''), itm.get('cap', 1500.0), itm.get('pack', ''), 'Default Seed Catalog'))
+        if v_rows:
+            for r in v_rows:
+                v_no = r[0]
+                v_cap = float(r[1] or 1500.0)
+                drv_name = r[2] or ''
+                route_name = r[3] or ''
+                if resolved_uom == 'Pcs' and v_cap < 5000:
+                    v_cap = 30000.0
+                elif resolved_uom == 'Liter' and v_cap > 3000:
+                    v_cap = 1000.0
+                cursor.execute('''
+                    INSERT INTO depot_vehicle_mapping
+                    (depot_id, depot_name, depot_type, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (d_id, d_name, d_cat, d_cat, resolved_uom, v_no, drv_name, route_name, v_cap, 'Active Vehicle Assignment'))
+        else:
+            default_vehicles = [
+                (f"DM-SHA-11-{2000 + d_id * 3 + 1}", "Md. Driver 1", "Route 01: Core City Line"),
+                (f"DM-SHA-11-{2000 + d_id * 3 + 2}", "Md. Driver 2", "Route 02: Outer Suburb Line")
+            ]
+            std_cap = 30000.0 if resolved_uom == 'Pcs' else (1000.0 if resolved_uom == 'Liter' else 1500.0)
+            for v_no, drv_name, r_name in default_vehicles:
+                cursor.execute('''
+                    INSERT INTO depot_vehicle_mapping
+                    (depot_id, depot_name, depot_type, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (d_id, d_name, d_cat, d_cat, resolved_uom, v_no, drv_name, r_name, std_cap, 'Default Pre-configured Van'))
+
+def seed_depot_sku_master_table(cursor):
+    pass
 
 def ensure_schema_migrations():
     try:
@@ -429,7 +451,30 @@ def ensure_schema_migrations():
                 default_caps = json.dumps(get_default_category_capacities(cap_kg or 1500, vtype))
                 c.execute("UPDATE fleet_vehicles SET category_capacities = ? WHERE id = ?", (default_caps, vid))
             
-        # Ensure depot_sku_master table exists
+        # Create dedicated Driver-Vehicle Default Mapping & Category Capacities table (NO SKU / SKU CODE)
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS depot_vehicle_mapping (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            depot_id INTEGER NOT NULL,
+            depot_name TEXT NOT NULL,
+            depot_type TEXT,
+            category TEXT NOT NULL,
+            uom TEXT NOT NULL,
+            default_vehicle_no TEXT NOT NULL,
+            default_driver_name TEXT,
+            default_route_name TEXT,
+            max_capacity REAL DEFAULT 0,
+            remarks TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (depot_id) REFERENCES depots (id)
+        )
+        ''')
+        
+        c.execute("SELECT COUNT(*) FROM depot_vehicle_mapping")
+        if c.fetchone()[0] == 0:
+            seed_depot_vehicle_mapping_table(c)
+
+        # Legacy depot_sku_master table fallback
         c.execute('''
         CREATE TABLE IF NOT EXISTS depot_sku_master (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -438,7 +483,7 @@ def ensure_schema_migrations():
             depot_type TEXT,
             category TEXT NOT NULL,
             sku_code TEXT,
-            sku_name TEXT NOT NULL,
+            sku_name TEXT,
             uom TEXT NOT NULL,
             default_vehicle_no TEXT,
             default_driver_name TEXT,
@@ -450,11 +495,6 @@ def ensure_schema_migrations():
             FOREIGN KEY (depot_id) REFERENCES depots (id)
         )
         ''')
-        
-        # Seed default SKUs if table is empty
-        c.execute("SELECT COUNT(*) FROM depot_sku_master")
-        if c.fetchone()[0] == 0:
-            seed_depot_sku_master_table(c)
 
         conn.commit()
         conn.close()
@@ -904,6 +944,11 @@ def admin_clear_all_uploaded_data():
             cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ?', (depot_id,))
         except Exception:
             pass
+        try:
+            cursor.execute('DELETE FROM live_tracking_positions WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM live_drop_statuses WHERE depot_id = ?', (depot_id,))
+        except Exception:
+            pass
         msg = f"All uploaded daily reports, invoices & route plans for Depot #{depot_id} cleared successfully!"
     else:
         cursor.execute('DELETE FROM invoices')
@@ -911,6 +956,11 @@ def admin_clear_all_uploaded_data():
         cursor.execute('DELETE FROM daily_reports')
         try:
             cursor.execute('DELETE FROM saved_route_plans')
+        except Exception:
+            pass
+        try:
+            cursor.execute('DELETE FROM live_tracking_positions')
+            cursor.execute('DELETE FROM live_drop_statuses')
         except Exception:
             pass
         msg = "All uploaded daily reports, delivery invoices, trips and route plans cleared successfully!"
@@ -2241,12 +2291,12 @@ def download_driver_vehicle_mapping_template():
         conn = get_db()
         cursor = conn.cursor()
 
-        # If user is incharge (non-admin), enforce their assigned depot
+        # Enforce role-based depot filtering:
+        # If user is incharge/staff (non-admin), lock strictly to their assigned depot
         if user_role and user_role != 'admin' and user_depot:
             depot_id = user_depot
         elif not depot_id or str(depot_id).lower() in ['all', 'none', '']:
             if depot_type_param:
-                # Match depot by type
                 d_match = cursor.execute("SELECT id FROM depots WHERE LOWER(category) LIKE ? OR LOWER(name) LIKE ? ORDER BY id ASC LIMIT 1",
                                          (f"%{depot_type_param.lower()}%", f"%{depot_type_param.lower()}%")).fetchone()
                 depot_id = d_match['id'] if d_match else (user_depot or 9)
@@ -2265,48 +2315,65 @@ def download_driver_vehicle_mapping_template():
 
         cat_key = get_depot_sku_catalog_key(d_row)
         resolved_uom = resolve_sku_uom(d_row['name'], d_row['category'], depot_type_param or cat_key)
+        _, _, _, default_std_cap = get_depot_primary_category_info(d_row)
 
-        # Query existing SKUs from depot_sku_master if present
-        sku_rows = cursor.execute('''
-            SELECT id, sku_code, sku_name, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks
-            FROM depot_sku_master
+        # Query existing mappings from depot_vehicle_mapping (NO SKU / SKU CODE)
+        mapping_rows = cursor.execute('''
+            SELECT id, depot_id, depot_name, depot_type, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks
+            FROM depot_vehicle_mapping
             WHERE depot_id = ?
             ORDER BY id ASC
         ''', (depot_id,)).fetchall()
 
-        skus_to_export = [dict(r) for r in sku_rows]
+        mappings_to_export = [dict(r) for r in mapping_rows]
 
-        # Query registered vehicles & drivers for this depot to provide defaults
-        v_rows = cursor.execute('''
-            SELECT fv.vehicle_no, fv.capacity_kg, drv.name as driver_name, drv.default_route_name
-            FROM fleet_vehicles fv
-            LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
-            WHERE fv.depot_id = ?
-            ORDER BY fv.id ASC
-        ''', (depot_id,)).fetchall()
-        depot_vehicles = [dict(r) for r in v_rows]
+        # If no mappings in DB yet, query registered vehicles & drivers for this depot to generate clean 1-sheet rows
+        if not mappings_to_export:
+            v_rows = cursor.execute('''
+                SELECT fv.vehicle_no, fv.capacity_kg, drv.name as driver_name, drv.default_route_name
+                FROM fleet_vehicles fv
+                LEFT JOIN depot_crew drv ON fv.default_driver_id = drv.id
+                WHERE fv.depot_id = ?
+                ORDER BY fv.id ASC
+            ''', (depot_id,)).fetchall()
 
-        # If no SKUs in DB yet, pull from default catalog
-        if not skus_to_export:
-            catalog_items = DEFAULT_SKU_CATALOG.get(cat_key, DEFAULT_SKU_CATALOG['frozen'])
-            for idx, itm in enumerate(catalog_items):
-                assigned_v = depot_vehicles[idx % len(depot_vehicles)] if depot_vehicles else {}
-                skus_to_export.append({
-                    "sku_code": itm['code'],
-                    "sku_name": itm['name'],
-                    "category": itm['category'],
-                    "uom": resolve_sku_uom(d_row['name'], itm['category'], cat_key),
-                    "default_vehicle_no": assigned_v.get('vehicle_no', ''),
-                    "default_driver_name": assigned_v.get('driver_name', ''),
-                    "default_route_name": assigned_v.get('default_route_name') or itm.get('route', ''),
-                    "max_capacity": itm.get('cap', 1500.0),
-                    "pack_size": itm.get('pack', ''),
-                    "remarks": "Auto-Generated Default"
-                })
+            if v_rows:
+                for r in v_rows:
+                    v_cap = float(r['capacity_kg'] or default_std_cap)
+                    if resolved_uom == 'Pcs' and v_cap < 5000:
+                        v_cap = 30000.0
+                    elif resolved_uom == 'Liter' and v_cap > 3000:
+                        v_cap = 1000.0
+                    mappings_to_export.append({
+                        "depot_name": d_row['name'],
+                        "category": d_row['category'],
+                        "uom": resolved_uom,
+                        "default_vehicle_no": r['vehicle_no'] or '',
+                        "default_driver_name": r['driver_name'] or '',
+                        "default_route_name": r['default_route_name'] or '',
+                        "max_capacity": v_cap,
+                        "remarks": "Active Vehicle Assignment"
+                    })
+            else:
+                default_vans = [
+                    (f"DM-SHA-11-{2000 + depot_id * 3 + 1}", "Md. Driver 1", "Route 01: Core City Line"),
+                    (f"DM-SHA-11-{2000 + depot_id * 3 + 2}", "Md. Driver 2", "Route 02: Outer Suburb Line")
+                ]
+                for v_no, drv_name, r_name in default_vans:
+                    mappings_to_export.append({
+                        "depot_name": d_row['name'],
+                        "category": d_row['category'],
+                        "uom": resolved_uom,
+                        "default_vehicle_no": v_no,
+                        "default_driver_name": drv_name,
+                        "default_route_name": r_name,
+                        "max_capacity": default_std_cap,
+                        "remarks": "Default Pre-configured Van"
+                    })
 
         output = io.BytesIO()
         wb = xlsxwriter.Workbook(output, {'in_memory': True})
-        ws = wb.add_worksheet('Assignment & SKU Master')
+        ws = wb.add_worksheet('Driver-Vehicle Mapping')
 
         # Modern Formats
         hdr_fmt = wb.add_format({
@@ -2340,32 +2407,33 @@ def download_driver_vehicle_mapping_template():
             'bold': True, 'font_size': 9.5, 'color': '#0369A1', 'bg_color': '#E0F2FE', 'align': 'center',
             'border': 1, 'border_color': '#7DD3FC', 'valign': 'vcenter'
         })
+        td_veh = wb.add_format({
+            'bold': True, 'font_size': 9.5, 'color': '#B45309', 'bg_color': '#FEF3C7', 'align': 'center',
+            'border': 1, 'border_color': '#FDE68A', 'valign': 'vcenter'
+        })
         td_right = wb.add_format({
             'font_size': 9, 'color': '#1E293B', 'align': 'right', 'border': 1, 'border_color': '#CBD5E1',
             'valign': 'vcenter', 'num_format': '#,##0.0'
         })
 
-        # Columns
+        # Columns matching strictly the manual entry inputs on the page (NO SKU fields)
         ws.set_column(0, 0, 6)   # SL
-        ws.set_column(1, 1, 25)  # Depot Name
-        ws.set_column(2, 2, 20)  # Category
-        ws.set_column(3, 3, 16)  # SKU Code
-        ws.set_column(4, 4, 38)  # SKU Name
-        ws.set_column(5, 5, 18)  # UoM (Assigned)
-        ws.set_column(6, 6, 25)  # Default Vehicle Reg No
-        ws.set_column(7, 7, 22)  # Default Driver Name
-        ws.set_column(8, 8, 26)  # Default Route Name
-        ws.set_column(9, 9, 22)  # Vehicle Max Load Capacity (in UoM)
-        ws.set_column(10, 10, 18) # Standard Pack Size
-        ws.set_column(11, 11, 24) # Remarks
+        ws.set_column(1, 1, 26)  # Depot Name
+        ws.set_column(2, 2, 22)  # Category
+        ws.set_column(3, 3, 20)  # Unit of Measurement (UoM) *
+        ws.set_column(4, 4, 26)  # Default Assigned Vehicle Reg No *
+        ws.set_column(5, 5, 22)  # Default Driver Name
+        ws.set_column(6, 6, 26)  # Default Route Name / Area
+        ws.set_column(7, 7, 24)  # Vehicle Max Capacity (in UoM) *
+        ws.set_column(8, 8, 26)  # Remarks / Handling Note
 
-        title_text = f"PARAGON AGRO LIMITED - DEFAULT ASSIGNMENT & SKU CAPACITY MASTER"
+        title_text = f"PARAGON AGRO LIMITED - DRIVER-VEHICLE MAPPING & CAPACITIES MASTER"
         sub_text = f"Target Depot: {d_row['name']}  |  Depot Type: {d_row['category']}  |  Auto-Mapped Primary UoM: {resolved_uom}"
-        inst_text = "Instructions: Each SKU is pre-populated with its auto-assigned UoM. Assign default vehicles, drivers, and routes, then upload directly in Tab 5."
+        inst_text = "Instructions: Set default vehicle reg nos, driver names, routes, and capacities for each line. Upload directly in Master Fleet Modal Tab 5."
 
-        ws.merge_range('A1:L1', title_text, hdr_fmt)
-        ws.merge_range('A2:L2', sub_text, sub_fmt)
-        ws.merge_range('A3:L3', inst_text, tip_fmt)
+        ws.merge_range('A1:I1', title_text, hdr_fmt)
+        ws.merge_range('A2:I2', sub_text, sub_fmt)
+        ws.merge_range('A3:I3', inst_text, tip_fmt)
         ws.set_row(0, 26)
         ws.set_row(1, 20)
         ws.set_row(2, 18)
@@ -2374,45 +2442,39 @@ def download_driver_vehicle_mapping_template():
             'SL',
             'Depot Name',
             'Category',
-            'SKU Code',
-            'SKU Name / Description *',
             'Unit of Measurement (UoM) *',
-            'Default Assigned Vehicle Reg No',
+            'Default Assigned Vehicle Reg No *',
             'Default Driver Name',
             'Default Route Name / Area',
             f'Vehicle Max Capacity ({resolved_uom}) *',
-            'Standard Pack Size',
-            'Remarks / Channel'
+            'Remarks / Handling Note'
         ]
 
         for col, h in enumerate(headers):
-            ws.write(4, col, h, th_uom_fmt if 'UoM' in h else th_fmt)
+            ws.write(4, col, h, th_uom_fmt if 'UoM' in h or 'Capacity' in h else th_fmt)
         ws.set_row(4, 26)
 
         start_row = 5
-        for idx, itm in enumerate(skus_to_export, 1):
+        for idx, itm in enumerate(mappings_to_export, 1):
             r_idx = start_row + idx - 1
-            item_uom = itm.get('uom') or resolve_sku_uom(d_row['name'], itm.get('category'), cat_key)
+            item_uom = itm.get('uom') or resolved_uom
             
             ws.write(r_idx, 0, idx, td_center)
             ws.write(r_idx, 1, d_row['name'], td_fmt)
             ws.write(r_idx, 2, itm.get('category') or d_row['category'], td_fmt)
-            ws.write(r_idx, 3, itm.get('sku_code') or f"SKU-{idx:03d}", td_center)
-            ws.write(r_idx, 4, itm.get('sku_name') or '', td_fmt)
-            ws.write(r_idx, 5, item_uom, td_uom)
-            ws.write(r_idx, 6, itm.get('default_vehicle_no') or '', td_center)
-            ws.write(r_idx, 7, itm.get('default_driver_name') or '', td_fmt)
-            ws.write(r_idx, 8, itm.get('default_route_name') or '', td_fmt)
-            ws.write(r_idx, 9, float(itm.get('max_capacity') or 1500.0), td_right)
-            ws.write(r_idx, 10, itm.get('pack_size') or '', td_center)
-            ws.write(r_idx, 11, itm.get('remarks') or 'Active Mapping', td_fmt)
+            ws.write(r_idx, 3, item_uom, td_uom)
+            ws.write(r_idx, 4, itm.get('default_vehicle_no') or '', td_veh)
+            ws.write(r_idx, 5, itm.get('default_driver_name') or '', td_fmt)
+            ws.write(r_idx, 6, itm.get('default_route_name') or '', td_fmt)
+            ws.write(r_idx, 7, float(itm.get('max_capacity') or default_std_cap), td_right)
+            ws.write(r_idx, 8, itm.get('remarks') or 'Active Vehicle Mapping', td_fmt)
             ws.set_row(r_idx, 20)
 
         conn.close()
         wb.close()
         output.seek(0)
         clean_depot_name = re.sub(r'[^a-zA-Z0-9_-]', '_', d_row['name'])
-        filename = f"Paragon_{clean_depot_name}_SKU_Capacity_Template.xlsx"
+        filename = f"Paragon_{clean_depot_name}_Driver_Vehicle_Mapping_Template.xlsx"
         return send_file(
             output,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2424,6 +2486,7 @@ def download_driver_vehicle_mapping_template():
 
 @app.route('/api/crew/mapping-bulk-upload', methods=['POST'])
 @app.route('/api/master/sku-mapping-bulk-upload', methods=['POST'])
+@app.route('/api/master/driver-vehicle-mapping-bulk-upload', methods=['POST'])
 def bulk_upload_driver_vehicle_mapping():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No Excel file uploaded'}), 400
@@ -2483,22 +2546,18 @@ def bulk_upload_driver_vehicle_mapping():
                 continue
 
             # Check if this is the header row
-            if any(k in row_str for k in ['sku', 'item', 'product', 'driver', 'vehicle', 'capacity', 'uom', 'unit']):
+            if any(k in row_str for k in ['driver', 'vehicle', 'truck', 'van', 'capacity', 'uom', 'unit', 'category', 'route', 'sku']):
                 candidate_map = {}
                 for c_idx, cell in enumerate(row):
                     if cell is None: continue
                     c_text = str(cell).lower().strip()
-                    if 'sku code' in c_text or 'item code' in c_text or 'code' in c_text:
-                        candidate_map['sku_code'] = c_idx
-                    elif 'sku' in c_text or 'item' in c_text or 'product' in c_text or 'description' in c_text or 'পণ্য' in c_text:
-                        candidate_map['sku_name'] = c_idx
+                    if 'category' in c_text or 'ক্যাটাগরি' in c_text:
+                        candidate_map['category'] = c_idx
                     elif 'uom' in c_text or 'unit' in c_text or 'measure' in c_text or 'একক' in c_text or 'পরিমাপ' in c_text:
                         candidate_map['uom'] = c_idx
-                    elif 'category' in c_text or 'ক্যাটাগরি' in c_text:
-                        candidate_map['category'] = c_idx
-                    elif 'capacity' in c_text or 'max' in c_text or 'ধারণক্ষমতা' in c_text:
+                    elif 'capacity' in c_text or 'max' in c_text or 'ধারণক্ষমতা' in c_text or 'লোড' in c_text:
                         candidate_map['capacity'] = c_idx
-                    elif 'route' in c_text or 'line' in c_text or 'zone' in c_text or 'রুট' in c_text:
+                    elif 'route' in c_text or 'line' in c_text or 'zone' in c_text or 'রুট' in c_text or 'area' in c_text:
                         candidate_map['route'] = c_idx
                     elif 'backup' in c_text or 'secondary' in c_text:
                         candidate_map['backup_veh'] = c_idx
@@ -2508,21 +2567,20 @@ def bulk_upload_driver_vehicle_mapping():
                         if 'driver' not in candidate_map: candidate_map['driver'] = c_idx
                     elif 'phone' in c_text or 'contact' in c_text or 'mobile' in c_text:
                         candidate_map['phone'] = c_idx
-                    elif 'pack' in c_text or 'case' in c_text or 'size' in c_text:
-                        candidate_map['pack_size'] = c_idx
-                    elif 'remarks' in c_text or 'note' in c_text or 'channel' in c_text:
+                    elif 'remarks' in c_text or 'note' in c_text or 'channel' in c_text or 'মন্তব্য' in c_text:
                         candidate_map['remarks'] = c_idx
 
-                if 'sku_name' in candidate_map or 'veh' in candidate_map or 'driver' in candidate_map:
+                if 'veh' in candidate_map or 'driver' in candidate_map or 'route' in candidate_map:
                     header_row_idx = r_idx
                     col_map = candidate_map
                     break
 
         if not header_row_idx:
+            # Default column map matching template: 0:SL, 1:Depot, 2:Category, 3:UoM, 4:Veh, 5:Driver, 6:Route, 7:Capacity, 8:Remarks
             header_row_idx = 5
-            col_map = {'sku_name': 4, 'uom': 5, 'veh': 6, 'driver': 7, 'route': 8, 'capacity': 9, 'pack_size': 10, 'remarks': 11}
+            col_map = {'category': 2, 'uom': 3, 'veh': 4, 'driver': 5, 'route': 6, 'capacity': 7, 'remarks': 8}
 
-        parsed_skus = []
+        parsed_mappings = []
         vehicles_to_sync = {}
         drivers_to_sync = {}
 
@@ -2538,8 +2596,6 @@ def bulk_upload_driver_vehicle_mapping():
                     return str(row[idx]).strip()
                 return default
 
-            sku_name = get_val('sku_name')
-            sku_code = get_val('sku_code')
             cat_name = get_val('category') or d_row['category']
             raw_uom = get_val('uom')
             veh_no = clean_vehicle_no(get_val('veh'))
@@ -2548,17 +2604,12 @@ def bulk_upload_driver_vehicle_mapping():
             phone = get_val('phone')
             route_name = get_val('route')
             raw_cap = get_val('capacity')
-            pack_size = get_val('pack_size')
-            remarks = get_val('remarks')
+            remarks = get_val('remarks') or 'Active Vehicle Mapping'
 
-            # Backward compatibility for legacy format without SKU column
-            if not sku_name and veh_no:
-                sku_name = f"Standard Load - {cat_name}"
-
-            if not sku_name:
+            if not veh_no and not drv_name:
                 continue
 
-            if sku_name.upper() in ['SKU NAME', 'ITEM NAME', 'PRODUCT NAME', 'DESCRIPTION', 'SL']:
+            if veh_no.upper() in ['VEHICLE REG NO', 'VEHICLE', 'DRIVER', 'SL', 'DEFAULT ASSIGNED VEHICLE']:
                 continue
 
             # Auto-map UoM logic based on Depot + Category mapping rules
@@ -2579,24 +2630,22 @@ def bulk_upload_driver_vehicle_mapping():
             else:
                 final_uom = resolve_sku_uom(d_row['name'], cat_name, d_row['category'])
 
-            cap_val = 1500.0
+            _, _, _, std_cap = get_depot_primary_category_info(d_row)
+            cap_val = std_cap
             if raw_cap:
                 try: cap_val = float(str(raw_cap).replace(',', ''))
                 except: pass
 
-            parsed_skus.append({
+            parsed_mappings.append({
                 "depot_id": target_depot_id,
                 "depot_name": d_row['name'],
                 "depot_type": d_row['category'],
                 "category": cat_name,
-                "sku_code": sku_code or f"SKU-{len(parsed_skus)+1:03d}",
-                "sku_name": sku_name,
                 "uom": final_uom,
-                "default_vehicle_no": veh_no,
+                "default_vehicle_no": veh_no or f"DM-SHA-11-{2000 + len(parsed_mappings)}",
                 "default_driver_name": drv_name,
                 "default_route_name": route_name,
                 "max_capacity": cap_val,
-                "pack_size": pack_size,
                 "remarks": remarks
             })
 
@@ -2619,19 +2668,19 @@ def bulk_upload_driver_vehicle_mapping():
                     "route_name": route_name
                 }
 
-        if not parsed_skus:
+        if not parsed_mappings:
             conn.close()
-            return jsonify({'success': False, 'message': 'No valid SKU or vehicle assignment rows found in the uploaded file.'}), 400
+            return jsonify({'success': False, 'message': 'No valid vehicle or driver mapping rows found in the uploaded file.'}), 400
 
-        # Replace existing SKUs for this depot with the new imported list
-        cursor.execute("DELETE FROM depot_sku_master WHERE depot_id = ?", (target_depot_id,))
-        for s in parsed_skus:
+        # Replace existing records in depot_vehicle_mapping for this depot
+        cursor.execute("DELETE FROM depot_vehicle_mapping WHERE depot_id = ?", (target_depot_id,))
+        for m in parsed_mappings:
             cursor.execute('''
-                INSERT INTO depot_sku_master 
-                (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (s['depot_id'], s['depot_name'], s['depot_type'], s['category'], s['sku_code'], s['sku_name'], s['uom'],
-                  s['default_vehicle_no'], s['default_driver_name'], s['default_route_name'], s['max_capacity'], s['pack_size'], s['remarks']))
+                INSERT INTO depot_vehicle_mapping 
+                (depot_id, depot_name, depot_type, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (m['depot_id'], m['depot_name'], m['depot_type'], m['category'], m['uom'],
+                  m['default_vehicle_no'], m['default_driver_name'], m['default_route_name'], m['max_capacity'], m['remarks']))
 
         # Synchronize vehicles into fleet_vehicles
         for vno, vdata in vehicles_to_sync.items():
@@ -2674,51 +2723,55 @@ def bulk_upload_driver_vehicle_mapping():
         conn.commit()
         conn.close()
 
-        uom_summary = ", ".join(list(set(s['uom'] for s in parsed_skus)))
+        uom_summary = ", ".join(list(set(m['uom'] for m in parsed_mappings)))
         return jsonify({
             'success': True,
-            'message': f"Successfully processed {len(parsed_skus)} SKU line-items for {d_row['name']} with auto-assigned UoM: [{uom_summary}]!",
-            'count': len(parsed_skus),
+            'message': f"Successfully processed {len(parsed_mappings)} Driver-Vehicle mapping records for {d_row['name']} with UoM: [{uom_summary}]!",
+            'count': len(parsed_mappings),
             'uom_summary': uom_summary,
             'depot_id': target_depot_id
         })
     except Exception as err:
         return jsonify({'success': False, 'message': f'Processing error: {str(err)}'}), 500
 
+@app.route('/api/master/mappings', methods=['GET'])
 @app.route('/api/master/skus', methods=['GET'])
-def get_master_skus():
+def get_master_mappings():
     depot_id = request.args.get('depot_id')
     conn = get_db()
     cursor = conn.cursor()
     
     if not depot_id or str(depot_id).lower() == 'all':
         rows = cursor.execute('''
-            SELECT id, depot_id, depot_name, depot_type, category, sku_code, sku_name, uom,
-                   default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks
-            FROM depot_sku_master
+            SELECT id, depot_id, depot_name, depot_type, category, uom,
+                   default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks
+            FROM depot_vehicle_mapping
             ORDER BY depot_id ASC, id ASC
         ''').fetchall()
     else:
         try: d_id = int(depot_id)
         except: d_id = 9
         rows = cursor.execute('''
-            SELECT id, depot_id, depot_name, depot_type, category, sku_code, sku_name, uom,
-                   default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks
-            FROM depot_sku_master
+            SELECT id, depot_id, depot_name, depot_type, category, uom,
+                   default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks
+            FROM depot_vehicle_mapping
             WHERE depot_id = ?
             ORDER BY id ASC
         ''', (d_id,)).fetchall()
         
     conn.close()
+    res_list = [dict(r) for r in rows]
     return jsonify({
         "success": True,
-        "skus": [dict(r) for r in rows]
+        "mappings": res_list,
+        "skus": res_list
     })
 
+@app.route('/api/master/mapping', methods=['POST'])
 @app.route('/api/master/sku', methods=['POST'])
-def save_master_sku():
+def save_master_mapping():
     data = request.json or {}
-    sku_id = data.get('id')
+    mapping_id = data.get('id')
     depot_id = data.get('depot_id')
     if not depot_id:
         return jsonify({"success": False, "message": "Depot ID is required"}), 400
@@ -2735,49 +2788,84 @@ def save_master_sku():
         
     depot_name = d_row['name']
     depot_type = d_row['category']
-    sku_name = data.get('sku_name', '').strip()
-    if not sku_name:
-        conn.close()
-        return jsonify({"success": False, "message": "SKU Name is required"}), 400
-        
     category = data.get('category') or depot_type
     raw_uom = data.get('uom', '').strip()
     uom = raw_uom if raw_uom else resolve_sku_uom(depot_name, category, depot_type)
-    sku_code = data.get('sku_code') or f"SKU-{int(datetime.datetime.now().timestamp()) % 10000:04d}"
     veh_no = data.get('default_vehicle_no', '').strip()
+    if not veh_no:
+        conn.close()
+        return jsonify({"success": False, "message": "Default Vehicle Reg No is required"}), 400
+
     drv_name = data.get('default_driver_name', '').strip()
     route_name = data.get('default_route_name', '').strip()
     try: cap_val = float(data.get('max_capacity') or 1500.0)
     except: cap_val = 1500.0
-    pack_size = data.get('pack_size', '').strip()
-    remarks = data.get('remarks', '').strip()
+    remarks = data.get('remarks', '').strip() or 'Active Vehicle Assignment'
     
-    if sku_id:
+    if mapping_id:
         cursor.execute('''
-            UPDATE depot_sku_master
-            SET category = ?, sku_code = ?, sku_name = ?, uom = ?, default_vehicle_no = ?,
-                default_driver_name = ?, default_route_name = ?, max_capacity = ?, pack_size = ?, remarks = ?
+            UPDATE depot_vehicle_mapping
+            SET category = ?, uom = ?, default_vehicle_no = ?,
+                default_driver_name = ?, default_route_name = ?, max_capacity = ?, remarks = ?
             WHERE id = ? AND depot_id = ?
-        ''', (category, sku_code, sku_name, uom, veh_no, drv_name, route_name, cap_val, pack_size, remarks, sku_id, depot_id))
+        ''', (category, uom, veh_no, drv_name, route_name, cap_val, remarks, mapping_id, depot_id))
     else:
         cursor.execute('''
-            INSERT INTO depot_sku_master 
-            (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, pack_size, remarks)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (depot_id, depot_name, depot_type, category, sku_code, sku_name, uom, veh_no, drv_name, route_name, cap_val, pack_size, remarks))
+            INSERT INTO depot_vehicle_mapping 
+            (depot_id, depot_name, depot_type, category, uom, default_vehicle_no, default_driver_name, default_route_name, max_capacity, remarks)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (depot_id, depot_name, depot_type, category, uom, veh_no, drv_name, route_name, cap_val, remarks))
+
+    # Synchronize with fleet_vehicles
+    cat_key = get_depot_sku_catalog_key(d_row)
+    exist = cursor.execute("SELECT id, category_capacities FROM fleet_vehicles WHERE depot_id = ? AND UPPER(vehicle_no) = UPPER(?)", (depot_id, veh_no)).fetchone()
+    cat_caps = {}
+    if exist and exist['category_capacities']:
+        try: cat_caps = json.loads(exist['category_capacities'])
+        except: pass
+    cat_caps[cat_key] = {"capacity": cap_val, "unit": uom}
+    
+    if exist:
+        cursor.execute('''
+            UPDATE fleet_vehicles
+            SET capacity_kg = ?, capacity_units = ?, category_capacities = ?
+            WHERE id = ?
+        ''', (cap_val, uom, json.dumps(cat_caps), exist['id']))
+    else:
+        cursor.execute('''
+            INSERT INTO fleet_vehicles (depot_id, vehicle_no, vehicle_type, capacity_kg, capacity_units, category_capacities, status)
+            VALUES (?, ?, 'Covered Van', ?, ?, ?, 'Available')
+        ''', (depot_id, veh_no, cap_val, uom, json.dumps(cat_caps)))
+
+    # Synchronize driver if name provided
+    if drv_name:
+        c_exist = cursor.execute("SELECT id FROM depot_crew WHERE depot_id = ? AND UPPER(name) = UPPER(?)", (depot_id, drv_name)).fetchone()
+        if c_exist:
+            cursor.execute('''
+                UPDATE depot_crew
+                SET assigned_vehicle_no = COALESCE(?, assigned_vehicle_no),
+                    default_route_name = COALESCE(?, default_route_name)
+                WHERE id = ?
+            ''', (veh_no, route_name or None, c_exist['id']))
+        else:
+            cursor.execute('''
+                INSERT INTO depot_crew (depot_id, name, role, phone, assigned_vehicle_no, default_route_name, status)
+                VALUES (?, ?, 'driver', '01711-000000', ?, ?, 'Active')
+            ''', (depot_id, drv_name, veh_no, route_name))
         
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": f"SKU '{sku_name}' with assigned UoM '{uom}' saved successfully!"})
+    return jsonify({"success": True, "message": f"Default mapping for Vehicle '{veh_no}' saved successfully!"})
 
-@app.route('/api/master/sku/<int:sku_id>', methods=['DELETE', 'POST'])
-def delete_master_sku(sku_id):
+@app.route('/api/master/mapping/<int:mapping_id>', methods=['DELETE', 'POST'])
+@app.route('/api/master/sku/<int:mapping_id>', methods=['DELETE', 'POST'])
+def delete_master_mapping(mapping_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM depot_sku_master WHERE id = ?", (sku_id,))
+    cursor.execute("DELETE FROM depot_vehicle_mapping WHERE id = ?", (mapping_id,))
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": "SKU line-item removed successfully!"})
+    return jsonify({"success": True, "message": "Driver-Vehicle mapping record removed successfully!"})
 
 
 # ----------------- INTER-DEPOT VEHICLE BORROWING APIS -----------------
@@ -3971,18 +4059,20 @@ def admin_clear_master_data():
         
     elif clear_type in ('mapping', 'mappings', 'sku', 'skus'):
         if depot_id and str(depot_id) != 'all':
+            cursor.execute('DELETE FROM depot_vehicle_mapping WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
             try:
                 cursor.execute('UPDATE depot_crew SET assigned_vehicle_id = NULL, assigned_vehicle_no = NULL WHERE depot_id = ?', (depot_id,))
             except Exception:
                 pass
         else:
+            cursor.execute('DELETE FROM depot_vehicle_mapping')
             cursor.execute('DELETE FROM depot_sku_master')
             try:
                 cursor.execute('UPDATE depot_crew SET assigned_vehicle_id = NULL, assigned_vehicle_no = NULL')
             except Exception:
                 pass
-        msg = "All SKU line-items and Driver-to-Vehicle mappings cleared successfully!"
+        msg = "All Driver-Vehicle mappings and capacity configurations cleared successfully!"
         
     elif clear_type == 'all':
         if depot_id and str(depot_id) != 'all':
@@ -3990,6 +4080,7 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM routes WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM fleet_vehicles WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM depot_crew WHERE depot_id = ?', (depot_id,))
+            cursor.execute('DELETE FROM depot_vehicle_mapping WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM depot_sku_master WHERE depot_id = ?', (depot_id,))
             cursor.execute('DELETE FROM inter_depot_vehicle_requests WHERE requesting_depot_id = ? OR lending_depot_id = ?', (depot_id, depot_id))
         else:
@@ -3997,6 +4088,7 @@ def admin_clear_master_data():
             cursor.execute('DELETE FROM routes')
             cursor.execute('DELETE FROM fleet_vehicles')
             cursor.execute('DELETE FROM depot_crew')
+            cursor.execute('DELETE FROM depot_vehicle_mapping')
             cursor.execute('DELETE FROM depot_sku_master')
             cursor.execute('DELETE FROM inter_depot_vehicle_requests')
         msg = "All Master Directory records for this depot cleared successfully!"
