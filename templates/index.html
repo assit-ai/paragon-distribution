@@ -3942,165 +3942,458 @@
                 const modal = document.getElementById('drillModal');
                 const modalTitle = document.getElementById('modalDepotTitle');
                 const modalBody = document.getElementById('modalBodyContent');
+                if (!modal || !modalTitle || !modalBody) return;
+
+                const data = masterDashboardData || EMBEDDED_MASTER_SUMMARY;
+                const kpis = data.kpis || {};
+                const categories = data.categories || [];
+                const depots = data.depots || [];
+                const reasons = data.return_reasons || [];
+                const filterDate = document.getElementById('filterDate')?.value || 'Today';
 
                 if (type === 'dispatched') {
-                    modalTitle.innerHTML = `<i class="fa-solid fa-boxes-stacked text-cyan"></i> <span>Executive Dispatched Value Summary (৳ 12,840,000)</span>`;
-                    modalBody.innerHTML = `
-            <div class="card" style="margin-bottom:16px;">
-                <div class="card-header" style="background:#1e293b;">
-                    <div class="card-title"><i class="fa-solid fa-layer-group text-cyan"></i> 1. Dispatched Breakdown by Product Category</div>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
+                    const totVal = kpis.total_dispatched_val || 0;
+                    modalTitle.innerHTML = `<i class="fa-solid fa-boxes-stacked text-cyan"></i> <span>Executive Dispatched Value Summary (${formatTaka(totVal)})</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
+
+                    let catRowsHtml = '';
+                    let totCatQty = 0;
+                    let totCatVal = 0;
+                    categories.forEach(c => {
+                        const share = totVal > 0 ? ((c.disp_val / totVal) * 100).toFixed(1) : '0.0';
+                        totCatQty += (c.disp_qty || 0);
+                        totCatVal += (c.disp_val || 0);
+                        catRowsHtml += `
                             <tr>
-                                <th>Product Category</th>
-                                <th class="text-center">SKU</th>
-                                <th class="text-right">Dispatched Qty</th>
-                                <th class="text-right">Gross Value (৳)</th>
-                                <th class="text-right">Share %</th>
-                                <th class="text-center">Action</th>
+                                <td><strong>${c.name}</strong></td>
+                                <td class="text-center"><code>${c.uom || 'Pkt'}</code></td>
+                                <td class="text-right">${(c.disp_qty || 0).toLocaleString()}</td>
+                                <td class="text-right"><strong>${formatTaka(c.disp_val || 0)}</strong></td>
+                                <td class="text-right">${share}%</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('${c.name.replace(/'/g, "\\'")}', '${c.uom || 'Pkt'}')">
+                                        <i class="fa-solid fa-warehouse"></i> View Depots
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><strong>Frozen Food & RTC</strong></td><td class="text-center"><code>Pkt</code></td><td class="text-right">72,600</td><td class="text-right">৳ 3,630,000</td><td class="text-right">28.3%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Frozen Food & RTC', 'Pkt')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Processed Chicken</strong></td><td class="text-center"><code>Kg</code></td><td class="text-right">82,400</td><td class="text-right">৳ 2,060,000</td><td class="text-right">16.0%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Processed Chicken', 'Kg')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Sweets & Savory</strong></td><td class="text-center"><code>Kg</code></td><td class="text-right">15,000</td><td class="text-right">৳ 1,990,000</td><td class="text-right">15.5%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Sweets & Savory', 'Kg')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Fresh Eggs</strong></td><td class="text-center"><code>Pcs</code></td><td class="text-right">450,000</td><td class="text-right">৳ 1,450,000</td><td class="text-right">11.3%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Fresh Eggs', 'Pcs')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Dairy (Sirajganj & Tejgaon)</strong></td><td class="text-center"><code>Ltr</code></td><td class="text-right">42,300</td><td class="text-right">৳ 1,410,000</td><td class="text-right">11.0%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Dairy', 'Ltr')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Dry Food & Bakery</strong></td><td class="text-center"><code>Pkt</code></td><td class="text-right">181,000</td><td class="text-right">৳ 1,890,000</td><td class="text-right">14.7%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Dry Food & Bakery', 'Pkt')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Momo & Dimsum</strong></td><td class="text-center"><code>Kg</code></td><td class="text-right">12,400</td><td class="text-right">৳ 620,000</td><td class="text-right">4.8%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Momo & Dimsum', 'Kg')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                            <tr><td><strong>Tea Distribution & Packing</strong></td><td class="text-center"><code>Kg</code></td><td class="text-right">48,000</td><td class="text-right">৳ 440,000</td><td class="text-right">3.4%</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openCategoryDrilldown('Tea', 'Kg')"><i class="fa-solid fa-warehouse"></i> View Depots</button></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+                        `;
+                    });
+
+                    // Participating depots with active dispatch
+                    const activeDepots = depots.filter(d => (d.dispatched_gross_val > 0));
+                    let depotRowsHtml = '';
+                    if (activeDepots.length > 0) {
+                        activeDepots.forEach(d => {
+                            const dShare = totVal > 0 ? ((d.dispatched_gross_val / totVal) * 100).toFixed(1) : '0.0';
+                            depotRowsHtml += `
+                                <tr>
+                                    <td><strong>${d.depot_name}</strong></td>
+                                    <td><small style="color:#38bdf8;">${d.category}</small></td>
+                                    <td>${d.incharge_name || '-'}</td>
+                                    <td class="text-center">${d.total_vehicles || 0}</td>
+                                    <td class="text-center">${d.total_invoices || 0}</td>
+                                    <td class="text-right"><strong>${formatTaka(d.dispatched_gross_val)}</strong></td>
+                                    <td class="text-right">${dShare}%</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${d.depot_id})">
+                                            <i class="fa-solid fa-receipt"></i> View Invoices & Trips
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        depotRowsHtml = `<tr><td colspan="8" class="text-center" style="padding:20px; color:#94a3b8;">No depot dispatch entries submitted for ${filterDate}.</td></tr>`;
+                    }
+
+                    modalBody.innerHTML = `
+                        <div class="card" style="margin-bottom:16px;">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-layer-group text-cyan"></i> 1. Dispatched Breakdown by Product Category</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product Category</th>
+                                            <th class="text-center">SKU</th>
+                                            <th class="text-right">Dispatched Qty</th>
+                                            <th class="text-right">Gross Value (৳)</th>
+                                            <th class="text-right">Share %</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${catRowsHtml}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="2">TOTAL CONSOLIDATED</th>
+                                            <th class="text-right">${totCatQty.toLocaleString()}</th>
+                                            <th class="text-right text-cyan">${formatTaka(totVal)}</th>
+                                            <th class="text-right">100.0%</th>
+                                            <th class="text-center">-</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-warehouse text-cyan"></i> 2. Dispatched Breakdown by Reporting Depot</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Depot / Factory Location</th>
+                                            <th>Category</th>
+                                            <th>Incharge</th>
+                                            <th class="text-center">Vans</th>
+                                            <th class="text-center">Invoices</th>
+                                            <th class="text-right">Dispatched Gross (৳)</th>
+                                            <th class="text-right">Share %</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${depotRowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
                 } else if (type === 'delivered') {
-                    modalTitle.innerHTML = `<i class="fa-solid fa-circle-check text-green"></i> <span>Delivered Value & Collection Settlement (৳ 12,521,000)</span>`;
-                    modalBody.innerHTML = `
-            <div class="card" style="margin-bottom:16px;">
-                <div class="card-header" style="background:#1e293b;">
-                    <div class="card-title"><i class="fa-solid fa-money-bill-wave text-green"></i> Net Delivered Revenue & Payment Realization</div>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
+                    const totDeliv = kpis.total_delivered_val || 0;
+                    const totDisp = kpis.total_dispatched_val || 0;
+                    const overallRate = kpis.delivery_success_rate || (totDisp > 0 ? ((totDeliv / totDisp) * 100).toFixed(1) : '0.0');
+
+                    modalTitle.innerHTML = `<i class="fa-solid fa-circle-check text-green"></i> <span>Delivered Value & Fulfillment Summary (${formatTaka(totDeliv)})</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
+
+                    let catRowsHtml = '';
+                    categories.forEach(c => {
+                        const share = totDeliv > 0 ? ((c.deliv_val / totDeliv) * 100).toFixed(1) : '0.0';
+                        const catRate = c.disp_val > 0 ? ((c.deliv_val / c.disp_val) * 100).toFixed(1) : '0.0';
+                        catRowsHtml += `
                             <tr>
-                                <th>Category</th>
-                                <th class="text-right">Dispatched Gross</th>
-                                <th class="text-right">Net Delivered</th>
-                                <th class="text-right">Success %</th>
-                                <th class="text-center">Cash Realized</th>
-                                <th class="text-center">Credit Invoices</th>
-                                <th class="text-center">Audit Status</th>
+                                <td><strong>${c.name}</strong></td>
+                                <td class="text-right">${formatTaka(c.disp_val || 0)}</td>
+                                <td class="text-right text-green"><strong>${formatTaka(c.deliv_val || 0)}</strong></td>
+                                <td class="text-right"><strong>${catRate}%</strong></td>
+                                <td class="text-right">${share}%</td>
+                                <td class="text-center"><span class="badge-verified">OK / Reconciled</span></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><strong>Frozen Food & RTC</strong></td><td class="text-right">৳ 3,630,000</td><td class="text-right text-green"><strong>৳ 3,541,000</strong></td><td class="text-right">97.6%</td><td class="text-center">৳ 1,416,400</td><td class="text-center">৳ 2,124,600</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Processed Chicken</strong></td><td class="text-right">৳ 2,060,000</td><td class="text-right text-green"><strong>৳ 2,010,000</strong></td><td class="text-right">97.6%</td><td class="text-center">৳ 804,000</td><td class="text-center">৳ 1,206,000</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Sweets & Savory</strong></td><td class="text-right">৳ 1,990,000</td><td class="text-right text-green"><strong>৳ 1,941,000</strong></td><td class="text-right">97.5%</td><td class="text-center">৳ 776,400</td><td class="text-center">৳ 1,164,600</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Fresh Eggs</strong></td><td class="text-right">৳ 1,450,000</td><td class="text-right text-green"><strong>৳ 1,420,000</strong></td><td class="text-right">97.9%</td><td class="text-center">৳ 568,000</td><td class="text-center">৳ 852,000</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Dry Food & Bakery</strong></td><td class="text-right">৳ 1,890,000</td><td class="text-right text-green"><strong>৳ 1,839,000</strong></td><td class="text-right">97.3%</td><td class="text-center">৳ 735,600</td><td class="text-center">৳ 1,103,400</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Dairy (Sirajganj/Tejgaon)</strong></td><td class="text-right">৳ 1,410,000</td><td class="text-right text-green"><strong>৳ 1,383,000</strong></td><td class="text-right">98.1%</td><td class="text-center">৳ 553,200</td><td class="text-center">৳ 829,800</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Momo & Dimsum</strong></td><td class="text-right">৳ 620,000</td><td class="text-right text-green"><strong>৳ 608,000</strong></td><td class="text-right">98.1%</td><td class="text-center">৳ 243,200</td><td class="text-center">৳ 364,800</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                            <tr><td><strong>Tea (Sylhet & Tejgaon)</strong></td><td class="text-right">৳ 440,000</td><td class="text-right text-green"><strong>৳ 433,000</strong></td><td class="text-right">98.4%</td><td class="text-center">৳ 173,200</td><td class="text-center">৳ 259,800</td><td class="text-center"><span class="badge-verified">100% OK</span></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+                        `;
+                    });
+
+                    const activeDepots = depots.filter(d => (d.dispatched_gross_val > 0 || d.delivered_net_val > 0));
+                    let depotRowsHtml = '';
+                    if (activeDepots.length > 0) {
+                        activeDepots.forEach(d => {
+                            const dRate = d.dispatched_gross_val > 0 ? ((d.delivered_net_val / d.dispatched_gross_val) * 100).toFixed(1) : '0.0';
+                            depotRowsHtml += `
+                                <tr>
+                                    <td><strong>${d.depot_name}</strong></td>
+                                    <td><small style="color:#38bdf8;">${d.category}</small></td>
+                                    <td>${d.incharge_name || '-'}</td>
+                                    <td class="text-right">${formatTaka(d.dispatched_gross_val)}</td>
+                                    <td class="text-right text-green"><strong>${formatTaka(d.delivered_net_val)}</strong></td>
+                                    <td class="text-center"><strong>${dRate}%</strong></td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${d.depot_id})">
+                                            <i class="fa-solid fa-receipt"></i> View Customer Invoices
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        depotRowsHtml = `<tr><td colspan="7" class="text-center" style="padding:20px; color:#94a3b8;">No delivery entries recorded for ${filterDate}.</td></tr>`;
+                    }
+
+                    modalBody.innerHTML = `
+                        <div class="card" style="margin-bottom:16px;">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-money-bill-wave text-green"></i> 1. Net Delivered Revenue by Product Category</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th class="text-right">Dispatched Gross</th>
+                                            <th class="text-right">Net Delivered</th>
+                                            <th class="text-right">Success %</th>
+                                            <th class="text-right">Share %</th>
+                                            <th class="text-center">Audit Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${catRowsHtml}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th>TOTAL CONSOLIDATED</th>
+                                            <th class="text-right">${formatTaka(totDisp)}</th>
+                                            <th class="text-right text-green">${formatTaka(totDeliv)}</th>
+                                            <th class="text-right">${overallRate}%</th>
+                                            <th class="text-right">100.0%</th>
+                                            <th class="text-center"><span class="badge-verified">100% RECONCILED</span></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-warehouse text-green"></i> 2. Net Delivered Breakdown by Reporting Depot</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Depot / Factory Location</th>
+                                            <th>Category</th>
+                                            <th>Incharge</th>
+                                            <th class="text-right">Gross Dispatched</th>
+                                            <th class="text-right">Net Delivered</th>
+                                            <th class="text-center">Success %</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${depotRowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
                 } else if (type === 'returned') {
-                    modalTitle.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red"></i> <span>Undelivered & Return Root-Causes Analysis (৳ 319,000)</span>`;
+                    const totRet = kpis.total_returned_val || 0;
+                    modalTitle.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red"></i> <span>Undelivered & Return Analysis (${formatTaka(totRet)})</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
+
+                    let reasonsHtml = '';
+                    if (reasons && reasons.length > 0 && totRet > 0) {
+                        reasons.forEach(r => {
+                            reasonsHtml += `
+                                <tr>
+                                    <td><strong>${r.code}: ${r.reason}</strong></td>
+                                    <td class="text-right">${r.qty_est || '-'}</td>
+                                    <td class="text-center">${r.invoices || '-'}</td>
+                                    <td class="text-right text-red"><strong>${formatTaka(r.val || 0)}</strong></td>
+                                    <td class="text-right">${r.pct || 0}%</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        reasonsHtml = `<tr><td colspan="5" class="text-center" style="padding:20px; color:#4ade80;"><i class="fa-solid fa-circle-check"></i> <strong>Zero Returns!</strong> All dispatched goods were 100% successfully delivered.</td></tr>`;
+                    }
+
+                    const returningDepots = depots.filter(d => (d.returned_val > 0));
+                    let depotRowsHtml = '';
+                    if (returningDepots.length > 0) {
+                        returningDepots.forEach(d => {
+                            const retRate = d.dispatched_gross_val > 0 ? ((d.returned_val / d.dispatched_gross_val) * 100).toFixed(1) : '0.0';
+                            depotRowsHtml += `
+                                <tr>
+                                    <td><strong>${d.depot_name}</strong></td>
+                                    <td><small style="color:#38bdf8;">${d.category}</small></td>
+                                    <td>${d.incharge_name || '-'}</td>
+                                    <td class="text-right">${formatTaka(d.dispatched_gross_val)}</td>
+                                    <td class="text-right text-red"><strong>${formatTaka(d.returned_val)}</strong></td>
+                                    <td class="text-center text-red"><strong>${retRate}%</strong></td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(${d.depot_id})">
+                                            <i class="fa-solid fa-magnifying-glass"></i> View Return Invoices
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        depotRowsHtml = `<tr><td colspan="7" class="text-center" style="padding:20px; color:#4ade80;"><i class="fa-solid fa-circle-check"></i> No return values reported across depots for ${filterDate}.</td></tr>`;
+                    }
+
                     modalBody.innerHTML = `
-            <div class="card">
-                <div class="card-header" style="background:#1e293b;">
-                    <div class="card-title"><i class="fa-solid fa-triangle-exclamation text-red"></i> 6 Standard Root-Cause Return Codes</div>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Reason Code & Description</th>
-                                <th class="text-right">Est Return Qty</th>
-                                <th class="text-center">Invoices</th>
-                                <th class="text-right">Loss / Return Val (৳)</th>
-                                <th class="text-right">% Share</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><strong>R-01: Shop Closed / Customer Unavailable</strong></td><td class="text-right">1,240 Pkt/Kg</td><td class="text-center">12</td><td class="text-right text-red">৳ 118,000</td><td class="text-right">37.0%</td></tr>
-                            <tr><td><strong>R-02: Payment Shortage / Cash Not Ready</strong></td><td class="text-right">860 Pkt/Kg</td><td class="text-center">9</td><td class="text-right text-red">৳ 82,000</td><td class="text-right">25.7%</td></tr>
-                            <tr><td><strong>R-03: Transit Damage / Breakage</strong></td><td class="text-right">540 Pkt/Kg</td><td class="text-center">6</td><td class="text-right text-red">৳ 48,000</td><td class="text-right">15.0%</td></tr>
-                            <tr><td><strong>R-04: Wrong Product / Short Order</strong></td><td class="text-right">390 Pkt/Kg</td><td class="text-center">5</td><td class="text-right text-red">৳ 37,000</td><td class="text-right">11.6%</td></tr>
-                            <tr><td><strong>R-05: Price Dispute / Rate Mismatch</strong></td><td class="text-right">240 Pkt/Kg</td><td class="text-center">4</td><td class="text-right text-red">৳ 22,000</td><td class="text-right">6.9%</td></tr>
-                            <tr><td><strong>R-06: Route Delay / Traffic Breakdown</strong></td><td class="text-right">130 Pkt/Kg</td><td class="text-center">2</td><td class="text-right text-red">৳ 12,000</td><td class="text-right">3.8%</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+                        <div class="card" style="margin-bottom:16px;">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-triangle-exclamation text-red"></i> 1. Standard Root-Cause Return Breakdown</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Reason Code & Description</th>
+                                            <th class="text-right">Est Return Qty</th>
+                                            <th class="text-center">Invoices</th>
+                                            <th class="text-right">Loss / Return Val (৳)</th>
+                                            <th class="text-right">% Share</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${reasonsHtml}
+                                    </tbody>
+                                    ${totRet > 0 ? `
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="3">TOTAL RETURNED VALUE</th>
+                                            <th class="text-right text-red">${formatTaka(totRet)}</th>
+                                            <th class="text-right">100.0%</th>
+                                        </tr>
+                                    </tfoot>` : ''}
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-warehouse text-red"></i> 2. Returns Breakdown by Reporting Depot</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Depot / Factory Location</th>
+                                            <th>Category</th>
+                                            <th>Incharge</th>
+                                            <th class="text-right">Gross Dispatched</th>
+                                            <th class="text-right">Return Value</th>
+                                            <th class="text-center">Return Rate %</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${depotRowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
                 } else if (type === 'success_rate') {
-                    modalTitle.innerHTML = `<i class="fa-solid fa-bullseye text-amber"></i> <span>Depot Delivery Success Rate Rankings</span>`;
-                    modalBody.innerHTML = `
-            <div class="card">
-                <div class="card-header" style="background:#1e293b;">
-                    <div class="card-title"><i class="fa-solid fa-ranking-star text-amber"></i> All 17 Depots Ranked by Delivery Fulfillment Efficiency</div>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
+                    const overallRate = kpis.delivery_success_rate || '0.0';
+                    modalTitle.innerHTML = `<i class="fa-solid fa-bullseye text-amber"></i> <span>Depot Delivery Success Rate Rankings (${overallRate}% Overall)</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
+
+                    // Sort reporting depots by success_rate descending
+                    const sortedDepots = [...depots].sort((a, b) => (b.success_rate || 0) - (a.success_rate || 0));
+                    let rowsHtml = '';
+                    sortedDepots.forEach((d, idx) => {
+                        const hasData = (d.dispatched_gross_val > 0);
+                        let grade = '<span class="badge-pending">No Entry</span>';
+                        if (hasData) {
+                            const rate = d.success_rate || 0;
+                            if (rate >= 98) grade = '<span class="badge-verified">A+ Elite</span>';
+                            else if (rate >= 95) grade = '<span class="badge-verified" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid #3b82f6;">A Standard</span>';
+                            else grade = '<span class="badge-alert">B Attention</span>';
+                        }
+                        rowsHtml += `
                             <tr>
-                                <th>Rank</th>
-                                <th>Depot / Factory Location</th>
-                                <th>Incharge</th>
-                                <th class="text-right">Gross Dispatched</th>
-                                <th class="text-right">Net Delivered</th>
-                                <th class="text-center">Success %</th>
-                                <th class="text-center">Grade</th>
+                                <td class="text-center"><strong>#${idx + 1}</strong></td>
+                                <td><strong>${d.depot_name}</strong></td>
+                                <td><small style="color:#38bdf8;">${d.category}</small></td>
+                                <td>${d.incharge_name || '-'}</td>
+                                <td class="text-right">${formatTaka(d.dispatched_gross_val || 0)}</td>
+                                <td class="text-right text-green">${formatTaka(d.delivered_net_val || 0)}</td>
+                                <td class="text-center"><strong>${hasData ? (d.success_rate + '%') : '-'}</strong></td>
+                                <td class="text-center">${grade}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(${d.depot_id})">
+                                        <i class="fa-solid fa-eye"></i> View Depot
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td class="text-center"><strong>#1</strong></td><td><strong>Sylhet - Tea Packing Unit</strong></td><td>Incharge Vacant</td><td class="text-right">৳ 240,000</td><td class="text-right text-green">৳ 238,000</td><td class="text-center"><strong>99.2%</strong></td><td class="text-center"><span class="badge-verified">A+ Elite</span></td></tr>
-                            <tr><td class="text-center"><strong>#2</strong></td><td><strong>Tejgaon - Dairy</strong></td><td>Mahmudul (AM)</td><td class="text-right">৳ 890,000</td><td class="text-right text-green">৳ 875,000</td><td class="text-center"><strong>98.3%</strong></td><td class="text-center"><span class="badge-verified">A+ Elite</span></td></tr>
-                            <tr><td class="text-center"><strong>#3</strong></td><td><strong>Ashulia Factory - Frozen</strong></td><td>Sajedul Islam (AM)</td><td class="text-right">৳ 950,000</td><td class="text-right text-green">৳ 932,000</td><td class="text-center"><strong>98.1%</strong></td><td class="text-center"><span class="badge-verified">A+ Elite</span></td></tr>
-                            <tr><td class="text-center"><strong>#4</strong></td><td><strong>Gazipur-Process CK</strong></td><td>Mahmud (Sr. Officer)</td><td class="text-right">৳ 780,000</td><td class="text-right text-green">৳ 765,000</td><td class="text-center"><strong>98.1%</strong></td><td class="text-center"><span class="badge-verified">A+ Elite</span></td></tr>
-                            <tr><td class="text-center"><strong>#5</strong></td><td><strong>Mohakhali Depot</strong></td><td>Shohag (Supervisor)</td><td class="text-right">৳ 620,000</td><td class="text-right text-green">৳ 608,000</td><td class="text-center"><strong>98.1%</strong></td><td class="text-center"><span class="badge-verified">A+ Elite</span></td></tr>
-                            <tr><td class="text-center"><strong>#6</strong></td><td><strong>Tejgaon - Fresh Egg</strong></td><td>Mushfik (Officer)</td><td class="text-right">৳ 1,450,000</td><td class="text-right text-green">৳ 1,420,000</td><td class="text-center"><strong>97.9%</strong></td><td class="text-center"><span class="badge-verified">A Standard</span></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+                        `;
+                    });
+
+                    modalBody.innerHTML = `
+                        <div class="card">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-ranking-star text-amber"></i> All 17 Depots Ranked by Delivery Fulfillment Efficiency</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Rank</th>
+                                            <th>Depot / Factory Location</th>
+                                            <th>Category</th>
+                                            <th>Incharge</th>
+                                            <th class="text-right">Gross Dispatched</th>
+                                            <th class="text-right">Net Delivered</th>
+                                            <th class="text-center">Success %</th>
+                                            <th class="text-center">Grade</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
                 } else if (type === 'fleet') {
-                    modalTitle.innerHTML = `<i class="fa-solid fa-truck-fast text-blue"></i> <span>Central Fleet Capacity & Vehicle Deployment (77 Vans / 92.5% Util)</span>`;
-                    modalBody.innerHTML = `
-            <div class="card">
-                <div class="card-header" style="background:#1e293b;">
-                    <div class="card-title"><i class="fa-solid fa-truck text-cyan"></i> Fleet Allocation & Cold-Chain Reefer Status</div>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
+                    const totVans = kpis.total_vehicles || 0;
+                    const avgUtil = kpis.avg_capacity_util || '0.0';
+                    modalTitle.innerHTML = `<i class="fa-solid fa-truck-fast text-blue"></i> <span>Central Fleet Capacity & Vehicle Deployment (${totVans} Active Vans / ${avgUtil}% Util)</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
+
+                    let rowsHtml = '';
+                    depots.forEach(d => {
+                        const hasData = (d.total_vehicles > 0 || d.dispatched_gross_val > 0);
+                        rowsHtml += `
                             <tr>
-                                <th>Depot / Factory Location</th>
-                                <th class="text-center">Vans</th>
-                                <th class="text-center">Invoices</th>
-                                <th class="text-center">Capacity Util %</th>
-                                <th class="text-center">Reefer Temp</th>
-                                <th class="text-center">Action</th>
+                                <td><strong>${d.depot_name}</strong></td>
+                                <td><small style="color:#38bdf8;">${d.category}</small></td>
+                                <td>${d.incharge_name || '-'}</td>
+                                <td class="text-center"><strong>${d.total_vehicles || 0}</strong></td>
+                                <td class="text-center">${d.total_invoices || 0}</td>
+                                <td class="text-center"><strong>${hasData && d.capacity_util_pct > 0 ? d.capacity_util_pct + '%' : '-'}</strong></td>
+                                <td class="text-right">${formatTaka(d.dispatched_gross_val || 0)}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${d.depot_id})">
+                                        <i class="fa-solid fa-truck"></i> Trips & Logs
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><strong>Tejgaon - Frozen/CK</strong></td><td class="text-center">10</td><td class="text-center">185</td><td class="text-center"><strong>94.6%</strong></td><td class="text-center"><code>-18°C</code></td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(7)"><i class="fa-solid fa-truck"></i> Trips</button></td></tr>
-                            <tr><td><strong>Ashulia Factory - Dry Food</strong></td><td class="text-center">7</td><td class="text-center">160</td><td class="text-center"><strong>92.5%</strong></td><td class="text-center">Ambient</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(2)"><i class="fa-solid fa-truck"></i> Trips</button></td></tr>
-                            <tr><td><strong>Ashulia Factory - Frozen</strong></td><td class="text-center">6</td><td class="text-center">85</td><td class="text-center"><strong>94.5%</strong></td><td class="text-center"><code>-18°C</code></td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(1)"><i class="fa-solid fa-truck"></i> Trips</button></td></tr>
-                            <tr><td><strong>Tejgaon - Fresh Egg</strong></td><td class="text-center">6</td><td class="text-center">120</td><td class="text-center"><strong>91.0%</strong></td><td class="text-center">Ventilated</td><td class="text-center"><button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(9)"><i class="fa-solid fa-truck"></i> Trips</button></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+                        `;
+                    });
+
+                    modalBody.innerHTML = `
+                        <div class="card">
+                            <div class="card-header" style="background:#1e293b;">
+                                <div class="card-title"><i class="fa-solid fa-truck text-cyan"></i> Fleet Allocation & Vehicle Capacity per Depot</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Depot / Factory Location</th>
+                                            <th>Category</th>
+                                            <th>Incharge</th>
+                                            <th class="text-center">Vans</th>
+                                            <th class="text-center">Invoices</th>
+                                            <th class="text-center">Capacity Util %</th>
+                                            <th class="text-right">Gross Dispatched</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rowsHtml}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="3">TOTAL FLEET CONSOLIDATED</th>
+                                            <th class="text-center text-blue">${totVans} Vans</th>
+                                            <th class="text-center">${depots.reduce((a, b) => a + (b.total_invoices || 0), 0)}</th>
+                                            <th class="text-center">${avgUtil}%</th>
+                                            <th class="text-right">${formatTaka(kpis.total_dispatched_val || 0)}</th>
+                                            <th class="text-center">-</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    `;
                 } else if (type === 'theft') {
                     openSOPModal();
                     return;
@@ -4348,266 +4641,387 @@
                 const modal = document.getElementById('drillModal');
                 const modalTitle = document.getElementById('modalDepotTitle');
                 const modalBody = document.getElementById('modalBodyContent');
+                if (!modal || !modalTitle || !modalBody) return;
 
-                const matchedKey = Object.keys(CATEGORY_DEPOT_MAP).find(k => catName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(catName.toLowerCase()));
-                const depotsList = matchedKey ? CATEGORY_DEPOT_MAP[matchedKey] : [];
+                const data = masterDashboardData || EMBEDDED_MASTER_SUMMARY;
+                const depots = data.depots || [];
+                const filterDate = document.getElementById('filterDate')?.value || 'Today';
 
-                modalTitle.innerHTML = `<i class="fa-solid fa-boxes-stacked text-blue"></i> <span>${catName} &bull; Distribution by Depot (SKU: ${uom})</span>`;
+                // Dynamically match depots belonging to this category
+                const cleanCat = (catName || '').toLowerCase();
+                const matchingDepots = depots.filter(d => {
+                    const dCat = (d.category || '').toLowerCase();
+                    return cleanCat.includes(dCat) || dCat.includes(cleanCat) || 
+                           (cleanCat.includes('frozen') && dCat.includes('frozen')) ||
+                           (cleanCat.includes('chicken') && dCat.includes('chicken')) ||
+                           (cleanCat.includes('egg') && dCat.includes('egg')) ||
+                           (cleanCat.includes('dairy') && dCat.includes('dairy')) ||
+                           (cleanCat.includes('tea') && dCat.includes('tea')) ||
+                           (cleanCat.includes('dry') && dCat.includes('dry')) ||
+                           (cleanCat.includes('momo') && dCat.includes('momo')) ||
+                           (cleanCat.includes('sweet') && dCat.includes('sweet'));
+                });
+
+                modalTitle.innerHTML = `<i class="fa-solid fa-boxes-stacked text-blue"></i> <span>${catName} &bull; Distribution by Depot (SKU: ${uom || 'Pkt'})</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
 
                 let rowsHtml = '';
-                if (depotsList.length > 0) {
-                    depotsList.forEach(dp => {
-                        const succ = dp.disp_val > 0 ? ((dp.deliv_val / dp.disp_val) * 100).toFixed(1) : 0;
+                let totVans = 0, totInvs = 0, totDisp = 0, totDeliv = 0, totRet = 0;
+
+                if (matchingDepots.length > 0) {
+                    matchingDepots.forEach(dp => {
+                        const hasData = (dp.dispatched_gross_val > 0);
+                        const succ = dp.dispatched_gross_val > 0 ? ((dp.delivered_net_val / dp.dispatched_gross_val) * 100).toFixed(1) : '0.0';
+                        totVans += (dp.total_vehicles || 0);
+                        totInvs += (dp.total_invoices || 0);
+                        totDisp += (dp.dispatched_gross_val || 0);
+                        totDeliv += (dp.delivered_net_val || 0);
+                        totRet += (dp.returned_val || 0);
+
                         rowsHtml += `
-                <tr>
-                    <td><strong>${dp.name}</strong></td>
-                    <td>${dp.incharge}</td>
-                    <td class="text-center">${dp.vans}</td>
-                    <td class="text-center">${dp.invs}</td>
-                    <td class="text-right">${dp.disp_qty.toLocaleString()} ${dp.uom}</td>
-                    <td class="text-right">${formatTaka(dp.disp_val)}</td>
-                    <td class="text-right text-green"><strong>${formatTaka(dp.deliv_val)}</strong></td>
-                    <td class="text-right text-red">${formatTaka(dp.ret_val)}</td>
-                    <td class="text-center"><strong>${succ}%</strong></td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${dp.id})">
-                            <i class="fa-solid fa-truck-fast"></i> View Trips & Invoices
-                        </button>
-                    </td>
-                </tr>
-            `;
+                            <tr>
+                                <td><strong>${dp.depot_name}</strong></td>
+                                <td>${dp.incharge_name || '-'}</td>
+                                <td class="text-center">${dp.total_vehicles || 0}</td>
+                                <td class="text-center">${dp.total_invoices || 0}</td>
+                                <td class="text-right"><strong>${formatTaka(dp.dispatched_gross_val || 0)}</strong></td>
+                                <td class="text-right text-green"><strong>${formatTaka(dp.delivered_net_val || 0)}</strong></td>
+                                <td class="text-right text-red">${formatTaka(dp.returned_val || 0)}</td>
+                                <td class="text-center"><strong>${hasData ? (succ + '%') : '-'}</strong></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${dp.depot_id})">
+                                        <i class="fa-solid fa-truck-fast"></i> View Trips & Invoices
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
                     });
                 } else {
-                    rowsHtml = '<tr><td colspan="10" class="text-center">No participating depots found for this category.</td></tr>';
+                    rowsHtml = '<tr><td colspan="9" class="text-center" style="padding:20px; color:#94a3b8;">No participating depots found for this category.</td></tr>';
                 }
 
+                const overallCatSucc = totDisp > 0 ? ((totDeliv / totDisp) * 100).toFixed(1) : '0.0';
+
                 modalBody.innerHTML = `
-        <div class="card">
-            <div class="card-header" style="background:#1e293b;">
-                <div class="card-title"><i class="fa-solid fa-warehouse text-cyan"></i> Participating Depots & Plants for ${catName}</div>
-            </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Depot / Factory Name</th>
-                            <th>Incharge</th>
-                            <th class="text-center">Vans</th>
-                            <th class="text-center">Invoices</th>
-                            <th class="text-right">Dispatched Qty</th>
-                            <th class="text-right">Gross Val (৳)</th>
-                            <th class="text-right">Delivered Net (৳)</th>
-                            <th class="text-right">Return Val (৳)</th>
-                            <th class="text-center">Success %</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
+                    <div class="card">
+                        <div class="card-header" style="background:#1e293b;">
+                            <div class="card-title"><i class="fa-solid fa-warehouse text-cyan"></i> Participating Depots & Plants for ${catName}</div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Depot / Factory Name</th>
+                                        <th>Incharge</th>
+                                        <th class="text-center">Vans</th>
+                                        <th class="text-center">Invoices</th>
+                                        <th class="text-right">Gross Val (৳)</th>
+                                        <th class="text-right">Delivered Net (৳)</th>
+                                        <th class="text-right">Return Val (৳)</th>
+                                        <th class="text-center">Success %</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                                ${matchingDepots.length > 0 ? `
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="2">TOTAL FOR ${catName.toUpperCase()}</th>
+                                        <th class="text-center">${totVans}</th>
+                                        <th class="text-center">${totInvs}</th>
+                                        <th class="text-right">${formatTaka(totDisp)}</th>
+                                        <th class="text-right text-green">${formatTaka(totDeliv)}</th>
+                                        <th class="text-right text-red">${formatTaka(totRet)}</th>
+                                        <th class="text-center">${overallCatSucc}%</th>
+                                        <th class="text-center">-</th>
+                                    </tr>
+                                </tfoot>` : ''}
+                            </table>
+                        </div>
+                    </div>
+                `;
 
                 modal.classList.add('active');
                 modal.style.setProperty('display', 'flex', 'important');
             }
 
-            function openDepotDrilldown(depotId, fallbackName = '', fallbackCat = '', fallbackIncharge = '') {
+            async function openDepotDrilldown(depotIdOrName, fallbackName = '', fallbackCat = '', fallbackIncharge = '') {
                 const modal = document.getElementById('drillModal');
                 const modalTitle = document.getElementById('modalDepotTitle');
                 const modalBody = document.getElementById('modalBodyContent');
+                if (!modal || !modalTitle || !modalBody) return;
 
-                const depot = currentDepots.find(d => d.id == depotId) || EMBEDDED_MASTER_DEPOTS.find(d => d.id == depotId) || {
-                    id: depotId,
-                    name: fallbackName || 'Depot',
-                    category: fallbackCat || 'General',
-                    incharge_name: fallbackIncharge || 'Incharge'
-                };
+                // Resolve depot object either by ID or by Name
+                let depot = null;
+                if (typeof depotIdOrName === 'number' || (!isNaN(parseInt(depotIdOrName)) && !isNaN(Number(depotIdOrName)))) {
+                    const numId = parseInt(depotIdOrName);
+                    depot = currentDepots.find(d => d.id === numId) || 
+                            EMBEDDED_MASTER_DEPOTS.find(d => d.id === numId) ||
+                            (masterDashboardData?.depots?.find(d => d.depot_id === numId));
+                } else if (typeof depotIdOrName === 'string') {
+                    const searchStr = depotIdOrName.trim().toLowerCase();
+                    depot = currentDepots.find(d => d.name.toLowerCase() === searchStr || (d.slug && d.slug.toLowerCase() === searchStr)) ||
+                            EMBEDDED_MASTER_DEPOTS.find(d => d.name.toLowerCase() === searchStr || (d.slug && d.slug.toLowerCase() === searchStr)) ||
+                            (masterDashboardData?.depots?.find(d => d.depot_name.toLowerCase() === searchStr));
+                }
 
-                const depotName = depot.name || fallbackName;
-                const category = depot.category || fallbackCat;
-                const incharge = depot.incharge_name || fallbackIncharge;
+                const depotId = depot ? (depot.id || depot.depot_id) : (parseInt(depotIdOrName) || 1);
+                const depotName = depot ? (depot.name || depot.depot_name) : (fallbackName || `Depot #${depotId}`);
+                const category = depot ? (depot.category) : (fallbackCat || 'General');
+                const incharge = depot ? (depot.incharge_name) : (fallbackIncharge || 'Depot Incharge');
+                const defaultUom = depot ? (depot.default_uom || 'Pkt') : 'Pkt';
 
-                modalTitle.innerHTML = `<span>${depotName}</span> &bull; <small style="color:var(--text-muted);">${category} (Incharge: ${incharge})</small>`;
+                const filterDate = document.getElementById('filterDate')?.value || new Date().toISOString().split('T')[0];
 
-                const depotDetails = DEPOT_ACCURATE_DETAILS[depotName] || {
-                    category: category,
-                    products: [
-                        { product: `${category} Standard Pack`, uom: 'Pkt', disp_qty: 12000, disp_val: 480000, deliv_qty: 11700, deliv_val: 468000, ret_qty: 300, ret_val: 12000, succ: 97.5 }
-                    ],
-                    fleet: [
-                        { trip: 'TRIP-01', veh: 'DM-THA-11-2045', type: '1.5T Van', driver: 'Abul Kalam', deliv: 'Md. Rafiq', route: 'Standard Distribution Area', cap: 1500, load: 1420, temp: '-18°C', gp: 'GP-081' }
-                    ],
-                    invoices: [
-                        { inv: 'INV-2026-0091', cust: 'Agora Superstore Outlet', trip: 'TRIP-01', cat: category, sku: 'Pkt', disp_qty: 120, disp_val: 48000, stat: 'Delivered', del_qty: 120, del_val: 48000, ret_qty: 0, ret_val: 0, mode: 'Credit' }
-                    ]
-                };
-
-                let prodRowsHtml = '';
-                depotDetails.products.forEach(pl => {
-                    prodRowsHtml += `
-            <tr>
-                <td><strong>${pl.product}</strong></td>
-                <td class="text-center"><code>${pl.uom}</code></td>
-                <td class="text-right">${pl.disp_qty.toLocaleString()}</td>
-                <td class="text-right">${formatTaka(pl.disp_val)}</td>
-                <td class="text-right text-green">${pl.deliv_qty.toLocaleString()}</td>
-                <td class="text-right text-green"><strong>${formatTaka(pl.deliv_val)}</strong></td>
-                <td class="text-right text-red">${pl.ret_qty.toLocaleString()}</td>
-                <td class="text-right text-red">${formatTaka(pl.ret_val)}</td>
-                <td class="text-center"><strong>${pl.succ}%</strong></td>
-                <td class="text-center"><span class="badge-verified">OK / Verified</span></td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="scrollToModalInvoices()" style="padding:4px 10px; font-weight:700;">
-                        <i class="fa-solid fa-receipt text-green"></i> View Bills &raquo;
-                    </button>
-                </td>
-            </tr>
-        `;
-                });
-
-                let tripRowsHtml = '';
-                depotDetails.fleet.forEach(f => {
-                    const u = roundNumber((f.load / f.cap) * 100, 1);
-                    tripRowsHtml += `
-            <tr>
-                <td><strong>${f.trip}</strong></td>
-                <td>${f.veh}</td>
-                <td>${f.type}</td>
-                <td>${f.driver}</td>
-                <td>${f.deliv}</td>
-                <td>${f.route}</td>
-                <td class="text-right">${f.cap.toLocaleString()} Kg</td>
-                <td class="text-right">${f.load.toLocaleString()} Kg</td>
-                <td class="text-center"><strong>${u}%</strong></td>
-                <td class="text-center"><code>${f.temp}</code></td>
-                <td class="text-center">${f.gp}</td>
-                <td class="text-center"><span class="badge-verified">Completed</span></td>
-            </tr>
-        `;
-                });
-
-                let invRowsHtml = '';
-                depotDetails.invoices.forEach(inv => {
-                    const isOk = (inv.stat === 'Delivered');
-                    const badge = isOk ? 'badge-verified' : 'badge-alert';
-                    invRowsHtml += `
-            <tr>
-                <td><strong>${inv.inv}</strong></td>
-                <td><strong>${inv.cust}</strong></td>
-                <td>${inv.trip}</td>
-                <td>${inv.cat}</td>
-                <td class="text-center"><code>${inv.sku}</code></td>
-                <td class="text-right">${inv.disp_qty.toLocaleString()}</td>
-                <td class="text-right">${formatTaka(inv.disp_val)}</td>
-                <td class="text-center"><span class="${badge}">${inv.stat}</span></td>
-                <td class="text-right text-green"><strong>${inv.del_qty.toLocaleString()}</strong></td>
-                <td class="text-right text-green"><strong>${formatTaka(inv.del_val)}</strong></td>
-                <td class="text-right text-red">${inv.ret_qty.toLocaleString()}</td>
-                <td class="text-right text-red">${formatTaka(inv.ret_val)}</td>
-                <td class="text-center"><code>${inv.mode}</code></td>
-                <td class="text-right">৳ 0</td>
-            </tr>
-        `;
-                });
+                modalTitle.innerHTML = `<i class="fa-solid fa-warehouse text-cyan"></i> <span>${depotName}</span> &bull; <small style="color:var(--text-muted);">${category} (Incharge: ${incharge}) | ${filterDate}</small>`;
 
                 modalBody.innerHTML = `
-        <!-- Section 1: Depot Product Category Breakdown -->
-        <div class="card" style="margin-bottom:16px;">
-            <div class="card-header" style="background:#1e293b;">
-                <div class="card-title"><i class="fa-solid fa-boxes-stacked text-cyan"></i> 1. Product-Wise Breakdown at ${depotName}</div>
-            </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Product Line</th>
-                            <th class="text-center">SKU</th>
-                            <th class="text-right">Dispatched Qty</th>
-                            <th class="text-right">Gross Val (৳)</th>
-                            <th class="text-right">Delivered Qty</th>
-                            <th class="text-right">Delivered Net (৳)</th>
-                            <th class="text-right">Return Qty</th>
-                            <th class="text-right">Return Val (৳)</th>
-                            <th class="text-center">Success %</th>
-                            <th class="text-center">Audit</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${prodRowsHtml}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Section 2: Fleet -->
-        <div class="card" style="margin-bottom:16px;">
-            <div class="card-header" style="background:#1e293b;">
-                <div class="card-title"><i class="fa-solid fa-truck text-cyan"></i> 2. Dispatched Vehicles & Fleet Logs for ${depotName}</div>
-            </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Trip #</th>
-                            <th>Vehicle Reg #</th>
-                            <th>Vehicle Type</th>
-                            <th>Driver Name</th>
-                            <th>Delivery Man</th>
-                            <th>Route / Market Area</th>
-                            <th class="text-right">Capacity</th>
-                            <th class="text-right">Loaded</th>
-                            <th class="text-center">Util %</th>
-                            <th class="text-center">Reefer Temp</th>
-                            <th class="text-center">Gate Pass</th>
-                            <th class="text-center">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tripRowsHtml}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Section 3: Customer Invoices -->
-        <div class="card" id="modalInvoicesSection">
-            <div class="card-header" style="background:#1e293b;">
-                <div class="card-title"><i class="fa-solid fa-receipt text-green"></i> 3. Customer Delivery & Invoice Settlement Register for ${depotName}</div>
-            </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Invoice #</th>
-                            <th>Customer / Outlet Name</th>
-                            <th>Trip #</th>
-                            <th>Category</th>
-                            <th class="text-center">SKU</th>
-                            <th class="text-right">Dispatched Qty</th>
-                            <th class="text-right">Gross Value</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-right">Deliv Qty</th>
-                            <th class="text-right">Deliv Value</th>
-                            <th class="text-right">Return Qty</th>
-                            <th class="text-right">Return Value</th>
-                            <th class="text-center">Payment</th>
-                            <th class="text-right">Shortage</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${invRowsHtml}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
+                    <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: #38bdf8; margin-bottom: 12px; display: block;"></i>
+                        <p style="font-size: 0.95rem; font-weight: 600;">Loading operational dispatch, fleet and customer invoices for ${depotName}...</p>
+                    </div>
+                `;
 
                 modal.classList.add('active');
                 modal.style.setProperty('display', 'flex', 'important');
+
+                try {
+                    const res = await fetch(`/api/reports/get-by-date?depot_id=${depotId}&date=${filterDate}`);
+                    const data = await res.json();
+
+                    if (data && data.exists && data.report) {
+                        const rep = data.report;
+                        const trips = data.trips || [];
+                        const invoices = data.invoices || [];
+
+                        // Calculate totals
+                        const totDispQty = invoices.reduce((a, b) => a + (parseFloat(b.dispatched_qty) || 0), 0);
+                        const totDispVal = invoices.reduce((a, b) => a + (parseFloat(b.dispatched_val) || 0), 0);
+                        const totDelivQty = invoices.reduce((a, b) => a + (parseFloat(b.delivered_qty) || 0), 0);
+                        const totDelivVal = invoices.reduce((a, b) => a + (parseFloat(b.delivered_val) || 0), 0);
+                        const totRetQty = invoices.reduce((a, b) => a + (parseFloat(b.returned_qty) || 0), 0);
+                        const totRetVal = invoices.reduce((a, b) => a + (parseFloat(b.returned_val) || 0), 0);
+                        const succPct = totDispVal > 0 ? ((totDelivVal / totDispVal) * 100).toFixed(1) : '0.0';
+                        const stockVar = Math.round(totDispQty - (totDelivQty + totRetQty));
+
+                        // Section 1: Product Summary
+                        const prodRowsHtml = `
+                            <tr>
+                                <td><strong>${category} Complete Distribution Line</strong></td>
+                                <td class="text-center"><code>${defaultUom}</code></td>
+                                <td class="text-right">${totDispQty.toLocaleString()}</td>
+                                <td class="text-right"><strong>${formatTaka(totDispVal)}</strong></td>
+                                <td class="text-right text-green">${totDelivQty.toLocaleString()}</td>
+                                <td class="text-right text-green"><strong>${formatTaka(totDelivVal)}</strong></td>
+                                <td class="text-right text-red">${totRetQty.toLocaleString()}</td>
+                                <td class="text-right text-red">${formatTaka(totRetVal)}</td>
+                                <td class="text-center"><strong>${succPct}%</strong></td>
+                                <td class="text-center">${stockVar === 0 ? '<span class="badge-verified">100% Balanced</span>' : `<span class="badge-alert">${stockVar} Var</span>`}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="scrollToModalInvoices()" style="padding:4px 10px; font-weight:700;">
+                                        <i class="fa-solid fa-receipt text-green"></i> View Invoices (${invoices.length}) &raquo;
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+
+                        // Section 2: Trips
+                        let tripRowsHtml = '';
+                        if (trips.length > 0) {
+                            trips.forEach((f, idx) => {
+                                const cap = parseFloat(f.capacity_kg) || 1;
+                                const load = parseFloat(f.loaded_kg) || 0;
+                                const u = f.util_pct || roundNumber((load / cap) * 100, 1);
+                                tripRowsHtml += `
+                                    <tr>
+                                        <td><strong>${f.trip_no || `TRIP-0${idx + 1}`}</strong></td>
+                                        <td><strong>${f.vehicle_no || '-'}</strong></td>
+                                        <td>${f.vehicle_type || '1.5T Van'}</td>
+                                        <td>${f.driver_name || '-'}</td>
+                                        <td>${f.delivery_man || '-'}</td>
+                                        <td>${f.route_name || 'Standard Distribution Route'}</td>
+                                        <td class="text-right">${cap.toLocaleString()} Kg</td>
+                                        <td class="text-right">${load.toLocaleString()} Kg</td>
+                                        <td class="text-center"><strong>${u}%</strong></td>
+                                        <td class="text-center"><code>${f.reefer_temp || '-18°C'}</code></td>
+                                        <td class="text-center"><span class="badge-verified">Dispatched</span></td>
+                                    </tr>
+                                `;
+                            });
+                        } else {
+                            tripRowsHtml = `<tr><td colspan="11" class="text-center" style="padding:16px; color:#94a3b8;">No specific vehicle trips logged in this report.</td></tr>`;
+                        }
+
+                        // Section 3: Invoices (CRITICAL: ALL CUSTOMERS)
+                        let invRowsHtml = '';
+                        if (invoices.length > 0) {
+                            invoices.forEach((inv, i) => {
+                                const stat = inv.delivery_status || 'Delivered';
+                                let badge = 'badge-verified';
+                                if (stat === 'Full Return' || stat === 'Cancelled') badge = 'badge-alert';
+                                else if (stat === 'Partial Delivery' || stat === 'Partial Return') badge = 'badge-pending';
+
+                                invRowsHtml += `
+                                    <tr>
+                                        <td><strong>${inv.invoice_no || `INV-${i + 1}`}</strong></td>
+                                        <td><strong style="color:#fff;">${inv.customer_name || 'Customer Outlet'}</strong></td>
+                                        <td>${inv.trip_no || 'TRIP-01'}</td>
+                                        <td><small style="color:#38bdf8;">${inv.product_category || category}</small></td>
+                                        <td class="text-center"><code>${inv.sku_uom || defaultUom}</code></td>
+                                        <td class="text-right">${(parseFloat(inv.dispatched_qty) || 0).toLocaleString()}</td>
+                                        <td class="text-right"><strong>${formatTaka(parseFloat(inv.dispatched_val) || 0)}</strong></td>
+                                        <td class="text-center"><span class="${badge}">${stat}</span></td>
+                                        <td class="text-right text-green"><strong>${(parseFloat(inv.delivered_qty) || 0).toLocaleString()}</strong></td>
+                                        <td class="text-right text-green"><strong>${formatTaka(parseFloat(inv.delivered_val) || 0)}</strong></td>
+                                        <td class="text-right text-red">${(parseFloat(inv.returned_qty) || 0).toLocaleString()}</td>
+                                        <td class="text-right text-red">${formatTaka(parseFloat(inv.returned_val) || 0)}</td>
+                                        <td><small style="color:#cbd5e1;">${inv.return_reason && inv.return_reason !== 'None' ? inv.return_reason : '-'}</small></td>
+                                    </tr>
+                                `;
+                            });
+                        } else {
+                            invRowsHtml = `<tr><td colspan="13" class="text-center" style="padding:20px; color:#94a3b8;">No customer invoices found in this report.</td></tr>`;
+                        }
+
+                        modalBody.innerHTML = `
+                            <!-- Section 1: Depot Product Performance -->
+                            <div class="card" style="margin-bottom:16px;">
+                                <div class="card-header" style="background:#1e293b;">
+                                    <div class="card-title"><i class="fa-solid fa-boxes-stacked text-cyan"></i> 1. Product Line Performance Summary &bull; ${depotName}</div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Product Line</th>
+                                                <th class="text-center">SKU</th>
+                                                <th class="text-right">Dispatched Qty</th>
+                                                <th class="text-right">Gross Val (৳)</th>
+                                                <th class="text-right">Delivered Qty</th>
+                                                <th class="text-right">Delivered Net (৳)</th>
+                                                <th class="text-right">Return Qty</th>
+                                                <th class="text-right">Return Val (৳)</th>
+                                                <th class="text-center">Success %</th>
+                                                <th class="text-center">Stock Audit</th>
+                                                <th class="text-center">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${prodRowsHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Section 2: Fleet -->
+                            <div class="card" style="margin-bottom:16px;">
+                                <div class="card-header" style="background:#1e293b;">
+                                    <div class="card-title"><i class="fa-solid fa-truck text-cyan"></i> 2. Dispatched Vehicles & Fleet Logs for ${depotName} (${trips.length} Vans)</div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Trip #</th>
+                                                <th>Vehicle Reg #</th>
+                                                <th>Vehicle Type</th>
+                                                <th>Driver Name</th>
+                                                <th>Delivery Man</th>
+                                                <th>Route / Market Area</th>
+                                                <th class="text-right">Capacity</th>
+                                                <th class="text-right">Loaded</th>
+                                                <th class="text-center">Util %</th>
+                                                <th class="text-center">Reefer Temp</th>
+                                                <th class="text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${tripRowsHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Section 3: ALL Customer Invoices -->
+                            <div class="card" id="modalInvoicesSection">
+                                <div class="card-header" style="background:#1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                                    <div class="card-title"><i class="fa-solid fa-receipt text-green"></i> 3. Customer Delivery & Invoice Settlement Register for ${depotName} (${invoices.length} Invoices)</div>
+                                    <span style="font-size:0.8rem; color:#4ade80; font-weight:700;"><i class="fa-solid fa-circle-check"></i> All Customer Records Loaded</span>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Invoice #</th>
+                                                <th>Customer / Outlet Name</th>
+                                                <th>Trip #</th>
+                                                <th>Category</th>
+                                                <th class="text-center">SKU</th>
+                                                <th class="text-right">Dispatched Qty</th>
+                                                <th class="text-right">Gross Value (৳)</th>
+                                                <th class="text-center">Status</th>
+                                                <th class="text-right">Deliv Qty</th>
+                                                <th class="text-right">Deliv Value (৳)</th>
+                                                <th class="text-right">Return Qty</th>
+                                                <th class="text-right">Return Value (৳)</th>
+                                                <th>Return Reason</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${invRowsHtml}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th colspan="5">TOTAL REGISTER CONSOLIDATED (${invoices.length} CUSTOMERS)</th>
+                                                <th class="text-right">${totDispQty.toLocaleString()}</th>
+                                                <th class="text-right text-cyan">${formatTaka(totDispVal)}</th>
+                                                <th class="text-center"><span class="badge-verified">${succPct}% Done</span></th>
+                                                <th class="text-right text-green">${totDelivQty.toLocaleString()}</th>
+                                                <th class="text-right text-green">${formatTaka(totDelivVal)}</th>
+                                                <th class="text-right text-red">${totRetQty.toLocaleString()}</th>
+                                                <th class="text-right text-red">${formatTaka(totRetVal)}</th>
+                                                <th>-</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // No report found for this date
+                        modalBody.innerHTML = `
+                            <div style="text-align:center; padding:50px 20px; background:#0f172a; border-radius:8px; border:1px dashed #334155;">
+                                <div style="width:60px; height:60px; border-radius:50%; background:rgba(239,68,68,0.15); color:#f87171; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 16px;">
+                                    <i class="fa-solid fa-calendar-xmark"></i>
+                                </div>
+                                <h3 style="color:#fff; font-size:1.15rem; font-weight:800; margin-bottom:8px;">No Distribution Entry for ${depotName} on ${filterDate}</h3>
+                                <p style="color:#94a3b8; font-size:0.88rem; max-width:500px; margin:0 auto 20px;">
+                                    The depot incharge (${incharge}) has not yet submitted the daily delivery and return report for this date.
+                                </p>
+                                <button type="button" class="btn btn-primary" onclick="closeDrillModal(); openDepotEntryFromSummary(${depotId}, '${filterDate}');" style="padding:10px 22px; font-weight:700; display:inline-flex; align-items:center; gap:8px;">
+                                    <i class="fa-solid fa-pen-to-square"></i> Open Depot Daily Entry for ${depotName}
+                                </button>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    console.error("Failed to load depot drilldown data:", err);
+                    modalBody.innerHTML = `
+                        <div style="text-align:center; padding:40px; color:#f87171;">
+                            <i class="fa-solid fa-triangle-exclamation" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+                            <p>Failed to load depot data. Please try again.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            function closeDrillModal() {
+                const modal = document.getElementById('drillModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                    modal.style.setProperty('display', 'none', 'important');
+                }
             }
 
             function roundNumber(num, dec) {
