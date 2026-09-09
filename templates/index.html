@@ -1714,7 +1714,7 @@
                                 <span class="badge-kpi-jump text-cyan"><i class="fa-solid fa-shield-halved"></i>
                                     SOP</span>
                             </div>
-                            <div class="kpi-val text-green" id="kpiTheft">৳ 0</div>
+                            <div class="kpi-val text-green" id="kpiTheft">0 Qty</div>
                             <div class="kpi-footer"><i class="fa-solid fa-lock"></i> <strong>Click for Zero-Theft Rules
                                     &raquo;</strong></div>
                         </a>
@@ -1818,7 +1818,6 @@
                                         <th class="text-right">Return Val (৳)</th>
                                         <th class="text-center">Success %</th>
                                         <th class="text-center">Stock Var</th>
-                                        <th class="text-right">Cash Short</th>
                                         <th class="text-center">Adj Status</th>
                                         <th class="text-center">Audit Status</th>
                                         <th class="text-center">SKU UOM</th>
@@ -4151,11 +4150,11 @@
                 const kpiTheft = document.getElementById('kpiTheft');
                 const banner = document.getElementById('pilferageBanner');
 
-                const totVariance = (kpis.total_stock_variance || 0) + (kpis.total_cash_variance || 0);
+                const totVariance = (kpis.total_stock_variance || 0);
 
                 if (kpiTheft) {
                     if (totVariance > 0) {
-                        kpiTheft.textContent = formatTaka(totVariance);
+                        kpiTheft.textContent = `${totVariance.toLocaleString()} Qty`;
                         kpiTheft.className = 'kpi-val text-red';
                         if (theftCard) theftCard.style.borderColor = '#ef4444';
 
@@ -4165,13 +4164,13 @@
                     <div class="banner-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     <div class="banner-content">
                         <strong>PILFERAGE / AUDIT RED ALERT: UNRECONCILED DISCREPANCY DETECTED!</strong>
-                        <span>Stock or cash variance has been identified in the daily depot reports. Immediate investigation required.</span>
+                        <span>Stock quantity variance has been identified in the daily depot reports. Immediate investigation required.</span>
                     </div>
-                    <div class="banner-badge">৳ ${totVariance.toLocaleString()} Variance</div>
+                    <div class="banner-badge">${totVariance.toLocaleString()} Qty Variance</div>
                 `;
                         }
                     } else {
-                        kpiTheft.textContent = '৳ 0';
+                        kpiTheft.textContent = '0 Qty';
                         kpiTheft.className = 'kpi-val text-green';
                         if (theftCard) theftCard.style.borderColor = 'var(--border-color)';
 
@@ -4181,9 +4180,9 @@
                     <div class="banner-icon"><i class="fa-solid fa-circle-check"></i></div>
                     <div class="banner-content">
                         <strong>ZERO PILFERAGE AUDIT STATUS: 100% RECONCILED</strong>
-                        <span>All dispatched stock quantities and invoice values across all reporting depots match physical returns and bank deposits.</span>
+                        <span>All dispatched stock quantities and invoice values across all reporting depots match physical returns.</span>
                     </div>
-                    <div class="banner-badge">৳ 0 Variance</div>
+                    <div class="banner-badge">0 Variance</div>
                 `;
                         }
                     }
@@ -4234,7 +4233,6 @@
             <td class="text-right text-red">${formatTaka(d.returned_val)}</td>
             <td class="text-center"><strong>${d.success_rate || ((d.delivered_net_val / d.dispatched_gross_val) * 100).toFixed(1)}%</strong></td>
             <td class="text-center ${d.stock_mismatch_qty > 0 ? 'text-red' : ''}">${d.stock_mismatch_qty}</td>
-            <td class="text-right ${d.cash_mismatch_val > 0 ? 'text-red' : ''}">${formatTaka(d.cash_mismatch_val)}</td>
             <td class="text-center">${d.adjustment_status}</td>
             <td class="text-center"><span class="${badgeClass}">${d.audit_status}</span></td>
             <td class="text-center"><code>${d.default_uom || 'Pkt'}</code></td>
@@ -4257,7 +4255,6 @@
                 <th class="text-right text-red">${formatTaka(totRet)}</th>
                 <th class="text-center">${overallSuccess}%</th>
                 <th class="text-center">${totStockVar}</th>
-                <th class="text-right">${formatTaka(totCashVar)}</th>
                 <th class="text-center"><span class="badge-verified">100% RECONCILED</span></th>
                 <th class="text-center"><span class="badge-verified">ALL AUDITED</span></th>
                 <th class="text-center">-</th>
@@ -6212,10 +6209,10 @@
                 fetch('/api/dashboard/summary?date=' + (document.getElementById('filterDate')?.value || ''))
                     .then(res => res.json())
                     .then(data => {
-                        const discrepancies = (data.depots || []).filter(d => (d.cash_mismatch_val > 0 || d.stock_mismatch_qty > 0 || d.audit_status !== 'OK / Verified'));
+                        const discrepancies = (data.depots || []).filter(d => (d.stock_mismatch_qty > 0 || d.audit_status !== 'OK / Verified'));
 
                         if (discrepancies.length === 0) {
-                            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #4ade80; padding: 25px;"><i class="fa-solid fa-circle-check" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> <strong>100% RECONCILED!</strong> No cash or stock discrepancies detected across all depots today.</td></tr>`;
+                            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #4ade80; padding: 25px;"><i class="fa-solid fa-circle-check" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> <strong>100% RECONCILED!</strong> No stock discrepancies detected across all depots today.</td></tr>`;
                         } else {
                             tbody.innerHTML = discrepancies.map(d => `
                     <tr style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444;">
@@ -6223,8 +6220,8 @@
                         <td>${d.incharge_name}</td>
                         <td style="font-weight: 700;">৳ ${Number(d.dispatched_gross_val).toLocaleString()}</td>
                         <td style="color: #4ade80;">৳ ${Number(d.delivered_net_val).toLocaleString()}</td>
+                        <td style="color: #f87171;">৳ ${Number(d.returned_val || 0).toLocaleString()}</td>
                         <td style="color: #f87171; font-weight: 700;">${d.stock_mismatch_qty > 0 ? d.stock_mismatch_qty + ' ' + (d.default_uom || 'Kg') : '0'}</td>
-                        <td style="color: #ef4444; font-weight: 800; font-size: 1rem;">৳ ${Number(d.cash_mismatch_val).toLocaleString()}</td>
                         <td>
                             <button class="btn btn-primary" onclick="closeDiscrepancyModal(); openDepotDrilldown('${d.name}');" style="padding: 5px 12px; font-size: 0.78rem; background: #2563eb;">
                                 <i class="fa-solid fa-magnifying-glass"></i> View Depot Invoices
@@ -32658,8 +32655,8 @@
                                 <th>Incharge</th>
                                 <th>Dispatched Gross</th>
                                 <th>Delivered Net</th>
+                                <th>Return Value</th>
                                 <th style="color: #f87171;">Stock Variance</th>
-                                <th style="color: #ef4444;">Cash Variance</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
