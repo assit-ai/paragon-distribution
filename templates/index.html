@@ -2337,10 +2337,9 @@
                                 </table>
                             </div>
 
-                            <!-- SECTION B: Invoice Delivery & Cash Collection -->
+                            <!-- SECTION B: Invoices & Delivery Verification Register -->
                             <div class="sub-section-title">
-                                <i class="fa-solid fa-receipt"></i> SECTION B: Invoices, Delivery Verification &
-                                Collection Register
+                                <i class="fa-solid fa-receipt"></i> SECTION B: Invoices & Delivery Verification Register
                                 <button type="button" class="btn btn-primary btn-sm" id="addInvoiceBtn">
                                     <i class="fa-solid fa-plus"></i> Add Invoice Row
                                 </button>
@@ -2363,8 +2362,6 @@
                                             <th>Ret Qty</th>
                                             <th>Ret Val (৳)</th>
                                             <th>Return Reason</th>
-                                            <th>Payment Mode</th>
-                                            <th>Cash Coll (৳)</th>
                                             <th class="text-center">Action</th>
                                         </tr>
                                     </thead>
@@ -2380,8 +2377,7 @@
                                     <div>
                                         <h4><i class="fa-solid fa-scale-balanced text-cyan"></i> ZERO-PILFERAGE AUDIT
                                             RECONCILIATION</h4>
-                                        <p>Live matching of Dispatched Qty vs (Delivered + Physical Returns) & Cash
-                                            Received</p>
+                                        <p>Live matching of Dispatched Quantity & Value vs (Delivered + Physical Returns)</p>
                                     </div>
                                     <div id="liveReconBadge" class="badge-verified">BALANCED & RECONCILED</div>
                                 </div>
@@ -2400,16 +2396,16 @@
                                         <div class="recon-status" id="reconStockStatus">0 Variance (OK)</div>
                                     </div>
                                     <div class="recon-box">
-                                        <div class="recon-title">Net Delivered Value</div>
+                                        <div class="recon-title">Gross Dispatched Value</div>
+                                        <div class="recon-val" id="reconDispVal">৳ 0</div>
+                                    </div>
+                                    <div class="recon-box">
+                                        <div class="recon-title">Net Delivered + Return Value</div>
                                         <div class="recon-val text-green" id="reconDelivVal">৳ 0</div>
                                     </div>
                                     <div class="recon-box">
-                                        <div class="recon-title">Cash Handover + Credit</div>
-                                        <div class="recon-val" id="reconCashSum">৳ 0</div>
-                                    </div>
-                                    <div class="recon-box">
-                                        <div class="recon-title">Cash Shortage</div>
-                                        <div class="recon-status" id="reconCashStatus">৳ 0 Shortage (OK)</div>
+                                        <div class="recon-title">Value Variance</div>
+                                        <div class="recon-status" id="reconValueStatus">৳ 0 Variance (OK)</div>
                                     </div>
                                 </div>
                             </div>
@@ -4877,14 +4873,6 @@
                 <option value="R-06: Route Delay / Breakdown" ${data.return_reason === 'R-06: Route Delay / Breakdown' ? 'selected' : ''}>R-06: Route Delay</option>
             </select>
         </td>
-        <td>
-            <select class="inv-mode" onchange="updatePaymentMode(${invoiceCounter})">
-                <option value="Credit" ${data.collection_mode === 'Credit' ? 'selected' : ''}>Credit</option>
-                <option value="Cash" ${data.collection_mode === 'Cash' ? 'selected' : ''}>Cash</option>
-                <option value="MFS / Bank" ${data.collection_mode === 'MFS / Bank' ? 'selected' : ''}>MFS / Bank</option>
-            </select>
-        </td>
-        <td><input type="number" class="inv-cash" placeholder="0" value="${amtColl}" oninput="recalculateReconciliation()"></td>
         <td class="text-center">
             <button type="button" class="btn-del-row" onclick="removeRow('invRow_${invoiceCounter}')"><i class="fa-solid fa-trash"></i></button>
         </td>
@@ -4897,9 +4885,9 @@
                 const row = document.getElementById(`invRow_${idx}`);
                 if (!row) return;
 
-                const cat = row.querySelector('.inv-cat').value;
+                const cat = row.querySelector('.inv-cat')?.value;
                 const uomInput = row.querySelector('.inv-uom');
-                if (uomInput) {
+                if (uomInput && cat) {
                     uomInput.value = CATEGORY_UOM_MAP[cat] || 'Pkt';
                 }
             }
@@ -4914,14 +4902,16 @@
                 const row = document.getElementById(`invRow_${idx}`);
                 if (!row) return;
 
-                const status = row.querySelector('.inv-status').value;
-                const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
+                const status = row.querySelector('.inv-status')?.value;
+                const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
                 const delivQtyInput = row.querySelector('.inv-deliv-qty');
 
-                if (status === 'Delivered') {
-                    delivQtyInput.value = dispQty;
-                } else if (status === 'Full Return') {
-                    delivQtyInput.value = 0;
+                if (delivQtyInput) {
+                    if (status === 'Delivered') {
+                        delivQtyInput.value = dispQty;
+                    } else if (status === 'Full Return') {
+                        delivQtyInput.value = 0;
+                    }
                 }
 
                 updateInvFromDelivQty(idx);
@@ -4931,18 +4921,21 @@
                 const row = document.getElementById(`invRow_${idx}`);
                 if (!row) return;
 
-                const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
-                const dispVal = parseFloat(row.querySelector('.inv-disp-val').value) || 0;
-                const delivQty = parseFloat(row.querySelector('.inv-deliv-qty').value) || 0;
+                const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
+                const dispVal = parseFloat(row.querySelector('.inv-disp-val')?.value) || 0;
+                const delivQty = parseFloat(row.querySelector('.inv-deliv-qty')?.value) || 0;
 
                 const unitPrice = dispQty > 0 ? (dispVal / dispQty) : 0;
                 const retQty = Math.max(0, dispQty - delivQty);
                 const delivVal = Math.round(delivQty * unitPrice);
                 const retVal = Math.round(retQty * unitPrice);
 
-                row.querySelector('.inv-ret-qty').value = retQty;
-                row.querySelector('.inv-deliv-val').value = delivVal;
-                row.querySelector('.inv-ret-val').value = retVal;
+                const retQtyEl = row.querySelector('.inv-ret-qty');
+                const delivValEl = row.querySelector('.inv-deliv-val');
+                const retValEl = row.querySelector('.inv-ret-val');
+                if (retQtyEl) retQtyEl.value = retQty;
+                if (delivValEl) delivValEl.value = delivVal;
+                if (retValEl) retValEl.value = retVal;
 
                 const statusSelect = row.querySelector('.inv-status');
                 if (statusSelect) {
@@ -4953,11 +4946,6 @@
                     } else {
                         statusSelect.value = 'Partial Delivery';
                     }
-                }
-
-                const mode = row.querySelector('.inv-mode').value;
-                if (mode === 'Cash' || mode === 'MFS / Bank') {
-                    row.querySelector('.inv-cash').value = delivVal;
                 }
 
                 recalculateReconciliation();
@@ -4967,18 +4955,21 @@
                 const row = document.getElementById(`invRow_${idx}`);
                 if (!row) return;
 
-                const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
-                const dispVal = parseFloat(row.querySelector('.inv-disp-val').value) || 0;
-                const retQty = parseFloat(row.querySelector('.inv-ret-qty').value) || 0;
+                const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
+                const dispVal = parseFloat(row.querySelector('.inv-disp-val')?.value) || 0;
+                const retQty = parseFloat(row.querySelector('.inv-ret-qty')?.value) || 0;
 
                 const unitPrice = dispQty > 0 ? (dispVal / dispQty) : 0;
                 const delivQty = Math.max(0, dispQty - retQty);
                 const delivVal = Math.round(delivQty * unitPrice);
                 const retVal = Math.round(retQty * unitPrice);
 
-                row.querySelector('.inv-deliv-qty').value = delivQty;
-                row.querySelector('.inv-deliv-val').value = delivVal;
-                row.querySelector('.inv-ret-val').value = retVal;
+                const delivQtyEl = row.querySelector('.inv-deliv-qty');
+                const delivValEl = row.querySelector('.inv-deliv-val');
+                const retValEl = row.querySelector('.inv-ret-val');
+                if (delivQtyEl) delivQtyEl.value = delivQty;
+                if (delivValEl) delivValEl.value = delivVal;
+                if (retValEl) retValEl.value = retVal;
 
                 const statusSelect = row.querySelector('.inv-status');
                 if (statusSelect) {
@@ -4991,28 +4982,10 @@
                     }
                 }
 
-                const mode = row.querySelector('.inv-mode').value;
-                if (mode === 'Cash' || mode === 'MFS / Bank') {
-                    row.querySelector('.inv-cash').value = delivVal;
-                }
-
                 recalculateReconciliation();
             }
 
             function updatePaymentMode(idx) {
-                const row = document.getElementById(`invRow_${idx}`);
-                if (!row) return;
-
-                const mode = row.querySelector('.inv-mode').value;
-                const delivVal = parseFloat(row.querySelector('.inv-deliv-val').value) || 0;
-                const cashInput = row.querySelector('.inv-cash');
-
-                if (mode === 'Cash' || mode === 'MFS / Bank') {
-                    cashInput.value = delivVal;
-                } else {
-                    cashInput.value = 0;
-                }
-
                 recalculateReconciliation();
             }
 
@@ -5024,37 +4997,33 @@
                 const invRows = document.querySelectorAll('#invoicesTbody tr');
 
                 let totalDispQty = 0;
+                let totalDispVal = 0;
                 let totalDelivQty = 0;
-                let totalRetQty = 0;
                 let totalDelivVal = 0;
-                let totalCashCollected = 0;
-                let totalCreditVal = 0;
+                let totalRetQty = 0;
+                let totalRetVal = 0;
 
                 invRows.forEach(row => {
                     const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
+                    const dispVal = parseFloat(row.querySelector('.inv-disp-val')?.value) || 0;
                     const delivQty = parseFloat(row.querySelector('.inv-deliv-qty')?.value) || 0;
-                    const retQty = parseFloat(row.querySelector('.inv-ret-qty')?.value) || 0;
                     const delivVal = parseFloat(row.querySelector('.inv-deliv-val')?.value) || 0;
-                    const mode = row.querySelector('.inv-mode')?.value;
-                    const cash = parseFloat(row.querySelector('.inv-cash')?.value) || 0;
+                    const retQty = parseFloat(row.querySelector('.inv-ret-qty')?.value) || 0;
+                    const retVal = parseFloat(row.querySelector('.inv-ret-val')?.value) || 0;
 
                     totalDispQty += dispQty;
+                    totalDispVal += dispVal;
                     totalDelivQty += delivQty;
-                    totalRetQty += retQty;
                     totalDelivVal += delivVal;
-
-                    if (mode === 'Credit') {
-                        totalCreditVal += delivVal;
-                    } else {
-                        totalCashCollected += cash;
-                    }
+                    totalRetQty += retQty;
+                    totalRetVal += retVal;
                 });
 
                 const sumQty = totalDelivQty + totalRetQty;
                 const qtyMismatch = Math.round(totalDispQty - sumQty);
 
-                const cashSum = totalCashCollected + totalCreditVal;
-                const cashMismatch = Math.round(totalDelivVal - cashSum);
+                const sumVal = totalDelivVal + totalRetVal;
+                const valMismatch = Math.round(totalDispVal - sumVal);
 
                 const reconDispQty = document.getElementById('reconDispQty');
                 const reconSumQty = document.getElementById('reconSumQty');
@@ -5072,19 +5041,30 @@
                     }
                 }
 
-                const reconDelivVal = document.getElementById('reconDelivVal');
-                const reconCashSum = document.getElementById('reconCashSum');
-                if (reconDelivVal) reconDelivVal.textContent = formatTaka(totalDelivVal);
-                if (reconCashSum) reconCashSum.textContent = formatTaka(cashSum);
+                const reconDispValEl = document.getElementById('reconDispVal');
+                const reconDelivValEl = document.getElementById('reconDelivVal');
+                if (reconDispValEl) reconDispValEl.textContent = formatTaka(totalDispVal);
+                if (reconDelivValEl) reconDelivValEl.textContent = formatTaka(sumVal);
 
-                const cashStatus = document.getElementById('reconCashStatus');
-                if (cashStatus) {
-                    if (cashMismatch === 0) {
-                        cashStatus.className = 'recon-status';
-                        cashStatus.textContent = '৳ 0 Shortage (VERIFIED)';
+                const valueStatus = document.getElementById('reconValueStatus') || document.getElementById('reconCashStatus');
+                if (valueStatus) {
+                    if (valMismatch === 0) {
+                        valueStatus.className = 'recon-status';
+                        valueStatus.textContent = '৳ 0 Variance (VERIFIED)';
                     } else {
-                        cashStatus.className = 'recon-status error';
-                        cashStatus.textContent = `৳ ${cashMismatch.toLocaleString()} Cash Shortage!`;
+                        valueStatus.className = 'recon-status error';
+                        valueStatus.textContent = `৳ ${valMismatch.toLocaleString()} Value Mismatch!`;
+                    }
+                }
+
+                const badge = document.getElementById('liveReconBadge');
+                if (badge) {
+                    if (qtyMismatch === 0 && valMismatch === 0) {
+                        badge.className = 'badge-verified';
+                        badge.textContent = 'BALANCED & RECONCILED';
+                    } else {
+                        badge.className = 'badge-pending';
+                        badge.textContent = 'VARIANCE DETECTED';
                     }
                 }
             }
@@ -5092,49 +5072,56 @@
             async function handleFormSubmit(e) {
                 e.preventDefault();
 
-                const depotId = document.getElementById('entryDepot').value;
+                const depotId = document.getElementById('entryDepot')?.value;
                 if (!depotId) {
                     showToast('Please select a Depot / Plant first!', 'error');
                     return;
                 }
 
-                const reportDate = document.getElementById('entryDate').value;
-                const inchargeName = document.getElementById('entryIncharge').value;
-                const contact = document.getElementById('entryContact').value;
+                const reportDate = document.getElementById('entryDate')?.value || new Date().toISOString().split('T')[0];
+                const inchargeName = document.getElementById('entryIncharge')?.value || 'Incharge';
+                const contact = document.getElementById('entryContact')?.value || '';
 
                 const trips = [];
                 document.querySelectorAll('#tripsTbody tr').forEach(row => {
                     trips.push({
-                        trip_no: row.querySelector('.trip-no').value,
-                        vehicle_no: row.querySelector('.trip-veh').value,
-                        vehicle_type: row.querySelector('.trip-type').value,
-                        driver_name: row.querySelector('.trip-driver').value,
-                        delivery_man: row.querySelector('.trip-deliv').value,
-                        route_name: row.querySelector('.trip-route').value,
-                        capacity_kg: parseFloat(row.querySelector('.trip-cap').value) || 0,
-                        loaded_kg: parseFloat(row.querySelector('.trip-load').value) || 0,
-                        reefer_temp: row.querySelector('.trip-temp').value
+                        trip_no: row.querySelector('.trip-no')?.value || 'TRIP-01',
+                        vehicle_no: row.querySelector('.trip-veh')?.value || '',
+                        vehicle_type: row.querySelector('.trip-type')?.value || '1.5T Reefer Van',
+                        driver_name: row.querySelector('.trip-driver')?.value || '',
+                        delivery_man: row.querySelector('.trip-deliv')?.value || '',
+                        route_name: row.querySelector('.trip-route')?.value || '',
+                        capacity_kg: parseFloat(row.querySelector('.trip-cap')?.value) || 0,
+                        loaded_kg: parseFloat(row.querySelector('.trip-load')?.value) || 0,
+                        reefer_temp: row.querySelector('.trip-temp')?.value || '-18°C'
                     });
                 });
 
                 const invoices = [];
                 document.querySelectorAll('#invoicesTbody tr').forEach(row => {
+                    const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
+                    const dispVal = parseFloat(row.querySelector('.inv-disp-val')?.value) || 0;
+                    const delivQty = parseFloat(row.querySelector('.inv-deliv-qty')?.value) || 0;
+                    const delivVal = parseFloat(row.querySelector('.inv-deliv-val')?.value) || 0;
+                    const retQty = parseFloat(row.querySelector('.inv-ret-qty')?.value) || 0;
+                    const retVal = parseFloat(row.querySelector('.inv-ret-val')?.value) || 0;
+
                     invoices.push({
-                        invoice_no: row.querySelector('.inv-no').value,
-                        customer_name: row.querySelector('.inv-cust').value,
-                        trip_no: row.querySelector('.inv-trip').value,
-                        product_category: row.querySelector('.inv-cat').value,
-                        sku_uom: row.querySelector('.inv-uom').value,
-                        dispatched_qty: parseFloat(row.querySelector('.inv-disp-qty').value) || 0,
-                        dispatched_val: parseFloat(row.querySelector('.inv-disp-val').value) || 0,
-                        delivery_status: row.querySelector('.inv-status').value,
-                        delivered_qty: parseFloat(row.querySelector('.inv-deliv-qty').value) || 0,
-                        delivered_val: parseFloat(row.querySelector('.inv-deliv-val').value) || 0,
-                        returned_qty: parseFloat(row.querySelector('.inv-ret-qty').value) || 0,
-                        returned_val: parseFloat(row.querySelector('.inv-ret-val').value) || 0,
-                        return_reason: row.querySelector('.inv-reason').value,
-                        collection_mode: row.querySelector('.inv-mode').value,
-                        amount_collected: parseFloat(row.querySelector('.inv-cash').value) || 0
+                        invoice_no: row.querySelector('.inv-no')?.value || 'INV-001',
+                        customer_name: row.querySelector('.inv-cust')?.value || 'Customer',
+                        trip_no: row.querySelector('.inv-trip')?.value || 'TRIP-01',
+                        product_category: row.querySelector('.inv-cat')?.value || 'Frozen Food',
+                        sku_uom: row.querySelector('.inv-uom')?.value || 'Pkt',
+                        dispatched_qty: dispQty,
+                        dispatched_val: dispVal,
+                        delivery_status: row.querySelector('.inv-status')?.value || (retQty > 0 ? (delivQty > 0 ? 'Partial Delivery' : 'Full Return') : 'Delivered'),
+                        delivered_qty: delivQty,
+                        delivered_val: delivVal,
+                        returned_qty: retQty,
+                        returned_val: retVal,
+                        return_reason: row.querySelector('.inv-reason')?.value || 'None',
+                        collection_mode: 'Credit',
+                        amount_collected: 0
                     });
                 });
 
@@ -5144,7 +5131,7 @@
                 }
 
                 const payload = {
-                    depot_id: depotId,
+                    depot_id: parseInt(depotId),
                     report_date: reportDate,
                     incharge_name: inchargeName,
                     contact: contact,
@@ -5163,10 +5150,11 @@
                     if (result.success) {
                         showToast('Daily Distribution Report submitted & audited successfully!', 'success');
                         setTimeout(() => {
-                            if (currentUser.role === 'admin') {
-                                document.querySelector('.nav-tab[data-tab="dashboard-tab"]').click();
+                            if (currentUser && currentUser.role === 'admin') {
+                                document.querySelector('.nav-tab[data-tab="dashboard-tab"]')?.click();
+                                if (typeof loadDashboardSummary === 'function') loadDashboardSummary();
                             } else {
-                                document.getElementById('ddrForm').reset();
+                                document.getElementById('ddrForm')?.reset();
                                 seedDefaultFormRows();
                                 applyUserPermissions();
                             }
@@ -5213,9 +5201,7 @@
                     delivered_val: '',
                     returned_qty: 0,
                     returned_val: 0,
-                    return_reason: 'None',
-                    collection_mode: 'Credit',
-                    amount_collected: ''
+                    return_reason: 'None'
                 });
                 recalculateReconciliation();
             }
