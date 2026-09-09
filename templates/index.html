@@ -4903,9 +4903,9 @@
                 <option ${data.delivery_status === 'Full Return' ? 'selected' : ''}>Full Return</option>
             </select>
         </td>
-        <td><input type="number" class="inv-deliv-qty" placeholder="0" value="${delivQty}" oninput="updateInvFromDelivQty(${invoiceCounter})"></td>
+        <td><input type="number" class="inv-deliv-qty" placeholder="0" value="${delivQty}" min="0" step="any" oninput="updateInvFromDelivQty(${invoiceCounter})"></td>
         <td><input type="number" class="inv-deliv-val" placeholder="0" value="${delivVal}" readonly></td>
-        <td><input type="number" class="inv-ret-qty" placeholder="0" value="${retQty}" readonly></td>
+        <td><input type="number" class="inv-ret-qty" placeholder="0" value="${retQty}" min="0" step="any" oninput="updateInvFromRetQty(${invoiceCounter})"></td>
         <td><input type="number" class="inv-ret-val" placeholder="0" value="${retVal}" readonly></td>
         <td>
             <select class="inv-reason">
@@ -4957,8 +4957,6 @@
 
                 const status = row.querySelector('.inv-status').value;
                 const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
-                const dispVal = parseFloat(row.querySelector('.inv-disp-val').value) || 0;
-
                 const delivQtyInput = row.querySelector('.inv-deliv-qty');
 
                 if (status === 'Delivered') {
@@ -4967,11 +4965,79 @@
                     delivQtyInput.value = 0;
                 }
 
-                updateInvCalculations(idx);
+                updateInvFromDelivQty(idx);
             }
 
             function updateInvFromDelivQty(idx) {
-                updateInvCalculations(idx);
+                const row = document.getElementById(`invRow_${idx}`);
+                if (!row) return;
+
+                const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
+                const dispVal = parseFloat(row.querySelector('.inv-disp-val').value) || 0;
+                const delivQty = parseFloat(row.querySelector('.inv-deliv-qty').value) || 0;
+
+                const unitPrice = dispQty > 0 ? (dispVal / dispQty) : 0;
+                const retQty = Math.max(0, dispQty - delivQty);
+                const delivVal = Math.round(delivQty * unitPrice);
+                const retVal = Math.round(retQty * unitPrice);
+
+                row.querySelector('.inv-ret-qty').value = retQty;
+                row.querySelector('.inv-deliv-val').value = delivVal;
+                row.querySelector('.inv-ret-val').value = retVal;
+
+                const statusSelect = row.querySelector('.inv-status');
+                if (statusSelect) {
+                    if (retQty === 0) {
+                        statusSelect.value = 'Delivered';
+                    } else if (delivQty === 0 && dispQty > 0) {
+                        statusSelect.value = 'Full Return';
+                    } else {
+                        statusSelect.value = 'Partial Delivery';
+                    }
+                }
+
+                const mode = row.querySelector('.inv-mode').value;
+                if (mode === 'Cash' || mode === 'MFS / Bank') {
+                    row.querySelector('.inv-cash').value = delivVal;
+                }
+
+                recalculateReconciliation();
+            }
+
+            function updateInvFromRetQty(idx) {
+                const row = document.getElementById(`invRow_${idx}`);
+                if (!row) return;
+
+                const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
+                const dispVal = parseFloat(row.querySelector('.inv-disp-val').value) || 0;
+                const retQty = parseFloat(row.querySelector('.inv-ret-qty').value) || 0;
+
+                const unitPrice = dispQty > 0 ? (dispVal / dispQty) : 0;
+                const delivQty = Math.max(0, dispQty - retQty);
+                const delivVal = Math.round(delivQty * unitPrice);
+                const retVal = Math.round(retQty * unitPrice);
+
+                row.querySelector('.inv-deliv-qty').value = delivQty;
+                row.querySelector('.inv-deliv-val').value = delivVal;
+                row.querySelector('.inv-ret-val').value = retVal;
+
+                const statusSelect = row.querySelector('.inv-status');
+                if (statusSelect) {
+                    if (retQty === 0) {
+                        statusSelect.value = 'Delivered';
+                    } else if (delivQty === 0 && dispQty > 0) {
+                        statusSelect.value = 'Full Return';
+                    } else {
+                        statusSelect.value = 'Partial Delivery';
+                    }
+                }
+
+                const mode = row.querySelector('.inv-mode').value;
+                if (mode === 'Cash' || mode === 'MFS / Bank') {
+                    row.querySelector('.inv-cash').value = delivVal;
+                }
+
+                recalculateReconciliation();
             }
 
             function updatePaymentMode(idx) {
@@ -4992,28 +5058,7 @@
             }
 
             function updateInvCalculations(idx) {
-                const row = document.getElementById(`invRow_${idx}`);
-                if (!row) return;
-
-                const dispQty = parseFloat(row.querySelector('.inv-disp-qty').value) || 0;
-                const dispVal = parseFloat(row.querySelector('.inv-disp-val').value) || 0;
-                const delivQty = parseFloat(row.querySelector('.inv-deliv-qty').value) || 0;
-
-                const unitPrice = dispQty > 0 ? (dispVal / dispQty) : 0;
-                const retQty = Math.max(0, dispQty - delivQty);
-                const delivVal = Math.round(delivQty * unitPrice);
-                const retVal = Math.round(retQty * unitPrice);
-
-                row.querySelector('.inv-ret-qty').value = retQty;
-                row.querySelector('.inv-deliv-val').value = delivVal;
-                row.querySelector('.inv-ret-val').value = retVal;
-
-                const mode = row.querySelector('.inv-mode').value;
-                if (mode === 'Cash' || mode === 'MFS / Bank') {
-                    row.querySelector('.inv-cash').value = delivVal;
-                }
-
-                recalculateReconciliation();
+                updateInvFromDelivQty(idx);
             }
 
             function recalculateReconciliation() {

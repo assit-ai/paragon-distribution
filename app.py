@@ -5369,8 +5369,8 @@ def get_tracking_depot_routes():
             "lng": depot_coords["lng"]
         })
 
-        # Check saved_route_plans
-        cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? ORDER BY plan_date DESC LIMIT 2', (d_id,))
+        # 1. Check saved_route_plans first (from Route Planning & Van Dispatch)
+        cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? ORDER BY plan_date DESC LIMIT 1', (d_id,))
         saved_plans = cursor.fetchall()
         
         d_routes = []
@@ -5386,9 +5386,10 @@ def get_tracking_depot_routes():
                 for v_idx, van in enumerate(vans, 1):
                     v_no = van.get('vehicle_no') or f"VAN-{d_id:02d}-{v_idx:02d}"
                     d_name = van.get('driver_name') or "Assigned Driver"
-                    d_phone = van.get('driver_contact') or f"01711-{d_id:02d}{v_idx:04d}"
-                    r_code = van.get('route_name') or f"RT-{d_id:02d}-{v_idx:02d}"
-                    orders = van.get('orders', [])
+                    d_phone = van.get('driver_mobile') or van.get('driver_contact') or f"01711-{d_id:02d}{v_idx:04d}"
+                    r_code = van.get('route_code') or van.get('route_zone') or van.get('route_name') or f"RT-{d_id:02d}-{v_idx:02d}"
+                    r_name = van.get('route_zone') or van.get('route_name') or f"Corridor {v_idx}"
+                    orders = van.get('outlets') or van.get('orders') or []
                     
                     drop_points = []
                     for o_idx, ord_item in enumerate(orders, 1):
@@ -5396,7 +5397,7 @@ def get_tracking_depot_routes():
                         drop_lat = round(depot_coords['lat'] + offset['dlat'] + (v_idx * 0.003), 6)
                         drop_lng = round(depot_coords['lng'] + offset['dlng'] + (v_idx * 0.002), 6)
                         
-                        drop_id = str(ord_item.get('order_no') or ord_item.get('id') or f"DROP-{o_idx}")
+                        drop_id = str(ord_item.get('order_no') or ord_item.get('delivery_note_id') or ord_item.get('invoice_no') or ord_item.get('id') or f"DROP-{o_idx}")
                         status_key = f"{d_id}_{r_code}_{drop_id}"
                         override = status_overrides.get(status_key)
                         
@@ -5406,15 +5407,15 @@ def get_tracking_depot_routes():
                         drop_points.append({
                             "id": drop_id,
                             "sequence_order": o_idx,
-                            "outlet_name": ord_item.get('customer') or ord_item.get('consignee_name') or offset['name'],
-                            "contact_phone": ord_item.get('consignee_contact') or offset['contact'],
-                            "address": ord_item.get('consignee_address') or f"Corridor #{v_idx}, Outlet Cluster, Area Zone-{o_idx}",
-                            "invoice_no": ord_item.get('delivery_note_id') or offset['inv'],
+                            "outlet_name": ord_item.get('consignee_name') or ord_item.get('customer') or ord_item.get('customer_name') or offset['name'],
+                            "contact_phone": ord_item.get('contact_person') or ord_item.get('consignee_contact') or offset['contact'],
+                            "address": ord_item.get('consignee_address') or f"Outlet #{o_idx}, {r_name}",
+                            "invoice_no": ord_item.get('delivery_note_id') or ord_item.get('order_no') or offset['inv'],
                             "lat": drop_lat,
                             "lng": drop_lng,
-                            "total_pkts": float(ord_item.get('total_pkt') or ord_item.get('qty') or 25),
-                            "total_amount": float(ord_item.get('total_amount') or 4500.0),
-                            "payment_type": ord_item.get('payment_mode') or 'Cash',
+                            "total_pkts": float(ord_item.get('total_pkt') or ord_item.get('dispatched_qty') or ord_item.get('qty') or 25),
+                            "total_amount": float(ord_item.get('total_amount') or ord_item.get('dispatched_val') or 4500.0),
+                            "payment_type": ord_item.get('payment_mode') or ord_item.get('collection_mode') or 'Cash',
                             "status": curr_status,
                             "delivered_at": override['delivered_at'] if override else None
                         })
@@ -5439,7 +5440,7 @@ def get_tracking_depot_routes():
                         "depot_name": depot_coords["name"],
                         "depot_origin": depot_coords,
                         "route_code": r_code,
-                        "route_name": f"{van.get('route_name') or f'Corridor {v_idx}'}",
+                        "route_name": r_name,
                         "vehicle_no": v_no,
                         "ownership": van_ownership,
                         "driver_name": d_name,
@@ -5455,7 +5456,96 @@ def get_tracking_depot_routes():
                         "drop_points": drop_points
                     })
 
-        # No demo/sample data fallback — if no saved route plans exist, depot contributes zero routes
+        # 2. Fallback: If no saved_route_plans, check active daily_reports + trips + invoices
+        if not d_routes:
+            cursor.execute('SELECT id, report_date FROM daily_reports WHERE depot_id = ? AND status != "cancelled" ORDER BY report_date DESC, id DESC LIMIT 1', (d_id,))
+            rep = cursor.fetchone()
+            if rep:
+                rep_id = rep['id']
+                cursor.execute('SELECT * FROM trips WHERE report_id = ?', (rep_id,))
+                rep_trips = [dict(t) for t in cursor.fetchall()]
+                cursor.execute('SELECT * FROM invoices WHERE report_id = ?', (rep_id,))
+                rep_invs = [dict(i) for i in cursor.fetchall()]
+                
+                for v_idx, tr in enumerate(rep_trips, 1):
+                    v_no = tr.get('vehicle_no') or f"VAN-{d_id:02d}-{v_idx:02d}"
+                    d_name = tr.get('driver_name') or "Assigned Driver"
+                    d_phone = f"01711-{d_id:02d}{v_idx:04d}"
+                    r_code = tr.get('trip_no') or f"TRIP-{v_idx:02d}"
+                    r_name = tr.get('route_name') or f"Route Corridor {v_idx}"
+                    
+                    tr_invs = [inv for inv in rep_invs if inv.get('trip_no') == tr.get('trip_no')] or rep_invs
+                    drop_points = []
+                    for o_idx, inv in enumerate(tr_invs, 1):
+                        offset = SAMPLE_OUTLET_OFFSETS[(o_idx - 1 + d_id) % len(SAMPLE_OUTLET_OFFSETS)]
+                        drop_lat = round(depot_coords['lat'] + offset['dlat'] + (v_idx * 0.003), 6)
+                        drop_lng = round(depot_coords['lng'] + offset['dlng'] + (v_idx * 0.002), 6)
+                        
+                        drop_id = str(inv.get('invoice_no') or f"INV-{o_idx}")
+                        status_key = f"{d_id}_{r_code}_{drop_id}"
+                        override = status_overrides.get(status_key)
+                        
+                        inv_deliv_st = (inv.get('delivery_status') or '').lower()
+                        if inv_deliv_st == 'delivered':
+                            default_status = 'completed'
+                        elif inv_deliv_st == 'full return':
+                            default_status = 'failed'
+                        else:
+                            default_status = 'in_transit' if o_idx == 1 else 'pending'
+                            
+                        curr_status = override['status'] if override else default_status
+                        
+                        drop_points.append({
+                            "id": drop_id,
+                            "sequence_order": o_idx,
+                            "outlet_name": inv.get('customer_name') or offset['name'],
+                            "contact_phone": offset['contact'],
+                            "address": f"Outlet Location #{o_idx}, {r_name}",
+                            "invoice_no": inv.get('invoice_no') or offset['inv'],
+                            "lat": drop_lat,
+                            "lng": drop_lng,
+                            "total_pkts": float(inv.get('dispatched_qty') or 25),
+                            "total_amount": float(inv.get('dispatched_val') or 4500.0),
+                            "payment_type": inv.get('collection_mode') or 'Cash',
+                            "status": curr_status,
+                            "delivered_at": override['delivered_at'] if override else (rep['report_date'] if curr_status == 'completed' else None)
+                        })
+                    
+                    live_v = live_pos_map.get(f"{d_id}_{v_no}")
+                    if live_v:
+                        v_lat, v_lng, v_heading, v_speed = live_v['latitude'], live_v['longitude'], live_v['heading'], live_v['speed_kmh']
+                    else:
+                        next_drop = next((d for d in drop_points if d['status'] == 'in_transit'), drop_points[0] if drop_points else None)
+                        if next_drop:
+                            v_lat = round((depot_coords['lat'] + next_drop['lat']) / 2, 6)
+                            v_lng = round((depot_coords['lng'] + next_drop['lng']) / 2, 6)
+                            v_heading = 45.0
+                            v_speed = 28.0
+                        else:
+                            v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
+                            
+                    completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
+                    d_routes.append({
+                        "depot_id": d_id,
+                        "depot_name": depot_coords["name"],
+                        "depot_origin": depot_coords,
+                        "route_code": r_code,
+                        "route_name": r_name,
+                        "vehicle_no": v_no,
+                        "ownership": 'Owned',
+                        "driver_name": d_name,
+                        "driver_mobile": d_phone,
+                        "total_drops": len(drop_points),
+                        "completed_drops": completed_count,
+                        "vehicle_position": {
+                            "lat": v_lat,
+                            "lng": v_lng,
+                            "heading": v_heading,
+                            "speed": v_speed
+                        },
+                        "drop_points": drop_points
+                    })
+
         routes_list.extend(d_routes)
 
     conn.close()
