@@ -1760,6 +1760,11 @@
                                 <button type="button" class="btn btn-export btn-sm" id="btnExportComplianceExcel" onclick="exportDailyEntrySummaryToExcel()" style="padding: 6px 14px; font-weight: 700; font-size: 0.82rem;" title="Download Depot Daily Entry Compliance Summary as Excel">
                                     <i class="fa-solid fa-file-excel"></i> Excel Report
                                 </button>
+
+                                <!-- Clear Data Button for Compliance Summary (Date Range & Depot-Wise) -->
+                                <button type="button" class="btn btn-sm" id="btnComplianceClearData" onclick="openAdminClearModal('custom_clear')" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 6px 14px; font-weight: 700; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'" title="Clear operational daily reports, invoices & entries by Date Range or Depot">
+                                    <i class="fa-solid fa-trash-can"></i> Clear Data
+                                </button>
                             </div>
                         </div>
 
@@ -3797,12 +3802,19 @@
                             <td class="text-center">${lastDateFormatted}</td>
                             <td class="text-right" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; font-weight:600; color:#38bdf8;">${dispatchedFormatted}</td>
                             <td class="text-right" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; font-weight:600; color:#4ade80;">${deliveredFormatted}</td>
-                            <td class="text-center">
-                                <a href="javascript:void(0)" onclick="event.stopPropagation(); navigateToDepotDailyEntry('${item.depot_id}', '${filterDate}')"
-                                   class="btn btn-sm" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4); border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;"
-                                   title="View Daily Entry & Reconciliation for ${item.depot_name}">
-                                    <span>Open DDR</span> <i class="fa-solid fa-arrow-right"></i>
-                                </a>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <a href="javascript:void(0)" onclick="event.stopPropagation(); navigateToDepotDailyEntry('${item.depot_id}', '${filterDate}')"
+                                       class="btn btn-sm" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4); border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;"
+                                       title="View Daily Entry & Reconciliation for ${item.depot_name}">
+                                        <span>Open DDR</span> <i class="fa-solid fa-arrow-right"></i>
+                                    </a>
+                                    <button type="button" onclick="event.stopPropagation(); openAdminClearModal('depot_report', '${item.depot_id}', '${item.depot_name}')"
+                                       class="btn btn-sm" style="background:rgba(239, 68, 68, 0.12); color:#f87171; border:1px solid rgba(239, 68, 68, 0.4); border-radius:6px; padding:4px 8px; font-size:0.75rem; cursor:pointer;"
+                                       title="Clear Operational Data for ${item.depot_name} (Date Range or Specific Date)">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -28040,21 +28052,37 @@
 
             function populateAdminClearDepotsDropdown(selectedDepotId) {
                 const selectEl = document.getElementById('adminClearDepotSelect');
-                if (!selectEl) return;
-                
+                const rangeSelectEl = document.getElementById('adminClearRangeDepotSelect');
                 const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
-                let html = '';
                 
-                depotList.forEach(d => {
-                    const sel = (selectedDepotId && String(d.id) === String(selectedDepotId)) ? 'selected' : '';
-                    html += `<option value="${d.id}" ${sel}>${d.id} — ${d.name} (${d.category || 'Depot'})</option>`;
-                });
-                
-                selectEl.innerHTML = html;
-                if (selectedDepotId && selectedDepotId !== 'all') {
-                    selectEl.value = String(selectedDepotId);
-                } else if (selectEl.options.length > 0) {
-                    selectEl.selectedIndex = 0;
+                // 1. Single Date Panel Dropdown
+                if (selectEl) {
+                    let htmlA = '<option value="all">🌐 All 17 Paragon Depots (System-Wide)</option>';
+                    depotList.forEach(d => {
+                        const sel = (selectedDepotId && String(d.id) === String(selectedDepotId)) ? 'selected' : '';
+                        htmlA += `<option value="${d.id}" ${sel}>${d.id} — ${d.name} (${d.category || 'Depot'})</option>`;
+                    });
+                    selectEl.innerHTML = htmlA;
+                    if (selectedDepotId && selectedDepotId !== 'all') {
+                        selectEl.value = String(selectedDepotId);
+                    } else if (selectedDepotId === 'all') {
+                        selectEl.value = 'all';
+                    }
+                }
+
+                // 2. Date Range Panel Dropdown
+                if (rangeSelectEl) {
+                    let htmlB = '<option value="all">🌐 All 17 Paragon Depots (System-Wide)</option>';
+                    depotList.forEach(d => {
+                        const sel = (selectedDepotId && String(d.id) === String(selectedDepotId)) ? 'selected' : '';
+                        htmlB += `<option value="${d.id}" ${sel}>${d.id} — ${d.name} (${d.category || 'Depot'})</option>`;
+                    });
+                    rangeSelectEl.innerHTML = htmlB;
+                    if (selectedDepotId && selectedDepotId !== 'all') {
+                        rangeSelectEl.value = String(selectedDepotId);
+                    } else {
+                        rangeSelectEl.value = 'all';
+                    }
                 }
             }
 
@@ -28095,18 +28123,23 @@
                 if (currentAdminClearOptionMode === 'specific') {
                     const depotSelect = document.getElementById('adminClearDepotSelect');
                     const singleInput = document.getElementById('adminClearSingleDate');
-                    let depotLabel = 'Selected Depot';
+                    let depotLabel = 'All Depots';
                     if (depotSelect && depotSelect.selectedIndex >= 0) {
                         depotLabel = depotSelect.options[depotSelect.selectedIndex].textContent;
                     }
                     const dateVal = (singleInput && singleInput.value) || 'Today';
-                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> Specific Depot &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Date:</strong> ${dateVal}`;
+                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> Single Date &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Date:</strong> ${dateVal}`;
                 } else {
+                    const rangeDepotSelect = document.getElementById('adminClearRangeDepotSelect');
                     const startInput = document.getElementById('adminClearStartDate');
                     const endInput = document.getElementById('adminClearEndDate');
+                    let depotLabel = 'All Depots';
+                    if (rangeDepotSelect && rangeDepotSelect.selectedIndex >= 0) {
+                        depotLabel = rangeDepotSelect.options[rangeDepotSelect.selectedIndex].textContent;
+                    }
                     const fromVal = (startInput && startInput.value) || 'Start';
                     const toVal = (endInput && endInput.value) || 'End';
-                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> All 17 Paragon Depots &nbsp;|&nbsp; <strong>Date Range:</strong> ${fromVal} ➔ ${toVal}`;
+                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> Date Range &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Range:</strong> ${fromVal} ➔ ${toVal}`;
                 }
             }
 
@@ -28237,7 +28270,7 @@
                     ? targetDepotId 
                     : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
 
-                // 1. LIVE FLEET TRACKING CLEAR (SPECIFIC DEPOT + DATE OR ALL DEPOTS + DATE RANGE)
+                // 1. LIVE FLEET TRACKING CLEAR (SPECIFIC DEPOT / ALL DEPOTS + SINGLE DATE OR DATE RANGE)
                 if (clearType === 'tracking') {
                     let selectedDepotId = 'all';
                     let dateMode = 'single';
@@ -28251,7 +28284,8 @@
                         dateMode = 'single';
                         singleDate = document.getElementById('adminClearSingleDate')?.value || '';
                     } else {
-                        selectedDepotId = 'all';
+                        const rangeDepotSelect = document.getElementById('adminClearRangeDepotSelect');
+                        selectedDepotId = rangeDepotSelect ? rangeDepotSelect.value : 'all';
                         dateMode = 'range';
                         startDate = document.getElementById('adminClearStartDate')?.value || '';
                         endDate = document.getElementById('adminClearEndDate')?.value || '';
@@ -28301,7 +28335,7 @@
 
                 const isCustomClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report');
 
-                // 2. SELECTIVE OPERATIONAL DATA CLEAR (SPECIFIC DEPOT + DATE OR ALL DEPOTS + DATE RANGE)
+                // 2. SELECTIVE OPERATIONAL DATA CLEAR (SPECIFIC DEPOT / ALL DEPOTS + SINGLE DATE OR DATE RANGE)
                 if (isCustomClear) {
                     let selectedDepotId = 'all';
                     let dateMode = 'single';
@@ -28311,11 +28345,12 @@
 
                     if (currentAdminClearOptionMode === 'specific') {
                         const depotSelect = document.getElementById('adminClearDepotSelect');
-                        selectedDepotId = depotSelect ? depotSelect.value : '1';
+                        selectedDepotId = depotSelect ? depotSelect.value : 'all';
                         dateMode = 'single';
                         singleDate = document.getElementById('adminClearSingleDate')?.value || '';
                     } else {
-                        selectedDepotId = 'all';
+                        const rangeDepotSelect = document.getElementById('adminClearRangeDepotSelect');
+                        selectedDepotId = rangeDepotSelect ? rangeDepotSelect.value : 'all';
                         dateMode = 'range';
                         startDate = document.getElementById('adminClearStartDate')?.value || '';
                         endDate = document.getElementById('adminClearEndDate')?.value || '';
@@ -33477,7 +33512,7 @@
                         <div style="background: #0b1329; border: 1px solid #1e293b; padding: 10px 14px; border-radius: 6px; font-weight: 700; color: #38bdf8; font-size: 0.92rem;" id="adminClearDepotNameDisplay">--</div>
                     </div>
 
-                    <!-- Interactive Config Container (Filter Clear Data: Specific Depot+Date OR All Depots+Date Range) -->
+                    <!-- Interactive Config Container (Filter Clear Data: Specific Depot / All Depots + Single Date / Date Range) -->
                     <div id="adminClearInteractiveContainer" style="display: block;">
                         <!-- Clear Mode Selector (2 Distinct Modes) -->
                         <div style="margin-bottom: 16px;">
@@ -33487,22 +33522,22 @@
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <button type="button" class="btn admin-date-mode-btn" id="btnDateModeSpecific" onclick="setAdminClearOptionMode('specific')"
                                     style="background: #1e3a8a; color: #fff; border: 1.5px solid #3b82f6; font-weight: 700; font-size: 0.84rem; padding: 10px 8px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
-                                    <span><i class="fa-solid fa-warehouse"></i> Specific Depot + Date</span>
-                                    <span style="font-size: 0.72rem; opacity: 0.8; font-weight: 500;">Clear 1 depot for 1 date</span>
+                                    <span><i class="fa-solid fa-calendar-day"></i> Single Date</span>
+                                    <span style="font-size: 0.72rem; opacity: 0.8; font-weight: 500;">Depot-wise or All Depots</span>
                                 </button>
                                 <button type="button" class="btn admin-date-mode-btn" id="btnDateModeRange" onclick="setAdminClearOptionMode('range')"
                                     style="background: #0f172a; color: #94a3b8; border: 1px solid #334155; font-weight: 600; font-size: 0.84rem; padding: 10px 8px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
-                                    <span><i class="fa-solid fa-calendar-week"></i> All Depots + Date Range</span>
-                                    <span style="font-size: 0.72rem; opacity: 0.8; font-weight: 500;">Clear all 17 across range</span>
+                                    <span><i class="fa-solid fa-calendar-week"></i> Date Range</span>
+                                    <span style="font-size: 0.72rem; opacity: 0.8; font-weight: 500;">Depot-wise or All Depots</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Panel A: Specific Depot + Specific Date -->
+                        <!-- Panel A: Single Date (Specific Depot or All Depots) -->
                         <div id="adminClearSpecificPanel" style="display: block; background: #070d1e; border: 1px solid #1e293b; padding: 14px; border-radius: 8px; margin-bottom: 14px;">
                             <div style="margin-bottom: 12px;">
                                 <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">
-                                    <i class="fa-solid fa-building"></i> Select Specific Depot:
+                                    <i class="fa-solid fa-building"></i> Select Depot / Scope:
                                 </label>
                                 <select id="adminClearDepotSelect" onchange="onAdminClearConfigChange()"
                                     style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; font-weight: 600;">
@@ -33517,10 +33552,15 @@
                             </div>
                         </div>
 
-                        <!-- Panel B: All Depots + Date Range -->
+                        <!-- Panel B: Date Range (Specific Depot or All Depots) -->
                         <div id="adminClearRangePanel" style="display: none; background: #070d1e; border: 1px solid #1e293b; padding: 14px; border-radius: 8px; margin-bottom: 14px;">
-                            <div style="margin-bottom: 12px; font-size: 0.84rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-globe"></i> Target: All 17 Paragon Depots (System-Wide)
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-building"></i> Select Depot / Scope:
+                                </label>
+                                <select id="adminClearRangeDepotSelect" onchange="onAdminClearConfigChange()"
+                                    style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; font-weight: 600;">
+                                </select>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <div>
