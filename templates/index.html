@@ -27880,6 +27880,7 @@
                         if (masterSel.value === 'all') return 'all';
                         return parseInt(masterSel.value);
                     }
+                    return 'all';
                 }
                 if (currentUser && currentUser.depot_id) {
                     return parseInt(currentUser.depot_id);
@@ -27889,7 +27890,7 @@
                     if (planSel.value === 'all') return 'all';
                     return parseInt(planSel.value);
                 }
-                return currentPlanData.depot_id || 9;
+                return 'all';
             }
 
             function openMasterFleetModal(tabName = 'routes') {
@@ -27905,11 +27906,10 @@
                 const masterSel = document.getElementById('masterModalDepotSelect');
                 const depotList = getParagonDepotList();
 
-                // Populate Master Depot Select with "All Depots" option + all 17 depots
+                // Populate Master Depot Select with "All Depots" option + all 17 depots (Defaults to "All Depots")
                 if (masterSel) {
-                    const activePlanDepotId = currentPlanData.depot_id || (document.getElementById('planDepotSelect')?.value || (currentUser?.depot_id || 9));
                     const currentVal = masterSel.value;
-                    let opts = `<option value="all" style="font-weight: 700; color: #38bdf8;">🌐 All Depots (All 17 Depots - Global)</option>`;
+                    let opts = `<option value="all" selected style="font-weight: 700; color: #38bdf8;">🌐 All Depots (All 17 Depots - Global)</option>`;
                     opts += depotList.map(d => 
                         `<option value="${d.id}">${d.name} (${d.category})</option>`
                     ).join('');
@@ -27917,7 +27917,7 @@
                     if (currentVal && (currentVal === 'all' || depotList.some(d => d.id == currentVal))) {
                         masterSel.value = currentVal;
                     } else {
-                        masterSel.value = activePlanDepotId;
+                        masterSel.value = 'all';
                     }
                 }
 
@@ -32696,7 +32696,7 @@
                                 <i class="fa-solid fa-building-circle-check text-cyan"></i> Target Depot:
                             </label>
                             <select id="masterModalDepotSelect" onchange="onMasterModalDepotChange()" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 0.84rem; font-weight: 700; cursor: pointer; min-width: 240px;">
-                                <!-- Populated dynamically with all 17 depots -->
+                                <option value="all" selected style="font-weight: 700; color: #38bdf8;">🌐 All Depots (All 17 Depots - Global)</option>
                             </select>
                         </div>
 
