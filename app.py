@@ -3755,16 +3755,23 @@ def delete_master_mapping(mapping_id):
 
 @app.route('/api/fleet/available-borrow', methods=['GET'])
 def get_available_borrow_vehicles():
-    current_depot_id = request.args.get('depot_id') or request.args.get('exclude_depot_id') or 9
+    current_depot_id = request.args.get('depot_id') or request.args.get('exclude_depot_id')
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('''
+    query = '''
         SELECT fv.*, d.name as lending_depot_name, d.category as lending_depot_category, d.name as depot_name
         FROM fleet_vehicles fv
         JOIN depots d ON fv.depot_id = d.id
-        WHERE fv.depot_id != ? AND fv.status IN ('Active', 'Spare')
-        ORDER BY d.id ASC, fv.vehicle_no ASC
-    ''', (current_depot_id,))
+        WHERE (fv.ownership IS NULL OR fv.ownership != 'Borrowed')
+          AND fv.vehicle_no NOT LIKE '%(Borrowed)%'
+          AND fv.status IN ('Active', 'Spare')
+    '''
+    params = []
+    if current_depot_id and str(current_depot_id).lower() not in ('all', 'undefined', 'null', ''):
+        query += ' AND fv.depot_id != ?'
+        params.append(current_depot_id)
+    query += ' ORDER BY d.id ASC, fv.vehicle_no ASC'
+    cursor.execute(query, tuple(params))
     vehicles = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return jsonify({"success": True, "available_vehicles": vehicles})
@@ -4933,16 +4940,21 @@ def admin_clear_master_data():
 
 @app.route('/api/fleet/borrowed-vehicles', methods=['GET'])
 def get_borrowed_vehicles():
-    depot_id = request.args.get('depot_id') or 9
+    depot_id = request.args.get('depot_id')
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('''
+    query = '''
         SELECT fv.*, d.name as lending_depot_name, d.category as lending_depot_category
         FROM fleet_vehicles fv
         LEFT JOIN depots d ON fv.home_depot_id = d.id
-        WHERE fv.depot_id = ? AND fv.ownership = 'Borrowed'
-        ORDER BY fv.id DESC
-    ''', (depot_id,))
+        WHERE fv.ownership = 'Borrowed'
+    '''
+    params = []
+    if depot_id and str(depot_id).lower() not in ('all', 'undefined', 'null', ''):
+        query += ' AND fv.depot_id = ?'
+        params.append(depot_id)
+    query += ' ORDER BY fv.id DESC'
+    cursor.execute(query, tuple(params))
     borrowed = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return jsonify({"success": True, "borrowed_vehicles": borrowed})

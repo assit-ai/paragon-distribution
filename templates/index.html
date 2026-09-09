@@ -28578,16 +28578,9 @@
                         return;
                     }
                 } catch (e) {
-                    console.warn('Network offline, using cache/mock routes:', e);
+                    console.warn('Network offline or error loading routes:', e);
                 }
-                if (!masterRoutesCache || masterRoutesCache.length === 0) {
-                    masterRoutesCache = [
-                        { id: 1, route_name: 'Uttara - Tongi Expressway', route_code: 'RT-UTT-01', default_vehicle_no: 'DM-THA-11-2041', consignee_count: 32 },
-                        { id: 2, route_name: 'Gulshan - Banani - Mohakhali', route_code: 'RT-GUL-02', default_vehicle_no: 'DM-THA-11-3052', consignee_count: 45 },
-                        { id: 3, route_name: 'Dhanmondi - Mirpur Commercial', route_code: 'RT-DHA-03', default_vehicle_no: 'DM-THA-11-4018', consignee_count: 28 },
-                        { id: 4, route_name: 'Old Dhaka - Sadarghat Wholesale', route_code: 'RT-OLD-04', default_vehicle_no: 'DM-THA-11-5099', consignee_count: 38 }
-                    ];
-                }
+                masterRoutesCache = [];
                 renderMasterRoutesList(masterRoutesCache);
                 populateRouteDropdowns(masterRoutesCache);
             }
@@ -29164,16 +29157,9 @@
                         return;
                     }
                 } catch (e) {
-                    console.warn('Network offline, using cache/mock crew:', e);
+                    console.warn('Network offline or error loading crew:', e);
                 }
-                if (!masterCrewCache || masterCrewCache.length === 0) {
-                    masterCrewCache = [
-                        { id: 1, name: 'Md. Rafiqul Islam', phone: '01711-204101', role: 'driver', assigned_vehicle_no: 'DM-THA-11-2090', license_no: 'DL-882914', status: 'active' },
-                        { id: 2, name: 'Md. Alamgir Hossain', phone: '01811-305202', role: 'driver', assigned_vehicle_no: 'DM-THA-11-3045', license_no: 'DL-991823', status: 'active' },
-                        { id: 3, name: 'Md. Jewel Rana', phone: '01911-401803', role: 'delivery_man', assigned_vehicle_no: '', license_no: '', status: 'active' },
-                        { id: 4, name: 'Md. Zahid Hasan', phone: '01611-509904', role: 'delivery_man', assigned_vehicle_no: '', license_no: '', status: 'active' }
-                    ];
-                }
+                masterCrewCache = [];
                 renderMasterCrewTable(masterCrewCache);
             }
 
@@ -29751,19 +29737,14 @@
                 try {
                     const res = await fetch(`/api/fleet/available-borrow?exclude_depot_id=${depotId}`);
                     const data = await res.json();
-                    if (data.success && data.available_vehicles && data.available_vehicles.length > 0) {
+                    if (data.success && Array.isArray(data.available_vehicles)) {
                         renderBorrowableFleetTable(data.available_vehicles);
                         return;
                     }
                 } catch (e) {
-                    console.warn('Network offline, using mock borrowable fleet:', e);
+                    console.warn('Error fetching borrowable fleet:', e);
                 }
-                const mockBorrowable = [
-                    { id: 101, depot_id: 1, lending_depot_name: 'Ashulia Factory - Frozen', vehicle_no: 'DM-THA-12-8810', vehicle_type: 'Covered Van 2.0 Ton', capacity_kg: 2000, status: 'Active' },
-                    { id: 102, depot_id: 3, lending_depot_name: 'Gazipur-Process CK', vehicle_no: 'DM-THA-14-6622', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, status: 'Active' },
-                    { id: 103, depot_id: 11, lending_depot_name: 'Tejgaon - Dairy', vehicle_no: 'DM-THA-15-4433', vehicle_type: 'Insulated Milk Van', capacity_kg: 2500, status: 'Active' }
-                ];
-                renderBorrowableFleetTable(mockBorrowable);
+                renderBorrowableFleetTable([]);
             }
 
             function renderActiveBorrowedTable(borrowedList) {
@@ -30046,58 +30027,12 @@
                         });
                     }
                 } catch (e) {
-                    console.warn('Using intelligent client-side route fallback:', e);
+                    console.warn('Error fetching master records for route planning:', e);
                 }
 
-                // Default routes fallback if DB routes empty (e.g. offline mode)
-                if (routes.length === 0) {
-                    if (parseInt(depotId) === 9) {
-                        routes = [
-                            { id: 1, route_name: 'Dhanmondi - Mohammadpur Superstore Line', keywords: ['dhanmondi', 'mohammadpur', 'satmasjid', 'ring road', 'shankhar'], default_vehicle_no: 'DM-THA-11-2090' },
-                            { id: 2, route_name: 'Gulshan - Banani - Baridhara Premium Outlets', keywords: ['gulshan', 'banani', 'baridhara', 'mohakhali', 'niketon'], default_vehicle_no: 'DM-THA-11-3045' },
-                            { id: 3, route_name: 'Uttara - Tongi Wholesale & Super Stores', keywords: ['uttara', 'tongi', 'gazipur', 'airport', 'abdullahpur', 'sector'], default_vehicle_no: 'DM-THA-11-4012' },
-                            { id: 4, route_name: 'Mirpur - Pallabi - Kazipara Route', keywords: ['mirpur', 'pallabi', 'kazipara', 'shewrapara', 'kallyanpur', 'rokeya'], default_vehicle_no: 'DM-THA-11-5089' },
-                            { id: 5, route_name: 'Old Dhaka - Kaptan Bazar - Sadarghat Hub', keywords: ['kaptan', 'old dhaka', 'sadarghat', 'wari', 'kawran', 'bismillah', 'shantinagar', 'motijheel'], default_vehicle_no: 'DM-THA-11-6014' }
-                        ];
-                    } else {
-                        routes = [
-                            { id: 1, route_name: 'Route 1 - North Zone Retail Line', keywords: ['north', 'uttara', 'mirpur', 'gazipur'] },
-                            { id: 2, route_name: 'Route 2 - Central Zone Superstores', keywords: ['central', 'dhanmondi', 'gulshan', 'banani'] },
-                            { id: 3, route_name: 'Route 3 - South & Old City Wholesale', keywords: ['south', 'old dhaka', 'wari', 'motijheel', 'kawran'] }
-                        ];
-                    }
-                }
-
-                // Default fleet fallback
                 if (fleet.length === 0) {
-                    fleet = [
-                        { vehicle_no: 'DM-THA-11-2090', vehicle_type: '1.5T Covered Van' },
-                        { vehicle_no: 'DM-THA-11-3045', vehicle_type: '2.0T Covered Van' },
-                        { vehicle_no: 'DM-THA-11-4012', vehicle_type: '1.5T Covered Van' },
-                        { vehicle_no: 'DM-THA-11-5089', vehicle_type: '2.0T Covered Van' },
-                        { vehicle_no: 'DM-THA-11-6014', vehicle_type: '1.5T Covered Van' }
-                    ];
-                }
-
-                // Default crew fallback
-                if (drivers.length === 0) {
-                    drivers = [
-                        { name: 'Md. Jahangir Hossain', phone: '017109-0001' },
-                        { name: 'Md. Shah Alam', phone: '017109-0002' },
-                        { name: 'Md. Kalam Miah', phone: '017109-0003' },
-                        { name: 'Md. Abdul Matin', phone: '017109-0004' },
-                        { name: 'Md. Nazrul Islam', phone: '017109-0005' }
-                    ];
-                }
-
-                if (deliverymen.length === 0) {
-                    deliverymen = [
-                        { name: 'Md. Robiul Islam', phone: '019109-0001' },
-                        { name: 'Md. Sumon Mia', phone: '019109-0002' },
-                        { name: 'Md. Al-Amin', phone: '019109-0003' },
-                        { name: 'Md. Tariqul Islam', phone: '019109-0004' },
-                        { name: 'Md. Hafizur Rahman', phone: '019109-0005' }
-                    ];
+                    showToast('No registered fleet vehicles found for this depot. Please enlist vehicles in Master Directory first.', 'warning');
+                    return;
                 }
 
                 // Build intelligent area keywords for each route
@@ -30172,22 +30107,22 @@
                             }
                         }
                         if (!driverName) {
-                            const drv = drivers[vanIdx % drivers.length] || { name: 'Driver ' + (vanIdx + 1), phone: '01711-000000' };
+                            const drv = drivers.length > 0 ? drivers[vanIdx % drivers.length] : { name: 'Driver ' + (vanIdx + 1), phone: '' };
                             driverName = drv.name;
-                            driverPhone = drv.phone;
+                            driverPhone = drv.phone || '';
                         }
 
                         let delivName = veh.default_deliv_name;
                         let delivPhone = veh.default_deliv_phone;
                         if (!delivName) {
-                            const dlm = deliverymen[vanIdx % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
+                            const dlm = deliverymen.length > 0 ? deliverymen[vanIdx % deliverymen.length] : { name: 'Delivery Staff', phone: '' };
                             delivName = dlm.name;
-                            delivPhone = dlm.phone;
+                            delivPhone = dlm.phone || '';
                         }
 
                         const newVan = {
                             id: 'VAN-' + (Date.now() + vanIdx),
-                            vehicle_no: veh.vehicle_no || r.default_vehicle_no,
+                            vehicle_no: veh.vehicle_no || r.default_vehicle_no || `Van ${vanIdx + 1}`,
                             vehicle_type: veh.vehicle_type || 'Covered Van',
                             capacity_kg: veh.capacity_kg || 1500,
                             capacity_units: veh.capacity_units || 'Kg',
@@ -30226,12 +30161,12 @@
                 // Distribute any general/unmatched orders evenly across the created vans or create new route vans
                 if (generalBucket.length > 0) {
                     if (currentPlanData.vans.length === 0) {
-                        // Create 2-3 standard vans for the depot
-                        for (let i = 0; i < Math.min(routes.length, 3); i++) {
+                        const maxVans = Math.min(fleet.length, Math.max(routes.length, 1));
+                        for (let i = 0; i < maxVans; i++) {
                             const r = routes[i];
-                            const veh = fleet[i % fleet.length] || { vehicle_no: `DM-THA-11-${2090 + i * 50}`, capacity_kg: 1500, capacity_units: 'Kg' };
-                            const drv = drivers[i % drivers.length] || { name: 'Driver ' + (i + 1), phone: '01711-000000' };
-                            const dlm = deliverymen[i % deliverymen.length] || { name: 'Delivery Staff', phone: '01911-000000' };
+                            const veh = fleet[i % fleet.length];
+                            const drv = drivers.length > 0 ? drivers[i % drivers.length] : { name: 'Driver ' + (i + 1), phone: '' };
+                            const dlm = deliverymen.length > 0 ? deliverymen[i % deliverymen.length] : { name: 'Delivery Staff', phone: '' };
 
                             currentPlanData.vans.push({
                                 id: 'VAN-' + (Date.now() + i),
@@ -30240,9 +30175,9 @@
                                 capacity_kg: veh.capacity_kg || 1500,
                                 capacity_units: veh.capacity_units || 'Kg',
                                 driver_name: veh.default_driver_name || drv.name,
-                                driver_mobile: veh.default_driver_phone || drv.phone,
+                                driver_mobile: veh.default_driver_phone || drv.phone || '',
                                 delivery_man: veh.default_deliv_name || dlm.name,
-                                delivery_man_mobile: veh.default_deliv_phone || dlm.phone,
+                                delivery_man_mobile: veh.default_deliv_phone || dlm.phone || '',
                                 dispatch_time: '07:30 AM',
                                 route_zone: r ? r.route_name : `Zone ${i + 1} Delivery Line`,
                                 route_id: r ? r.id : (i + 1),
