@@ -1440,50 +1440,6 @@
                             <i class="fa-solid fa-right-to-bracket"></i> Login & Access Portal
                         </button>
                     </form>
-
-                    <!-- Quick Demo Role Switcher (3 Distinct Roles) -->
-                    <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid #1e293b;">
-                        <div style="font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-                            <span><i class="fa-solid fa-users"></i> Quick Demo Role Access:</span>
-                            <span style="font-size: 0.72rem; color: #38bdf8;">1-Click Login</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                            <button type="button" onclick="quickFillRoleLogin('admin', 'admin123')"
-                                style="background: rgba(37, 99, 235, 0.15); border: 1px solid #2563eb; color: #60a5fa; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-crown" style="color: #fbbf24; font-size: 16px;"></i>
-                                <div>
-                                    <div style="color: #fff;">Executive Admin</div>
-                                    <div style="font-size: 0.68rem; opacity: 0.8; font-weight: 500;">Full Central Access</div>
-                                </div>
-                            </button>
-                            <button type="button" onclick="quickFillRoleLogin('rider_tejgaon', 'rider123')"
-                                style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-motorcycle" style="color: #34d399; font-size: 16px;"></i>
-                                <div>
-                                    <div style="color: #fff;">Delivery Courier</div>
-                                    <div style="font-size: 0.68rem; opacity: 0.8; font-weight: 500;">Tejgaon Van Rider</div>
-                                </div>
-                            </button>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <button type="button" onclick="quickFillRoleLogin('ashulia_frozen', 'depot123')"
-                                style="background: rgba(2, 132, 199, 0.15); border: 1px solid #0284c7; color: #38bdf8; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-building" style="color: #38bdf8; font-size: 16px;"></i>
-                                <div>
-                                    <div style="color: #fff;">Depot User (Frozen)</div>
-                                    <div style="font-size: 0.68rem; opacity: 0.8; font-weight: 500;">Ashulia Factory Hub</div>
-                                </div>
-                            </button>
-                            <button type="button" onclick="quickFillRoleLogin('sylhet_tea', 'depot123')"
-                                style="background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; color: #c084fc; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-mug-hot" style="color: #c084fc; font-size: 16px;"></i>
-                                <div>
-                                    <div style="color: #fff;">Depot User (Tea)</div>
-                                    <div style="font-size: 0.68rem; opacity: 0.8; font-weight: 500;">Sylhet Tea Depot</div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -3478,18 +3434,10 @@
                 const passInp = document.getElementById('loginPasswordInput');
                 if (userInp) userInp.value = username;
                 if (passInp) {
-                    passInp.value = (username === 'admin') ? 'admin123' : 'depot123';
+                    passInp.value = '';
+                    passInp.focus();
                 }
-                showToast(`Selected User ID: ${username}`, 'success');
-            }
-
-            function quickFillRoleLogin(username, password) {
-                const userInp = document.getElementById('loginUsernameInput');
-                const passInp = document.getElementById('loginPasswordInput');
-                if (userInp) userInp.value = username;
-                if (passInp) passInp.value = password;
-                showToast(`Signing in as ${username}...`, 'info');
-                submitLogin();
+                showToast(`Selected User ID: ${username}. Please enter your password.`, 'info');
             }
 
             async function submitLogin() {
@@ -3572,7 +3520,6 @@
             window.toggleShowPassword = toggleShowPassword;
             window.filterDepotUserSuggestion = filterDepotUserSuggestion;
             window.selectSuggestion = selectSuggestion;
-            window.quickFillRoleLogin = quickFillRoleLogin;
             window.submitLogin = submitLogin;
             window.handleLogout = handleLogout;
 
@@ -31382,7 +31329,6 @@
             window.closeChangePasswordModal = closeChangePasswordModal;
             window.togglePasswordVisibility = togglePasswordVisibility;
             window.submitChangePassword = submitChangePassword;
-            window.quickFillRoleLogin = quickFillRoleLogin;
             window.submitLogin = submitLogin;
             window.openRentalVanModal = openRentalVanModal;
             window.closeRentalVanModal = closeRentalVanModal;
