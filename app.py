@@ -290,13 +290,7 @@ else:
     if c.fetchone()[0] == 0:
         init_db()
     else:
-        try:
-            c.execute("SELECT COUNT(*) FROM daily_reports")
-            if c.fetchone()[0] == 0:
-                seed_sample_daily_reports(c)
-                conn.commit()
-        except Exception:
-            pass
+        pass  # No auto-seeding of demo data — DB stays clean until real data is entered
     conn.close()
 
 def get_default_category_capacities(cap_val=1500, veh_type='Covered Van'):
@@ -5449,78 +5443,7 @@ def get_tracking_depot_routes():
                         "drop_points": drop_points
                     })
 
-        if not d_routes:
-            sample_vans = [
-                {"v_no": f"DHK-TA-{d_id:02d}-2041", "driver": "Md. Selim Reza", "mobile": f"01711-{d_id:02d}8901", "r_code": f"RT-{d_id:02d}-A", "name": "Primary Supermarket Loop", "ownership": "Owned"},
-                {"v_no": f"DHK-TA-{d_id:02d}-3088", "driver": "Rafiqul Islam", "mobile": f"01819-{d_id:02d}4902", "r_code": f"RT-{d_id:02d}-B", "name": "Corporate & Express Corridor", "ownership": "Borrowed"}
-            ]
-            for v_idx, sv in enumerate(sample_vans, 1):
-                drop_points = []
-                num_drops = 5 if v_idx == 1 else 4
-                for o_idx in range(1, num_drops + 1):
-                    offset = SAMPLE_OUTLET_OFFSETS[(o_idx + v_idx * 2 + d_id) % len(SAMPLE_OUTLET_OFFSETS)]
-                    drop_lat = round(depot_coords['lat'] + offset['dlat'] * (1.0 if v_idx == 1 else 0.8), 6)
-                    drop_lng = round(depot_coords['lng'] + offset['dlng'] * (1.0 if v_idx == 1 else 0.8), 6)
-                    drop_id = f"SMPL-{d_id}-{v_idx}-{o_idx}"
-                    status_key = f"{d_id}_{sv['r_code']}_{drop_id}"
-                    override = status_overrides.get(status_key)
-                    
-                    if o_idx == 1:
-                        default_st = 'completed'
-                    elif o_idx == 2:
-                        default_st = 'in_transit'
-                    else:
-                        default_st = 'pending'
-                    curr_st = override['status'] if override else default_st
-                    
-                    drop_points.append({
-                        "id": drop_id,
-                        "sequence_order": o_idx,
-                        "outlet_name": offset['name'],
-                        "contact_phone": offset['contact'],
-                        "address": f"{depot_coords['name'][:15]}, Outlet #{o_idx}, Commercial Zone",
-                        "invoice_no": offset['inv'],
-                        "lat": drop_lat,
-                        "lng": drop_lng,
-                        "total_pkts": 25 + o_idx * 5,
-                        "total_amount": 3500.0 + o_idx * 650,
-                        "payment_type": "Credit" if o_idx % 2 == 0 else "Cash",
-                        "status": curr_st,
-                        "delivered_at": override['delivered_at'] if override else None
-                    })
-                    
-                completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
-                live_v = live_pos_map.get(f"{d_id}_{sv['v_no']}")
-                if live_v:
-                    v_lat, v_lng = live_v['latitude'], live_v['longitude']
-                    v_heading, v_speed = live_v['heading'], live_v['speed_kmh']
-                else:
-                    next_drop = next((d for d in drop_points if d['status'] == 'in_transit'), drop_points[0])
-                    v_lat = round((depot_coords['lat'] * 0.4 + next_drop['lat'] * 0.6), 6)
-                    v_lng = round((depot_coords['lng'] * 0.4 + next_drop['lng'] * 0.6), 6)
-                    v_heading = 55.0 + v_idx * 20
-                    v_speed = 28.5
-                
-                d_routes.append({
-                    "depot_id": d_id,
-                    "depot_name": depot_coords["name"],
-                    "depot_origin": depot_coords,
-                    "route_code": sv['r_code'],
-                    "route_name": sv['name'],
-                    "vehicle_no": sv['v_no'],
-                    "ownership": sv.get('ownership', 'Owned'),
-                    "driver_name": sv['driver'],
-                    "driver_mobile": sv['mobile'],
-                    "total_drops": len(drop_points),
-                    "completed_drops": completed_count,
-                    "vehicle_position": {
-                        "lat": v_lat,
-                        "lng": v_lng,
-                        "heading": v_heading,
-                        "speed": v_speed
-                    },
-                    "drop_points": drop_points
-                })
+        # No demo/sample data fallback — if no saved route plans exist, depot contributes zero routes
         routes_list.extend(d_routes)
 
     conn.close()
@@ -5652,15 +5575,8 @@ def simulate_vehicle_movement():
         rows = cursor.fetchall()
         depot_coords = DEPOT_COORDINATES.get(d_id, {"lat": 23.7644, "lng": 90.3928, "name": f"Depot #{d_id}"})
         if not rows:
-            v1 = (f"DHK-TA-{d_id:02d}-2041", f"01711-{d_id:02d}8901", "Md. Selim Reza", d_id, f"RT-{d_id:02d}-A", round(depot_coords['lat'] + 0.008, 6), round(depot_coords['lng'] + 0.006, 6), 65.0, 32.5, "SIMULATOR")
-            v2 = (f"DHK-TA-{d_id:02d}-3088", f"01819-{d_id:02d}4902", "Rafiqul Islam", d_id, f"RT-{d_id:02d}-B", round(depot_coords['lat'] - 0.009, 6), round(depot_coords['lng'] + 0.007, 6), 135.0, 29.0, "SIMULATOR")
-            for v in [v1, v2]:
-                cursor.execute('''
-                INSERT INTO live_tracking_positions (vehicle_no, driver_mobile, driver_name, depot_id, route_id, latitude, longitude, heading, speed_kmh, source, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(vehicle_no, depot_id) DO UPDATE SET
-                    latitude = excluded.latitude, longitude = excluded.longitude, heading = excluded.heading, speed_kmh = excluded.speed_kmh, updated_at = CURRENT_TIMESTAMP
-                ''', v)
+            # No demo vehicle injection — skip depots with no real tracking data
+            continue
         else:
             for r in rows:
                 r_id = int(r['id'] or 1)

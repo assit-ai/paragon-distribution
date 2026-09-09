@@ -2103,11 +2103,11 @@
                         <div id="depotFleetStatusBar"
                             style="padding: 10px 24px; background: rgba(11, 19, 41, 0.95); border-top: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.82rem;">
                             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered Depot Fleet: <strong id="barTotalFleet" style="color: #fff;">8 Vans</strong></span>
+                                <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered Depot Fleet: <strong id="barTotalFleet" style="color: #fff;">0 Vans</strong></span>
                                 <span style="color: #64748b;">|</span>
                                 <span style="color: #4ade80;"><i class="fa-solid fa-route"></i> Active Dispatched Vans: <strong id="barActiveVans">0</strong></span>
                                 <span style="color: #64748b;">|</span>
-                                <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle Vans Today: <strong id="barSpareVans">8</strong></span>
+                                <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle Vans Today: <strong id="barSpareVans">0</strong></span>
                                 <span style="color: #64748b;">|</span>
                                 <span style="color: #fbbf24;"><i class="fa-solid fa-key"></i> Rental / Borrowed: <strong id="barRentalVans">0</strong></span>
                             </div>
@@ -28794,12 +28794,7 @@
                     console.warn('Network offline, using cache/mock fleet:', e);
                 }
                 if (!masterFleetCache || masterFleetCache.length === 0) {
-                    masterFleetCache = [
-                        { id: 1, vehicle_no: 'DM-THA-11-2041', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Rafiqul Islam' },
-                        { id: 2, vehicle_no: 'DM-THA-11-3052', vehicle_type: 'Covered Van 2.0 Ton', capacity_kg: 2000, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Alamgir Hossain' },
-                        { id: 3, vehicle_no: 'DM-THA-11-4018', vehicle_type: 'Covered Van 1.5 Ton', capacity_kg: 1500, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Kamal Uddin' },
-                        { id: 4, vehicle_no: 'DM-THA-11-5099', vehicle_type: 'Refrigerated Van', capacity_kg: 1800, ownership: 'Owned', status: 'Active', default_driver_name: 'Md. Sohel Rana' }
-                    ];
+                    masterFleetCache = [];
                 }
                 renderMasterFleetTable(masterFleetCache);
                 updateDepotFleetStatusBar(masterFleetCache);
@@ -29976,7 +29971,7 @@
 
             function updateDepotFleetStatusBar(fleetList = null) {
                 const fleet = fleetList || masterFleetCache;
-                const totalFleet = fleet.length || 8;
+                const totalFleet = fleet.length;
                 const activeVansCount = currentPlanData.vans.length;
                 const rentalCount = currentPlanData.vans.filter(v => v.is_rental || (v.vehicle_no && v.vehicle_no.includes('Rental'))).length;
                 const spareVansCount = Math.max(0, totalFleet - activeVansCount);
