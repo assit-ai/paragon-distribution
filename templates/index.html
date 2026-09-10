@@ -28450,6 +28450,7 @@
             function populateAdminClearDepotsDropdown(selectedDepotId) {
                 const selectEl = document.getElementById('adminClearDepotSelect');
                 const rangeSelectEl = document.getElementById('adminClearRangeDepotSelect');
+                const allSelectEl = document.getElementById('adminClearAllDepotSelect');
                 const depotList = typeof getParagonDepotList === 'function' ? getParagonDepotList() : [];
                 
                 // 1. Single Date Panel Dropdown
@@ -28481,6 +28482,21 @@
                         rangeSelectEl.value = 'all';
                     }
                 }
+
+                // 3. All Dates Panel Dropdown
+                if (allSelectEl) {
+                    let htmlC = '<option value="all">🌐 All 17 Paragon Depots (System-Wide Wipe)</option>';
+                    depotList.forEach(d => {
+                        const sel = (selectedDepotId && String(d.id) === String(selectedDepotId)) ? 'selected' : '';
+                        htmlC += `<option value="${d.id}" ${sel}>${d.id} — ${d.name} (${d.category || 'Depot'})</option>`;
+                    });
+                    allSelectEl.innerHTML = htmlC;
+                    if (selectedDepotId && selectedDepotId !== 'all') {
+                        allSelectEl.value = String(selectedDepotId);
+                    } else {
+                        allSelectEl.value = 'all';
+                    }
+                }
             }
 
             function setAdminClearOptionMode(mode) {
@@ -28488,8 +28504,10 @@
                 
                 const btnSpecific = document.getElementById('btnDateModeSpecific');
                 const btnRange = document.getElementById('btnDateModeRange');
+                const btnAll = document.getElementById('btnDateModeAll');
                 const specificPanel = document.getElementById('adminClearSpecificPanel');
                 const rangePanel = document.getElementById('adminClearRangePanel');
+                const allPanel = document.getElementById('adminClearAllPanel');
                 
                 if (btnSpecific) {
                     btnSpecific.style.background = mode === 'specific' ? '#1e3a8a' : '#0f172a';
@@ -28503,9 +28521,16 @@
                     btnRange.style.borderColor = mode === 'range' ? '#3b82f6' : '#334155';
                     btnRange.style.fontWeight = mode === 'range' ? '700' : '600';
                 }
+                if (btnAll) {
+                    btnAll.style.background = mode === 'all' ? '#991b1b' : '#0f172a';
+                    btnAll.style.color = mode === 'all' ? '#fff' : '#94a3b8';
+                    btnAll.style.borderColor = mode === 'all' ? '#ef4444' : '#334155';
+                    btnAll.style.fontWeight = mode === 'all' ? '700' : '600';
+                }
                 
                 if (specificPanel) specificPanel.style.display = (mode === 'specific' ? 'block' : 'none');
                 if (rangePanel) rangePanel.style.display = (mode === 'range' ? 'block' : 'none');
+                if (allPanel) allPanel.style.display = (mode === 'all' ? 'block' : 'none');
                 
                 onAdminClearConfigChange();
             }
@@ -28526,7 +28551,7 @@
                     }
                     const dateVal = (singleInput && singleInput.value) || 'Today';
                     summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> Single Date &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Date:</strong> ${dateVal}`;
-                } else {
+                } else if (currentAdminClearOptionMode === 'range') {
                     const rangeDepotSelect = document.getElementById('adminClearRangeDepotSelect');
                     const startInput = document.getElementById('adminClearStartDate');
                     const endInput = document.getElementById('adminClearEndDate');
@@ -28537,6 +28562,13 @@
                     const fromVal = (startInput && startInput.value) || 'Start';
                     const toVal = (endInput && endInput.value) || 'End';
                     summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> Date Range &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Range:</strong> ${fromVal} ➔ ${toVal}`;
+                } else {
+                    const allDepotSelect = document.getElementById('adminClearAllDepotSelect');
+                    let depotLabel = 'All 17 Depots (System-Wide)';
+                    if (allDepotSelect && allDepotSelect.selectedIndex >= 0) {
+                        depotLabel = allDepotSelect.options[allDepotSelect.selectedIndex].textContent;
+                    }
+                    summaryText.innerHTML = `${scopePrefix}<strong>Mode:</strong> All Historical Dates &nbsp;|&nbsp; <strong>Target:</strong> ${depotLabel} &nbsp;|&nbsp; <strong>Scope:</strong> Entire Database History (Full Wipe)`;
                 }
             }
 
@@ -28576,6 +28608,8 @@
                     
                     if (clearType === 'tracking') {
                         if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-satellite-dish" style="color: #38bdf8;"></i> Clear Live Fleet Tracking & Drop History';
+                    } else if (clearType === 'demo_data') {
+                        if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-broom" style="color: #f87171;"></i> Clear All Demo & Operational Data';
                     } else {
                         if (headingEl) headingEl.innerHTML = '<i class="fa-solid fa-trash-can"></i> Clear Operational Distribution Data';
                     }
@@ -28590,7 +28624,12 @@
                     if (endDateEl) endDateEl.value = activeDate;
 
                     pendingAdminClear = { clearType, targetDepotId: activeDepot, targetDepotName: '' };
-                    setAdminClearOptionMode('specific');
+                    
+                    if (clearType === 'demo_data') {
+                        setAdminClearOptionMode('all');
+                    } else {
+                        setAdminClearOptionMode('specific');
+                    }
                     onAdminClearConfigChange();
                 } else {
                     if (presetContainer) presetContainer.style.display = 'block';
@@ -28667,7 +28706,7 @@
                     ? targetDepotId 
                     : (typeof getSelectedMasterDepotId === 'function' ? getSelectedMasterDepotId() : 'all');
 
-                // 1. LIVE FLEET TRACKING CLEAR (SPECIFIC DEPOT / ALL DEPOTS + SINGLE DATE OR DATE RANGE)
+                // 1. LIVE FLEET TRACKING CLEAR (SPECIFIC DEPOT / ALL DEPOTS + SINGLE DATE OR DATE RANGE OR ALL DATES)
                 if (clearType === 'tracking') {
                     let selectedDepotId = 'all';
                     let dateMode = 'single';
@@ -28680,12 +28719,16 @@
                         selectedDepotId = depotSelect ? depotSelect.value : 'all';
                         dateMode = 'single';
                         singleDate = document.getElementById('adminClearSingleDate')?.value || '';
-                    } else {
+                    } else if (currentAdminClearOptionMode === 'range') {
                         const rangeDepotSelect = document.getElementById('adminClearRangeDepotSelect');
                         selectedDepotId = rangeDepotSelect ? rangeDepotSelect.value : 'all';
                         dateMode = 'range';
                         startDate = document.getElementById('adminClearStartDate')?.value || '';
                         endDate = document.getElementById('adminClearEndDate')?.value || '';
+                    } else {
+                        const allDepotSelect = document.getElementById('adminClearAllDepotSelect');
+                        selectedDepotId = allDepotSelect ? allDepotSelect.value : 'all';
+                        dateMode = 'all';
                     }
 
                     try {
@@ -28732,7 +28775,7 @@
 
                 const isCustomClear = (clearType === 'custom_clear' || clearType === 'demo_data' || clearType === 'uploaded_data' || clearType === 'depot_report');
 
-                // 2. SELECTIVE OPERATIONAL DATA CLEAR (SPECIFIC DEPOT / ALL DEPOTS + SINGLE DATE OR DATE RANGE)
+                // 2. SELECTIVE OPERATIONAL DATA CLEAR (SPECIFIC DEPOT / ALL DEPOTS + SINGLE DATE OR DATE RANGE OR ALL DATES)
                 if (isCustomClear) {
                     let selectedDepotId = 'all';
                     let dateMode = 'single';
@@ -28745,12 +28788,16 @@
                         selectedDepotId = depotSelect ? depotSelect.value : 'all';
                         dateMode = 'single';
                         singleDate = document.getElementById('adminClearSingleDate')?.value || '';
-                    } else {
+                    } else if (currentAdminClearOptionMode === 'range') {
                         const rangeDepotSelect = document.getElementById('adminClearRangeDepotSelect');
                         selectedDepotId = rangeDepotSelect ? rangeDepotSelect.value : 'all';
                         dateMode = 'range';
                         startDate = document.getElementById('adminClearStartDate')?.value || '';
                         endDate = document.getElementById('adminClearEndDate')?.value || '';
+                    } else {
+                        const allDepotSelect = document.getElementById('adminClearAllDepotSelect');
+                        selectedDepotId = allDepotSelect ? allDepotSelect.value : 'all';
+                        dateMode = 'all';
                     }
 
                     try {
@@ -32007,7 +32054,8 @@
                 if (spinIcon) spinIcon.classList.add('fa-spin');
 
                 try {
-                    const res = await fetch(`/api/tracking/depot-routes?depot_id=${encodeURIComponent(depotId)}`);
+                    const curDate = document.getElementById('reportDate')?.value || '';
+                    const res = await fetch(`/api/tracking/depot-routes?depot_id=${encodeURIComponent(depotId)}&date=${encodeURIComponent(curDate)}`);
                     const data = await res.json();
 
                     if (!data.success) {
@@ -33911,21 +33959,26 @@
 
                     <!-- Interactive Config Container (Filter Clear Data: Specific Depot / All Depots + Single Date / Date Range) -->
                     <div id="adminClearInteractiveContainer" style="display: block;">
-                        <!-- Clear Mode Selector (2 Distinct Modes) -->
+                        <!-- Clear Mode Selector (3 Distinct Modes) -->
                         <div style="margin-bottom: 16px;">
                             <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">
                                 <i class="fa-solid fa-sliders"></i> Select Clear Filter Mode:
                             </label>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                                 <button type="button" class="btn admin-date-mode-btn" id="btnDateModeSpecific" onclick="setAdminClearOptionMode('specific')"
-                                    style="background: #1e3a8a; color: #fff; border: 1.5px solid #3b82f6; font-weight: 700; font-size: 0.84rem; padding: 10px 8px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                    style="background: #1e3a8a; color: #fff; border: 1.5px solid #3b82f6; font-weight: 700; font-size: 0.82rem; padding: 9px 6px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
                                     <span><i class="fa-solid fa-calendar-day"></i> Single Date</span>
-                                    <span style="font-size: 0.72rem; opacity: 0.8; font-weight: 500;">Depot-wise or All Depots</span>
+                                    <span style="font-size: 0.7rem; opacity: 0.8; font-weight: 500;">Specific Date</span>
                                 </button>
                                 <button type="button" class="btn admin-date-mode-btn" id="btnDateModeRange" onclick="setAdminClearOptionMode('range')"
-                                    style="background: #0f172a; color: #94a3b8; border: 1px solid #334155; font-weight: 600; font-size: 0.84rem; padding: 10px 8px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                    style="background: #0f172a; color: #94a3b8; border: 1px solid #334155; font-weight: 600; font-size: 0.82rem; padding: 9px 6px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
                                     <span><i class="fa-solid fa-calendar-week"></i> Date Range</span>
-                                    <span style="font-size: 0.72rem; opacity: 0.8; font-weight: 500;">Depot-wise or All Depots</span>
+                                    <span style="font-size: 0.7rem; opacity: 0.8; font-weight: 500;">Date Interval</span>
+                                </button>
+                                <button type="button" class="btn admin-date-mode-btn" id="btnDateModeAll" onclick="setAdminClearOptionMode('all')"
+                                    style="background: #0f172a; color: #94a3b8; border: 1px solid #334155; font-weight: 600; font-size: 0.82rem; padding: 9px 6px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                    <span><i class="fa-solid fa-broom"></i> All Dates</span>
+                                    <span style="font-size: 0.7rem; opacity: 0.8; font-weight: 500;">Complete Wipe</span>
                                 </button>
                             </div>
                         </div>
@@ -33970,6 +34023,21 @@
                                     <input type="date" id="adminClearEndDate" onchange="onAdminClearConfigChange()"
                                         style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; box-sizing: border-box;">
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel C: All Historical Dates (Complete Wipe) -->
+                        <div id="adminClearAllPanel" style="display: none; background: #070d1e; border: 1px solid #991b1b; padding: 14px; border-radius: 8px; margin-bottom: 14px;">
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #f87171; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-building"></i> Select Depot Scope for Full Wipe:
+                                </label>
+                                <select id="adminClearAllDepotSelect" onchange="onAdminClearConfigChange()"
+                                    style="width: 100%; background: #0b1329; border: 1px solid #7f1d1d; color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 0.88rem; font-weight: 600;">
+                                </select>
+                            </div>
+                            <div style="font-size: 0.78rem; color: #cbd5e1; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 8px 10px; border-radius: 5px; line-height: 1.4;">
+                                <i class="fa-solid fa-triangle-exclamation text-red"></i> <strong>Scope:</strong> This will delete all daily operational reports, delivery invoices, and trips across <u>ALL historical dates</u> for the selected scope.
                             </div>
                         </div>
                     </div>

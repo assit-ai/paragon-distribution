@@ -5334,6 +5334,10 @@ def get_tracking_depot_routes():
     depot_id_param = str(request.args.get('depot_id') or 'ALL').strip()
     is_all = (depot_id_param.upper() == 'ALL' or depot_id_param == '0' or depot_id_param == '')
     
+    date_param = str(request.args.get('date') or '').strip()
+    if not date_param:
+        date_param = datetime.date.today().strftime('%Y-%m-%d')
+
     target_depot_ids = list(DEPOT_COORDINATES.keys()) if is_all else []
     if not is_all:
         try:
@@ -5369,8 +5373,8 @@ def get_tracking_depot_routes():
             "lng": depot_coords["lng"]
         })
 
-        # 1. Check saved_route_plans first (from Route Planning & Van Dispatch)
-        cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? ORDER BY plan_date DESC LIMIT 1', (d_id,))
+        # 1. Check saved_route_plans first for target date (from Route Planning & Van Dispatch)
+        cursor.execute('SELECT * FROM saved_route_plans WHERE depot_id = ? AND plan_date = ? ORDER BY id DESC LIMIT 1', (d_id, date_param))
         saved_plans = cursor.fetchall()
         
         d_routes = []
@@ -5456,9 +5460,9 @@ def get_tracking_depot_routes():
                         "drop_points": drop_points
                     })
 
-        # 2. Fallback: If no saved_route_plans, check active daily_reports + trips + invoices
+        # 2. Fallback: If no saved_route_plans, check active daily_reports for target date
         if not d_routes:
-            cursor.execute('SELECT id, report_date FROM daily_reports WHERE depot_id = ? AND status != "cancelled" ORDER BY report_date DESC, id DESC LIMIT 1', (d_id,))
+            cursor.execute('SELECT id, report_date FROM daily_reports WHERE depot_id = ? AND report_date = ? AND status != "cancelled" ORDER BY id DESC LIMIT 1', (d_id, date_param))
             rep = cursor.fetchone()
             if rep:
                 rep_id = rep['id']
