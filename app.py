@@ -948,6 +948,7 @@ def get_dashboard_summary():
 
     daily_entry_summary = []
     total_done_entries = 0
+    total_dispatched_entries = 0
     total_pending_entries = 0
 
     try:
@@ -957,7 +958,7 @@ def get_dashboard_summary():
 
     for dep in incharge_users:
         dep_id = dep['depot_id']
-        # Check if active report exists for date_param
+        # 1. Check if active daily closing report exists for date_param
         rep = conn.execute('''
             SELECT id, report_date, incharge_name, shift, total_vehicles, total_invoices, 
                    dispatched_gross_val, delivered_net_val, returned_val, status, created_at
@@ -976,73 +977,141 @@ def get_dashboard_summary():
                 'depot_name': dep['depot_name'],
                 'depot_slug': dep['depot_slug'],
                 'category': dep['category'],
+                'channel': dep['category'] or 'General',
                 'region': dep['region'],
                 'incharge_name': rep['incharge_name'] or dep['incharge_name'],
                 'contact': dep['contact'],
                 'user_id': dep['user_id'],
                 'username': dep['username'] or dep['depot_slug'],
+                'incharge_username': dep['username'] or dep['depot_slug'],
                 'user_display_name': dep['user_display_name'] or dep['incharge_name'],
                 'status': 'Done',
                 'pending_days': 0,
                 'last_entry_date': last_entry_date,
                 'report_id': rep['id'],
+                'plan_id': None,
                 'total_vehicles': rep['total_vehicles'] or 0,
                 'total_invoices': rep['total_invoices'] or 0,
                 'dispatched_gross_val': rep['dispatched_gross_val'] or 0,
+                'dispatched_val': rep['dispatched_gross_val'] or 0,
                 'delivered_net_val': rep['delivered_net_val'] or 0,
+                'delivered_val': rep['delivered_net_val'] or 0,
                 'returned_val': rep['returned_val'] or 0,
-                'submitted_at': str(rep['created_at']) if rep['created_at'] else None
+                'submitted_at': str(rep['created_at']) if rep['created_at'] else None,
+                'dispatched_at': None
             }
         else:
-            status = 'Pending'
-            total_pending_entries += 1
-            # Find the most recent entry before date_param
-            prior_rep = conn.execute('''
-                SELECT report_date, created_at FROM daily_reports
-                WHERE depot_id = ? AND report_date < ? AND status != 'cancelled'
-                ORDER BY report_date DESC LIMIT 1
+            # 2. Check if active route plan was dispatched for date_param
+            saved_plan = conn.execute('''
+                SELECT id, plan_date, shift, total_vans, total_outlets, gross_value, plan_json, created_at, updated_at
+                FROM saved_route_plans
+                WHERE depot_id = ? AND plan_date = ?
+                ORDER BY id DESC LIMIT 1
             ''', (dep_id, date_param)).fetchone()
 
-            if prior_rep and prior_rep['report_date']:
-                try:
-                    prior_date_obj = datetime.datetime.strptime(prior_rep['report_date'], '%Y-%m-%d').date()
-                    pending_days = max(1, (target_date_obj - prior_date_obj).days)
-                    last_entry_date = prior_rep['report_date']
-                except Exception:
-                    pending_days = 1
-                    last_entry_date = prior_rep['report_date']
-            else:
-                days_since_month_start = (target_date_obj - target_date_obj.replace(day=1)).days + 1
-                pending_days = max(1, days_since_month_start)
-                last_entry_date = None
+            if saved_plan:
+                status = 'Dispatched'
+                total_dispatched_entries += 1
+                plan_vans = saved_plan['total_vans'] or 0
+                plan_orders = saved_plan['total_outlets'] or 0
+                plan_gross = saved_plan['gross_value'] or 0
+                if plan_vans == 0 or plan_orders == 0 or plan_gross == 0:
+                    try:
+                        p_dict = json.loads(saved_plan['plan_json'])
+                        vans_list = p_dict.get('vans', [])
+                        plan_vans = plan_vans or len(vans_list)
+                        for v in vans_list:
+                            ots = v.get('outlets', [])
+                            plan_orders += len(ots)
+                            plan_gross += sum(float(o.get('total_amount', 0) or 0) for o in ots)
+                    except Exception:
+                        pass
 
-            entry_info = {
-                'depot_id': dep_id,
-                'depot_name': dep['depot_name'],
-                'depot_slug': dep['depot_slug'],
-                'category': dep['category'],
-                'region': dep['region'],
-                'incharge_name': dep['incharge_name'],
-                'contact': dep['contact'],
-                'user_id': dep['user_id'],
-                'username': dep['username'] or dep['depot_slug'],
-                'user_display_name': dep['user_display_name'] or dep['incharge_name'],
-                'status': 'Pending',
-                'pending_days': pending_days,
-                'last_entry_date': last_entry_date,
-                'report_id': None,
-                'total_vehicles': 0,
-                'total_invoices': 0,
-                'dispatched_gross_val': 0,
-                'delivered_net_val': 0,
-                'returned_val': 0,
-                'submitted_at': None
-            }
+                entry_info = {
+                    'depot_id': dep_id,
+                    'depot_name': dep['depot_name'],
+                    'depot_slug': dep['depot_slug'],
+                    'category': dep['category'],
+                    'channel': dep['category'] or 'General',
+                    'region': dep['region'],
+                    'incharge_name': dep['incharge_name'],
+                    'contact': dep['contact'],
+                    'user_id': dep['user_id'],
+                    'username': dep['username'] or dep['depot_slug'],
+                    'incharge_username': dep['username'] or dep['depot_slug'],
+                    'user_display_name': dep['user_display_name'] or dep['incharge_name'],
+                    'status': 'Dispatched',
+                    'pending_days': 0,
+                    'last_entry_date': None,
+                    'report_id': None,
+                    'plan_id': saved_plan['id'],
+                    'total_vehicles': plan_vans,
+                    'total_invoices': plan_orders,
+                    'dispatched_gross_val': plan_gross,
+                    'dispatched_val': plan_gross,
+                    'delivered_net_val': 0,
+                    'delivered_val': 0,
+                    'returned_val': 0,
+                    'submitted_at': None,
+                    'dispatched_at': str(saved_plan['updated_at'] or saved_plan['created_at'])
+                }
+            else:
+                status = 'Pending'
+                total_pending_entries += 1
+                # Find the most recent entry before date_param
+                prior_rep = conn.execute('''
+                    SELECT report_date, created_at FROM daily_reports
+                    WHERE depot_id = ? AND report_date < ? AND status != 'cancelled'
+                    ORDER BY report_date DESC LIMIT 1
+                ''', (dep_id, date_param)).fetchone()
+
+                if prior_rep and prior_rep['report_date']:
+                    try:
+                        prior_date_obj = datetime.datetime.strptime(prior_rep['report_date'], '%Y-%m-%d').date()
+                        pending_days = max(1, (target_date_obj - prior_date_obj).days)
+                        last_entry_date = prior_rep['report_date']
+                    except Exception:
+                        pending_days = 1
+                        last_entry_date = prior_rep['report_date']
+                else:
+                    days_since_month_start = (target_date_obj - target_date_obj.replace(day=1)).days + 1
+                    pending_days = max(1, days_since_month_start)
+                    last_entry_date = None
+
+                entry_info = {
+                    'depot_id': dep_id,
+                    'depot_name': dep['depot_name'],
+                    'depot_slug': dep['depot_slug'],
+                    'category': dep['category'],
+                    'channel': dep['category'] or 'General',
+                    'region': dep['region'],
+                    'incharge_name': dep['incharge_name'],
+                    'contact': dep['contact'],
+                    'user_id': dep['user_id'],
+                    'username': dep['username'] or dep['depot_slug'],
+                    'incharge_username': dep['username'] or dep['depot_slug'],
+                    'user_display_name': dep['user_display_name'] or dep['incharge_name'],
+                    'status': 'Pending',
+                    'pending_days': pending_days,
+                    'last_entry_date': last_entry_date,
+                    'report_id': None,
+                    'plan_id': None,
+                    'total_vehicles': 0,
+                    'total_invoices': 0,
+                    'dispatched_gross_val': 0,
+                    'dispatched_val': 0,
+                    'delivered_net_val': 0,
+                    'delivered_val': 0,
+                    'returned_val': 0,
+                    'submitted_at': None,
+                    'dispatched_at': None
+                }
         daily_entry_summary.append(entry_info)
 
     compliance_stats = {
         'total_depots': len(incharge_users),
         'total_done': total_done_entries,
+        'total_dispatched': total_dispatched_entries,
         'total_pending': total_pending_entries,
         'completion_rate': round((total_done_entries / len(incharge_users) * 100), 1) if incharge_users else 0
     }
@@ -1342,19 +1411,21 @@ def submit_report():
     util_sum = sum(float(t.get('loaded_kg', 0))/float(t.get('capacity_kg', 1))*100 for t in trips if float(t.get('capacity_kg', 0)) > 0)
     avg_util = round(util_sum / len(trips), 1) if trips else 0
     
+    shift = data.get('shift', 'Morning Shift')
+
     cursor.execute('''
     DELETE FROM daily_reports WHERE depot_id = ? AND report_date = ?
     ''', (depot_id, report_date))
     
     cursor.execute('''
     INSERT INTO daily_reports (
-        report_date, depot_id, incharge_name, contact, 
+        report_date, depot_id, incharge_name, contact, shift,
         total_vehicles, total_invoices, capacity_util_pct,
         dispatched_gross_val, delivered_net_val, returned_val,
         stock_mismatch_qty, cash_mismatch_val, adjustment_status, audit_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '100% Adjusted', 'OK / Verified')
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '100% Adjusted', 'OK / Verified')
     ''', (
-        report_date, depot_id, incharge_name, contact,
+        report_date, depot_id, incharge_name, contact, shift,
         len(trips), len(invoices), avg_util,
         tot_disp_val, tot_deliv_val, tot_ret_val,
         stock_var, cash_var
@@ -1362,8 +1433,8 @@ def submit_report():
     report_id = cursor.lastrowid
     
     for t in trips:
-        cap = float(t.get('capacity_kg', 0))
-        load = float(t.get('loaded_kg', 0))
+        cap = float(t.get('capacity_kg', 0) or 0)
+        load = float(t.get('loaded_kg', 0) or 0)
         u = round(load / cap * 100, 1) if cap > 0 else 0
         cursor.execute('''
         INSERT INTO trips (
@@ -1371,9 +1442,11 @@ def submit_report():
             capacity_kg, loaded_kg, util_pct, reefer_temp
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            report_id, t.get('trip_no'), t.get('vehicle_no'), t.get('vehicle_type'),
-            t.get('driver_name'), t.get('delivery_man'), t.get('route_name'),
-            cap, load, u, t.get('reefer_temp')
+            report_id, t.get('trip_no') or 'TRIP-01', t.get('vehicle_no') or 'VAN-01',
+            t.get('vehicle_type') or '1.5T Covered Van',
+            t.get('driver_name') or 'Driver', t.get('delivery_man') or 'Delivery Staff',
+            t.get('route_name') or 'Default Route',
+            cap, load, u, t.get('reefer_temp') or '-18°C'
         ))
         
     for inv in invoices:

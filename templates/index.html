@@ -1734,9 +1734,12 @@
 
                             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <!-- KPI Counters -->
-                                <div id="entrySummaryKPIBadges" style="display: flex; align-items: center; gap: 8px;">
+                                <div id="entrySummaryKPIBadges" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <span class="badge" id="badgeSummaryDone" style="background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid #22c55e; font-size: 0.82rem; padding: 5px 12px; border-radius: 20px; font-weight: 700;">
-                                        <i class="fa-solid fa-circle-check"></i> <span id="summaryDoneCount">0</span> / 17 Done
+                                        <i class="fa-solid fa-circle-check"></i> <span id="summaryDoneCount">0</span> Done
+                                    </span>
+                                    <span class="badge" id="badgeSummaryDispatched" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.82rem; padding: 5px 12px; border-radius: 20px; font-weight: 700;">
+                                        <i class="fa-solid fa-truck-fast"></i> <span id="summaryDispatchedCount">0</span> In-Transit
                                     </span>
                                     <span class="badge" id="badgeSummaryPending" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid #ef4444; font-size: 0.82rem; padding: 5px 12px; border-radius: 20px; font-weight: 700;">
                                         <i class="fa-solid fa-clock"></i> <span id="summaryPendingCount">0</span> Pending
@@ -1750,6 +1753,9 @@
                                     </button>
                                     <button type="button" class="btn btn-sm summary-filter-pill" id="filterSummaryDone" onclick="filterDailyEntrySummary('done')" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #94a3b8; border-radius: 4px; border:none; cursor:pointer;">
                                         Done
+                                    </button>
+                                    <button type="button" class="btn btn-sm summary-filter-pill" id="filterSummaryDispatched" onclick="filterDailyEntrySummary('dispatched')" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #94a3b8; border-radius: 4px; border:none; cursor:pointer;">
+                                        In-Transit
                                     </button>
                                     <button type="button" class="btn btn-sm summary-filter-pill" id="filterSummaryPending" onclick="filterDailyEntrySummary('pending')" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #94a3b8; border-radius: 4px; border:none; cursor:pointer;">
                                         Pending Only
@@ -3729,11 +3735,14 @@
                 const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
                 const totalDepots = currentDailyEntrySummaryData.length || 17;
                 const doneCount = currentDailyEntrySummaryData.filter(d => d.status === 'Done').length;
-                const pendingCount = totalDepots - doneCount;
+                const dispatchedCount = currentDailyEntrySummaryData.filter(d => d.status === 'Dispatched').length;
+                const pendingCount = currentDailyEntrySummaryData.filter(d => d.status === 'Pending').length;
 
                 // Update KPI Badges
                 const doneBadge = document.getElementById('summaryDoneCount');
                 if (doneBadge) doneBadge.textContent = doneCount;
+                const dispatchedBadge = document.getElementById('summaryDispatchedCount');
+                if (dispatchedBadge) dispatchedBadge.textContent = dispatchedCount;
                 const pendingBadge = document.getElementById('summaryPendingCount');
                 if (pendingBadge) pendingBadge.textContent = pendingCount;
 
@@ -3744,6 +3753,8 @@
                 let filtered = currentDailyEntrySummaryData;
                 if (currentDailyEntrySummaryFilter === 'done') {
                     filtered = filtered.filter(d => d.status === 'Done');
+                } else if (currentDailyEntrySummaryFilter === 'dispatched') {
+                    filtered = filtered.filter(d => d.status === 'Dispatched');
                 } else if (currentDailyEntrySummaryFilter === 'pending') {
                     filtered = filtered.filter(d => d.status === 'Pending');
                 }
@@ -3755,13 +3766,22 @@
 
                 tbody.innerHTML = filtered.map(item => {
                     const isDone = item.status === 'Done';
-                    const statusBadge = isDone
-                        ? `<span class="badge" style="background:rgba(34, 197, 94, 0.2); color:#4ade80; border:1px solid #22c55e; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-circle-check"></i> Done</span>`
-                        : `<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-clock"></i> Pending</span>`;
+                    const isDispatched = item.status === 'Dispatched';
+                    
+                    let statusBadge;
+                    if (isDone) {
+                        statusBadge = `<span class="badge" style="background:rgba(34, 197, 94, 0.2); color:#4ade80; border:1px solid #22c55e; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-circle-check"></i> Done (Closed)</span>`;
+                    } else if (isDispatched) {
+                        statusBadge = `<span class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8; border:1px solid #0284c7; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-truck-fast"></i> In-Transit (${item.total_vehicles || 0} Vans)</span>`;
+                    } else {
+                        statusBadge = `<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-clock"></i> Pending</span>`;
+                    }
 
                     let pendingDaysBadge;
                     if (isDone) {
-                        pendingDaysBadge = `<span style="color:#4ade80; font-weight:700; font-size:0.82rem;"><i class="fa-solid fa-check-double"></i> Up to Date</span>`;
+                        pendingDaysBadge = `<span style="color:#4ade80; font-weight:700; font-size:0.82rem;"><i class="fa-solid fa-check-double"></i> Closed & Reconciled</span>`;
+                    } else if (isDispatched) {
+                        pendingDaysBadge = `<span class="badge" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4); font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-clock-rotate-left"></i> Awaiting Evening Entry</span>`;
                     } else if (item.pending_days > 1) {
                         pendingDaysBadge = `<span class="badge" style="background:rgba(239, 68, 68, 0.15); color:#f87171; border:1px solid rgba(239, 68, 68, 0.4); font-weight:800; font-size:0.75rem; padding:3px 8px; border-radius:12px;"><i class="fa-solid fa-triangle-exclamation"></i> ${item.pending_days} Days Pending</span>`;
                     } else {
@@ -3770,10 +3790,18 @@
 
                     const lastDateFormatted = item.last_entry_date && item.last_entry_date !== 'Never'
                         ? `<span style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; color:#cbd5e1;">${item.last_entry_date}</span>`
-                        : `<span style="color:#64748b; font-style:italic; font-size:0.78rem;">No prior record</span>`;
+                        : (isDispatched && item.dispatched_at ? `<span style="font-size:0.76rem; color:#38bdf8;">Plan Dispatched</span>` : `<span style="color:#64748b; font-style:italic; font-size:0.78rem;">No prior record</span>`);
 
-                    const dispatchedFormatted = isDone ? `৳ ${(item.dispatched_val || 0).toLocaleString()}` : '<span style="color:#64748b;">—</span>';
-                    const deliveredFormatted = isDone ? `৳ ${(item.delivered_val || 0).toLocaleString()}` : '<span style="color:#64748b;">—</span>';
+                    const dispatchedVal = item.dispatched_gross_val || item.dispatched_val || 0;
+                    const deliveredVal = item.delivered_net_val || item.delivered_val || 0;
+
+                    const dispatchedFormatted = (isDone || isDispatched) && dispatchedVal > 0 
+                        ? `৳ ${Math.round(dispatchedVal).toLocaleString()}` 
+                        : '<span style="color:#64748b;">—</span>';
+
+                    const deliveredFormatted = isDone && deliveredVal > 0 
+                        ? `৳ ${Math.round(deliveredVal).toLocaleString()}` 
+                        : (isDispatched ? '<span style="color:#f59e0b; font-size:0.75rem; font-weight:600;"><i class="fa-solid fa-hourglass-half"></i> En-Route</span>' : '<span style="color:#64748b;">—</span>');
 
                     return `
                         <tr style="cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='rgba(56, 189, 248, 0.08)'" onmouseout="this.style.background=''" onclick="navigateToDepotDailyEntry('${item.depot_id}', '${filterDate}')">
@@ -3785,12 +3813,12 @@
                                     <div>
                                         <div style="font-weight:700; color:#f8fafc; font-size:0.88rem;">${item.depot_name}</div>
                                         <div style="font-size:0.75rem; color:#94a3b8;">
-                                            <i class="fa-solid fa-user-tie"></i> ${item.incharge_name || 'Incharge'} <span style="color:#38bdf8;">(@${item.incharge_username || 'user'})</span>
+                                            <i class="fa-solid fa-user-tie"></i> ${item.incharge_name || 'Incharge'} <span style="color:#38bdf8;">(@${item.incharge_username || item.username || 'user'})</span>
                                         </div>
                                     </div>
                                 </div>
                             </td>
-                            <td><span style="font-size:0.82rem; color:#cbd5e1; font-weight:600;">${item.channel}</span></td>
+                            <td><span style="font-size:0.82rem; color:#cbd5e1; font-weight:600;">${item.channel || item.category}</span></td>
                             <td><span class="badge" style="background:#1e293b; color:#94a3b8; border:1px solid #334155; font-size:0.75rem; border-radius:4px;">${item.region}</span></td>
                             <td class="text-center">${statusBadge}</td>
                             <td class="text-center">${pendingDaysBadge}</td>
@@ -3827,6 +3855,9 @@
                     if (btn) { btn.style.background = 'var(--primary-blue)'; btn.style.color = '#fff'; }
                 } else if (type === 'done') {
                     const btn = document.getElementById('filterSummaryDone');
+                    if (btn) { btn.style.background = 'var(--primary-blue)'; btn.style.color = '#fff'; }
+                } else if (type === 'dispatched') {
+                    const btn = document.getElementById('filterSummaryDispatched');
                     if (btn) { btn.style.background = 'var(--primary-blue)'; btn.style.color = '#fff'; }
                 } else if (type === 'pending') {
                     const btn = document.getElementById('filterSummaryPending');
@@ -31452,9 +31483,9 @@
                     }));
                 } catch (e) { }
 
-                // Save full route plan to server for historical plan reloading
+                // Save full route plan to server for historical plan reloading and live fleet dispatch tracking
                 try {
-                    fetch('/api/distribution/save-plan', {
+                    await fetch('/api/distribution/save-plan', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -31464,34 +31495,17 @@
                             shift_time: document.getElementById('planShiftTimeInput')?.value || '07:00',
                             plan_data: currentPlanData
                         })
-                    }).catch(e => console.warn('Saved plan API background error:', e));
-                } catch (e) { }
-
-                // Auto-Populate Tab 2 (Daily Entry Form) so it is ready for real-time adjustments
-                transferPlanToDailyEntryForm(false);
-
-                let submittedServer = false;
-                if (navigator.onLine) {
-                    try {
-                        const res = await fetch('/api/reports/submit', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            submittedServer = true;
-                            if (currentUser && currentUser.depot_id) loadDepotMyReports(currentUser.depot_id);
-                        }
-                    } catch (err) {
-                        console.warn('Server submission failed, saving locally:', err);
-                    }
+                    });
+                } catch (e) { 
+                    console.warn('Saved plan API error:', e);
                 }
 
-                if (!submittedServer) {
-                    if (typeof saveReportOffline === 'function') {
-                        await saveReportOffline(payload);
-                    }
+                // Auto-Populate Tab 2 (Daily Entry Form) as draft so it is pre-filled and ready for evening return & cash reconciliation
+                transferPlanToDailyEntryForm(false);
+
+                // Refresh Admin Dashboard & Compliance summary
+                if (typeof loadDashboardSummary === 'function') {
+                    loadDashboardSummary();
                 }
 
                 // Show beautiful dispatch confirmation modal
