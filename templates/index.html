@@ -5274,6 +5274,134 @@
                 tbody.appendChild(tr);
             }
 
+            // =========================================================================
+            // PARAGON AGRO MASTER SKU CATALOG & RETURN RECONCILIATION REGISTRY
+            // Covers all product categories: Frozen Foods, Process Chicken, Eggs, Dairy, Dry Food, Tea, Momo
+            // =========================================================================
+            const PARAGON_MASTER_SKU_CATALOG = {
+                "Frozen Food": [
+                    { item: "Chicken Ball 500gm", rate: 320, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Nuggets 1000gm", rate: 720, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Ball 250gm", rate: 165, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Ball 1000gm", rate: 620, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Nuggets 250gm", rate: 220, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Nuggets 500gm", rate: 360, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Spicy Chicken Nuggets 250gm", rate: 220, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Sausage 340gm", rate: 275, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Burger Patty 350gm", rate: 320, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Mini Samosa 250gm", rate: 230, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Mini Samosa 1000 gm", rate: 720, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Mini Spring Roll 300gm", rate: 235, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Mini Spring roll 1000 gm", rate: 720, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Popcorn 200gm", rate: 230, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Popcorn Polypack 250gm", rate: 270, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Shami Kabab 400gm", rate: 350, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Shami Kabab Polypack 500gm", rate: 420, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Chicken Strips 200gm", rate: 200, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "French Fry 1000gm", rate: 400, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "French Fry 500gm", rate: 220, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Paratha (10 pcs) 650gm", rate: 180, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Low Fat Paratha (10 Pcs)", rate: 145, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Low Fat Paratha (20 Pcs)", rate: 275, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Dal Puri 454gm", rate: 150, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Vegetable Samosa 400gm", rate: 160, rate_unit: "Pkt", category: "Frozen Food" },
+                    { item: "Vegetable Spring Roll 400gm", rate: 160, rate_unit: "Pkt", category: "Frozen Food" }
+                ],
+                "Frozen Chicken": [
+                    { item: "Dressed Chicken without skin 1000gm", rate: 425, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Dressed Chicken with skin 1000gm", rate: 400, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Drumstick without skin", rate: 490, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Breast without bone without skin", rate: 660, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Leg without bone without skin", rate: 405, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Thigh without bone without skin", rate: 378, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Wings (Tray)", rate: 380, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Feet (Tray)", rate: 200, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Liver", rate: 180, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Chicken Gizzerd", rate: 260, rate_unit: "Kg", category: "Frozen Chicken" },
+                    { item: "Keema (Tray)", rate: 620, rate_unit: "Kg", category: "Frozen Chicken" }
+                ],
+                "Fresh Eggs": [
+                    { item: "Premium Loose Egg", rate: 12.55, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Paragon Brown Egg 12 pcs", rate: 205, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Paragon White Egg 12 pcs", rate: 195, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Paragon Omega 3 Plus 12 pcs", rate: 265, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Paragon Egg Economy pack(12 pcs)EE12", rate: 190, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Tatka Premium 12 Pcs", rate: 158.4, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Free Range Native (Deshi) Egg", rate: 220, rate_unit: "Pcs", category: "Fresh Eggs" },
+                    { item: "Quail Eggs 20 Pcs Box", rate: 120, rate_unit: "Pcs", category: "Fresh Eggs" }
+                ],
+                "Dairy": [
+                    { item: "Pasteurized Milk-1000 ml (Full Cream)", rate: 95, rate_unit: "Liter", category: "Dairy" },
+                    { item: "Pasteurized Milk-500 ml (Full Cream)", rate: 50, rate_unit: "Liter", category: "Dairy" },
+                    { item: "Standarized Milk 1000 ml", rate: 90, rate_unit: "Liter", category: "Dairy" },
+                    { item: "Sweet Curd / Mishti Doi 100gm", rate: 70, rate_unit: "Pcs", category: "Dairy" },
+                    { item: "Sweet Curd 750gm", rate: 450, rate_unit: "Pkt", category: "Dairy" },
+                    { item: "Sweet & Sour Curd 750gm", rate: 450, rate_unit: "Pkt", category: "Dairy" },
+                    { item: "Laban / Chilled Dairy Drink 250ml", rate: 40, rate_unit: "Bottle", category: "Dairy" },
+                    { item: "Pure Cow Ghee / Butter Oil 400gm", rate: 650, rate_unit: "Jar", category: "Dairy" }
+                ],
+                "Dry Food": [
+                    { item: "Butter Cookies 200gm", rate: 65, rate_unit: "Pkt", category: "Dry Food" },
+                    { item: "Dry Cake (Mini) 25gm", rate: 10, rate_unit: "Pkt", category: "Dry Food" },
+                    { item: "Dry Cake (Traditional) 300gm", rate: 150, rate_unit: "Pkt", category: "Dry Food" },
+                    { item: "Plain Toast 230gm", rate: 60, rate_unit: "Pkt", category: "Dry Food" },
+                    { item: "Sandwich Bread 700gm", rate: 130, rate_unit: "Pcs", category: "Dry Food" },
+                    { item: "Milk Bread 400gm", rate: 80, rate_unit: "Pkt", category: "Dry Food" },
+                    { item: "Kacha Chana 1000gm", rate: 950, rate_unit: "Kg", category: "Dry Food" },
+                    { item: "Muffin Cake Chocolate 18gm", rate: 10, rate_unit: "Pkt", category: "Dry Food" },
+                    { item: "Roshgolla", rate: 490, rate_unit: "Kg", category: "Dry Food" },
+                    { item: "Gulab Jamun", rate: 490, rate_unit: "Kg", category: "Dry Food" },
+                    { item: "Kalo Jaam", rate: 500, rate_unit: "Kg", category: "Dry Food" }
+                ],
+                "Tea": [
+                    { item: "Paragon Best Leaf 500 gm", rate: 245, rate_unit: "Pkt", category: "Tea" },
+                    { item: "BOP 500 gm", rate: 240, rate_unit: "Pkt", category: "Tea" },
+                    { item: "PD 500 gm", rate: 250, rate_unit: "Pkt", category: "Tea" },
+                    { item: "RD Dust 500gm", rate: 255, rate_unit: "Pkt", category: "Tea" },
+                    { item: "Premium Gold Tea 500gm", rate: 255, rate_unit: "Pkt", category: "Tea" },
+                    { item: "Premium Black Tea 500gm", rate: 250, rate_unit: "Pkt", category: "Tea" }
+                ],
+                "Momo & Snacks": [
+                    { item: "Chicken Momo 300gm", rate: 300, rate_unit: "Pkt", category: "Momo & Snacks" },
+                    { item: "Chicken Momo 1000gm", rate: 1000, rate_unit: "Pkt", category: "Momo & Snacks" },
+                    { item: "Chicken Momo Classic (10 Pcs)", rate: 260, rate_unit: "Box", category: "Momo & Snacks" },
+                    { item: "Spicy Chicken Momo (10 Pcs)", rate: 280, rate_unit: "Box", category: "Momo & Snacks" },
+                    { item: "Steamed Chicken Dumplings (250gm)", rate: 250, rate_unit: "Box", category: "Momo & Snacks" },
+                    { item: "Chicken Spring Roll (300gm)", rate: 235, rate_unit: "Box", category: "Momo & Snacks" }
+                ]
+            };
+
+            function getStandardSkusForCategory(categoryName) {
+                const cat = (categoryName || '').toLowerCase();
+                if (cat.includes('egg')) {
+                    return PARAGON_MASTER_SKU_CATALOG['Fresh Eggs'] || [];
+                }
+                if (cat.includes('dairy') || cat.includes('milk')) {
+                    return PARAGON_MASTER_SKU_CATALOG['Dairy'] || [];
+                }
+                if (cat.includes('tea')) {
+                    return PARAGON_MASTER_SKU_CATALOG['Tea'] || [];
+                }
+                if (cat.includes('dry') || cat.includes('cake') || cat.includes('bakery') || cat.includes('sweet')) {
+                    return PARAGON_MASTER_SKU_CATALOG['Dry Food'] || [];
+                }
+                if (cat.includes('momo') || cat.includes('snack')) {
+                    return PARAGON_MASTER_SKU_CATALOG['Momo & Snacks'] || [];
+                }
+                // Default Frozen / Chicken (Both value-added frozen items & processed chicken cuts)
+                const fzFood = PARAGON_MASTER_SKU_CATALOG['Frozen Food'] || [];
+                const fzChicken = PARAGON_MASTER_SKU_CATALOG['Frozen Chicken'] || [];
+                return [...fzFood, ...fzChicken];
+            }
+
+            function getAllParagonMasterSkus() {
+                const all = [];
+                Object.keys(PARAGON_MASTER_SKU_CATALOG).forEach(k => {
+                    PARAGON_MASTER_SKU_CATALOG[k].forEach(s => all.push(s));
+                });
+                return all;
+            }
+
             function addInvoiceRow(data = {}) {
                 invoiceCounter++;
                 const tbody = document.getElementById('invoicesTbody');
@@ -5312,18 +5440,29 @@
                 window.invoiceProductsRegistry = window.invoiceProductsRegistry || {};
                 window.invoiceReturnDetailsRegistry = window.invoiceReturnDetailsRegistry || {};
 
+                // Use actual line items if available, or pre-populate with depot category standard SKUs
+                const catStandardSkus = getStandardSkusForCategory(defaultCat);
                 const initialItems = (data.items && Array.isArray(data.items) && data.items.length > 0)
                     ? JSON.parse(JSON.stringify(data.items))
-                    : [
-                        {
-                            item: `${defaultCat} Item (Consignment)`,
-                            rate_unit: defaultUOM,
-                            rate: (parseFloat(dispQty) > 0 && parseFloat(dispVal) > 0) ? Math.round(parseFloat(dispVal) / parseFloat(dispQty)) : 0,
-                            qty_pkt: parseFloat(dispQty) || 0,
+                    : (catStandardSkus && catStandardSkus.length > 0
+                        ? catStandardSkus.map(sk => ({
+                            item: sk.item,
+                            rate_unit: sk.rate_unit || defaultUOM,
+                            rate: sk.rate || ((parseFloat(dispQty) > 0 && parseFloat(dispVal) > 0) ? Math.round(parseFloat(dispVal) / parseFloat(dispQty)) : 0),
+                            qty_pkt: parseFloat(dispQty) > 0 ? parseFloat(dispQty) : 10,
                             qty_kg: 0,
-                            amount: parseFloat(dispVal) || 0
-                        }
-                    ];
+                            amount: Math.round((sk.rate || 250) * (parseFloat(dispQty) > 0 ? parseFloat(dispQty) : 10))
+                        }))
+                        : [
+                            {
+                                item: `${defaultCat} Item (Consignment)`,
+                                rate_unit: defaultUOM,
+                                rate: (parseFloat(dispQty) > 0 && parseFloat(dispVal) > 0) ? Math.round(parseFloat(dispVal) / parseFloat(dispQty)) : 0,
+                                qty_pkt: parseFloat(dispQty) || 0,
+                                qty_kg: 0,
+                                amount: parseFloat(dispVal) || 0
+                            }
+                        ]);
                 window.invoiceProductsRegistry[tr.id] = initialItems;
                 if (data.return_details) {
                     window.invoiceReturnDetailsRegistry[tr.id] = data.return_details;
@@ -5409,6 +5548,42 @@
             // Global registry and handlers for Invoice Return Product Selection Modal
             let currentReturnModalRowId = null;
 
+            function populateQuickSkuDropdown(cat) {
+                const sel = document.getElementById('retModalQuickSkuSelect');
+                if (!sel) return;
+
+                const stdSkus = getStandardSkusForCategory(cat);
+                const allSkus = getAllParagonMasterSkus();
+
+                let html = `<option value="">-- Choose SKU to Add (e.g. Chicken Ball 500gm, Nugget 1000gm) --</option>`;
+                
+                if (stdSkus.length > 0) {
+                    html += `<optgroup label="⭐ Top Depot SKUs (${cat})">`;
+                    stdSkus.forEach(s => {
+                        html += `<option value="${escapeHtml(s.item)}||${s.rate}||${s.rate_unit}">${escapeHtml(s.item)} — ৳${s.rate} / ${s.rate_unit}</option>`;
+                    });
+                    html += `</optgroup>`;
+                }
+
+                // Other categories
+                const otherSkus = allSkus.filter(s => !stdSkus.some(st => st.item === s.item));
+                if (otherSkus.length > 0) {
+                    html += `<optgroup label="Other Paragon Products">`;
+                    otherSkus.forEach(s => {
+                        html += `<option value="${escapeHtml(s.item)}||${s.rate}||${s.rate_unit}">${escapeHtml(s.item)} — ৳${s.rate} / ${s.rate_unit}</option>`;
+                    });
+                    html += `</optgroup>`;
+                }
+
+                sel.innerHTML = html;
+
+                // Also populate datalist
+                const dl = document.getElementById('paragonMasterSkuDatalist');
+                if (dl) {
+                    dl.innerHTML = allSkus.map(s => `<option value="${escapeHtml(s.item)}">৳${s.rate} / ${s.rate_unit}</option>`).join('');
+                }
+            }
+
             function openInvoiceReturnProductModal(rowId) {
                 const row = document.getElementById(rowId);
                 if (!row) return;
@@ -5429,21 +5604,39 @@
                 document.getElementById('retModalCustName').textContent = custName;
                 document.getElementById('retModalDispQty').textContent = `${dispQty.toLocaleString()} ${uom}`;
                 document.getElementById('retModalDispVal').textContent = `৳ ${dispVal.toLocaleString()}`;
-                document.getElementById('retModalTitle').innerHTML = `<i class="fa-solid fa-boxes-packing text-cyan"></i> Product Return Entry — <span style="color: #38bdf8;">${invNo}</span> (${custName})`;
+                document.getElementById('retModalTitle').innerHTML = `<i class="fa-solid fa-boxes-packing text-cyan"></i> Product Return Entry — <span style="color: #38bdf8;">${escapeHtml(invNo)}</span> (${escapeHtml(custName)})`;
+
+                // Populate quick dropdown
+                populateQuickSkuDropdown(cat);
 
                 // Retrieve or initialize products for this invoice
                 let products = window.invoiceProductsRegistry[rowId];
-                if (!products || !Array.isArray(products) || products.length === 0) {
-                    products = [
-                        {
-                            item: `${cat} - Regular Outlet Stock`,
-                            rate_unit: uom,
-                            rate: dispQty > 0 ? Math.round(dispVal / dispQty) : 0,
-                            qty_pkt: dispQty,
+                const isGenericPlaceholder = !products || !Array.isArray(products) || products.length === 0 || 
+                    (products.length === 1 && (products[0].item.includes('Consignment') || products[0].item.includes('Regular Outlet Stock')));
+
+                if (isGenericPlaceholder) {
+                    const stdSkus = getStandardSkusForCategory(cat);
+                    if (stdSkus && stdSkus.length > 0) {
+                        products = stdSkus.map(sk => ({
+                            item: sk.item,
+                            rate_unit: sk.rate_unit || uom,
+                            rate: sk.rate,
+                            qty_pkt: dispQty > 0 ? dispQty : 10,
                             qty_kg: 0,
-                            amount: dispVal
-                        }
-                    ];
+                            amount: Math.round(sk.rate * (dispQty > 0 ? dispQty : 10))
+                        }));
+                    } else {
+                        products = [
+                            {
+                                item: `${cat} - Regular Outlet Stock`,
+                                rate_unit: uom,
+                                rate: dispQty > 0 ? Math.round(dispVal / dispQty) : 0,
+                                qty_pkt: dispQty,
+                                qty_kg: 0,
+                                amount: dispVal
+                            }
+                        ];
+                    }
                     window.invoiceProductsRegistry[rowId] = products;
                 }
 
@@ -5470,7 +5663,23 @@
                 const tbody = document.getElementById('retModalProductsTbody');
                 if (!tbody) return;
 
-                tbody.innerHTML = products.map((prod, pIdx) => {
+                // Merge any existing returned items not currently present in products
+                const renderedProducts = [...products];
+                Object.keys(existingMap).forEach(k => {
+                    if (!renderedProducts.some(p => p.item === k)) {
+                        const ex = existingMap[k];
+                        renderedProducts.push({
+                            item: ex.item,
+                            rate: ex.rate || 0,
+                            rate_unit: defaultUom,
+                            qty_pkt: ex.return_qty || 10,
+                            qty_kg: 0,
+                            amount: (ex.rate || 0) * (ex.return_qty || 10)
+                        });
+                    }
+                });
+
+                tbody.innerHTML = renderedProducts.map((prod, pIdx) => {
                     const existing = existingMap[prod.item] || {};
                     const isChecked = (existing.return_qty > 0) || existing.selected || false;
                     const retQty = existing.return_qty !== undefined ? existing.return_qty : 0;
@@ -5479,12 +5688,12 @@
                     const lineRetVal = Math.round(retQty * unitPrice);
 
                     return `
-                        <tr id="retProdRow_${pIdx}" style="border-bottom: 1px solid #334155; background: ${isChecked ? 'rgba(56, 189, 248, 0.05)' : 'transparent'};">
+                        <tr id="retProdRow_${pIdx}" style="border-bottom: 1px solid #334155; background: ${isChecked ? 'rgba(56, 189, 248, 0.08)' : 'transparent'};">
                             <td style="text-align: center;">
-                                <input type="checkbox" class="ret-item-check" onchange="onReturnItemCheckChanged(${pIdx})" ${isChecked ? 'checked' : ''} style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
+                                <input type="checkbox" class="ret-item-check" onchange="onReturnItemCheckChanged('${pIdx}')" ${isChecked ? 'checked' : ''} style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
                             </td>
                             <td>
-                                <input type="text" class="ret-item-name" value="${prod.item || ('Product Item ' + (pIdx + 1))}" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; font-weight: 600; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                                <input type="text" class="ret-item-name" list="paragonMasterSkuDatalist" onchange="onReturnItemNameChanged('${pIdx}')" value="${escapeHtml(prod.item || ('Product Item ' + (pIdx + 1)))}" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; font-weight: 600; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
                             </td>
                             <td style="text-align: right; color: #cbd5e1; font-weight: 700;">
                                 <span class="ret-item-disp-qty">${prod.qty_pkt || 0}</span> <span style="font-size: 0.75rem; color: #94a3b8;">${prod.rate_unit || defaultUom}</span>
@@ -5493,7 +5702,7 @@
                                 ৳ <input type="number" step="0.01" class="ret-item-rate" value="${unitPrice.toFixed(2)}" oninput="calculateReturnModalSummary()" style="width: 75px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #38bdf8; padding: 3px 5px; border-radius: 4px; font-size: 0.8rem;">
                             </td>
                             <td style="text-align: center;">
-                                <input type="number" min="0" max="${prod.qty_pkt || 9999}" step="any" class="ret-item-qty" value="${retQty}" oninput="onReturnItemQtyChanged(${pIdx})" ${isChecked ? '' : 'disabled'} style="width: 80px; text-align: center; background: ${isChecked ? '#0b1329' : '#1e293b'}; border: 1px solid ${isChecked ? '#f59e0b' : '#475569'}; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
+                                <input type="number" min="0" step="any" class="ret-item-qty" value="${retQty}" oninput="onReturnItemQtyChanged('${pIdx}')" ${isChecked ? '' : 'disabled'} style="width: 80px; text-align: center; background: ${isChecked ? '#0b1329' : '#1e293b'}; border: 1px solid ${isChecked ? '#f59e0b' : '#475569'}; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
                             </td>
                             <td style="text-align: right; color: #ef4444; font-weight: 800; font-size: 0.85rem;" class="ret-item-val">
                                 ৳ ${lineRetVal.toLocaleString()}
@@ -5508,6 +5717,9 @@
                                     <option value="R-06: Route Delay / Breakdown" ${retReason.includes('Route Delay') ? 'selected' : ''}>R-06: Route Delay</option>
                                     <option value="R-07: Temperature Thaw / Quality Issue" ${retReason.includes('Quality') ? 'selected' : ''}>R-07: Quality / Thaw Issue</option>
                                 </select>
+                            </td>
+                            <td style="text-align: center;">
+                                <button type="button" onclick="removeReturnProductRow('${pIdx}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 0 4px;" title="Remove SKU from return table">&times;</button>
                             </td>
                         </tr>
                     `;
@@ -5527,9 +5739,9 @@
                     reasonSelect.disabled = false;
                     qtyInput.style.background = '#0b1329';
                     qtyInput.style.borderColor = '#f59e0b';
-                    tr.style.background = 'rgba(56, 189, 248, 0.05)';
+                    tr.style.background = 'rgba(56, 189, 248, 0.08)';
                     if (parseFloat(qtyInput.value) <= 0) {
-                        qtyInput.value = (dispQty > 0) ? 1 : 0;
+                        qtyInput.value = 1;
                     }
                 } else {
                     qtyInput.disabled = true;
@@ -5556,6 +5768,30 @@
                     qtyInput.value = 0;
                 }
                 calculateReturnModalSummary();
+            }
+
+            function onReturnItemNameChanged(pIdx) {
+                const tr = document.getElementById(`retProdRow_${pIdx}`);
+                if (!tr) return;
+                const nameInput = tr.querySelector('.ret-item-name');
+                const rateInput = tr.querySelector('.ret-item-rate');
+                if (!nameInput || !rateInput) return;
+
+                const val = nameInput.value.trim();
+                const allSkus = getAllParagonMasterSkus();
+                const found = allSkus.find(s => s.item.toLowerCase() === val.toLowerCase());
+                if (found) {
+                    rateInput.value = Number(found.rate).toFixed(2);
+                    calculateReturnModalSummary();
+                }
+            }
+
+            function removeReturnProductRow(pIdx) {
+                const tr = document.getElementById(`retProdRow_${pIdx}`);
+                if (tr) {
+                    tr.remove();
+                    calculateReturnModalSummary();
+                }
             }
 
             function calculateReturnModalSummary() {
@@ -5586,32 +5822,73 @@
                 if (totalValEl) totalValEl.textContent = `৳ ${totalRetVal.toLocaleString()}`;
             }
 
-            function addCustomProductToReturnModal() {
+            function addSelectedSkuToReturnModal() {
+                const sel = document.getElementById('retModalQuickSkuSelect');
+                if (!sel || !sel.value) {
+                    showToast('Please select an SKU from the dropdown first.', 'warning');
+                    return;
+                }
+
+                const parts = sel.value.split('||');
+                const itemName = parts[0];
+                const rate = parseFloat(parts[1]) || 0;
+                const uom = parts[2] || 'Pkt';
+
                 const tbody = document.getElementById('retModalProductsTbody');
                 if (!tbody) return;
-                const pIdx = tbody.querySelectorAll('tr').length;
+
+                // Check if already in table
+                let existingRow = null;
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    const n = tr.querySelector('.ret-item-name')?.value.trim();
+                    if (n && n.toLowerCase() === itemName.toLowerCase()) {
+                        existingRow = tr;
+                    }
+                });
+
+                if (existingRow) {
+                    const chk = existingRow.querySelector('.ret-item-check');
+                    const qtyInp = existingRow.querySelector('.ret-item-qty');
+                    if (chk) {
+                        chk.checked = true;
+                        existingRow.style.background = 'rgba(56, 189, 248, 0.12)';
+                        if (qtyInp) {
+                            qtyInp.disabled = false;
+                            qtyInp.style.background = '#0b1329';
+                            qtyInp.style.borderColor = '#f59e0b';
+                            if (parseFloat(qtyInp.value) <= 0) qtyInp.value = 1;
+                            qtyInp.focus();
+                        }
+                    }
+                    existingRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    calculateReturnModalSummary();
+                    showToast(`Item "${itemName}" is selected in the return table.`, 'info');
+                    return;
+                }
+
+                const pIdx = 'sku_' + Date.now();
                 const tr = document.createElement('tr');
                 tr.id = `retProdRow_${pIdx}`;
                 tr.style.borderBottom = '1px solid #334155';
-                tr.style.background = 'rgba(56, 189, 248, 0.05)';
+                tr.style.background = 'rgba(56, 189, 248, 0.12)';
                 tr.innerHTML = `
                     <td style="text-align: center;">
-                        <input type="checkbox" class="ret-item-check" onchange="onReturnItemCheckChanged(${pIdx})" checked style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
+                        <input type="checkbox" class="ret-item-check" onchange="onReturnItemCheckChanged('${pIdx}')" checked style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
                     </td>
                     <td>
-                        <input type="text" class="ret-item-name" placeholder="Additional SKU description" value="Extra SKU / Returned Item" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; font-weight: 600; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                        <input type="text" class="ret-item-name" list="paragonMasterSkuDatalist" onchange="onReturnItemNameChanged('${pIdx}')" value="${escapeHtml(itemName)}" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; font-weight: 600; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
                     </td>
                     <td style="text-align: right; color: #cbd5e1; font-weight: 700;">
-                        <span class="ret-item-disp-qty">10</span> <span style="font-size: 0.75rem; color: #94a3b8;">Pkt</span>
+                        <span class="ret-item-disp-qty">10</span> <span style="font-size: 0.75rem; color: #94a3b8;">${uom}</span>
                     </td>
                     <td style="text-align: right; color: #38bdf8; font-weight: 700;">
-                        ৳ <input type="number" step="0.01" class="ret-item-rate" value="250.00" oninput="calculateReturnModalSummary()" style="width: 75px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #38bdf8; padding: 3px 5px; border-radius: 4px; font-size: 0.8rem;">
+                        ৳ <input type="number" step="0.01" class="ret-item-rate" value="${rate.toFixed(2)}" oninput="calculateReturnModalSummary()" style="width: 75px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #38bdf8; padding: 3px 5px; border-radius: 4px; font-size: 0.8rem;">
                     </td>
                     <td style="text-align: center;">
-                        <input type="number" min="0" step="any" class="ret-item-qty" value="1" oninput="onReturnItemQtyChanged(${pIdx})" style="width: 80px; text-align: center; background: #0b1329; border: 1px solid #f59e0b; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
+                        <input type="number" min="0" step="any" class="ret-item-qty" value="1" oninput="onReturnItemQtyChanged('${pIdx}')" style="width: 80px; text-align: center; background: #0b1329; border: 1px solid #f59e0b; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
                     </td>
                     <td style="text-align: right; color: #ef4444; font-weight: 800; font-size: 0.85rem;" class="ret-item-val">
-                        ৳ 250
+                        ৳ ${Math.round(rate).toLocaleString()}
                     </td>
                     <td>
                         <select class="ret-item-reason" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.75rem;">
@@ -5623,6 +5900,92 @@
                             <option value="R-06: Route Delay / Breakdown">R-06: Route Delay</option>
                             <option value="R-07: Temperature Thaw / Quality Issue">R-07: Quality / Thaw Issue</option>
                         </select>
+                    </td>
+                    <td style="text-align: center;">
+                        <button type="button" onclick="removeReturnProductRow('${pIdx}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 0 4px;" title="Remove SKU from return table">&times;</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                calculateReturnModalSummary();
+                showToast(`Added ${itemName} to return list.`, 'success');
+            }
+
+            function loadAllCategorySkusToReturnModal() {
+                if (!currentReturnModalRowId) return;
+                const row = document.getElementById(currentReturnModalRowId);
+                if (!row) return;
+
+                const cat = row.querySelector('.inv-cat')?.value || 'Frozen Food';
+                const uom = row.querySelector('.inv-uom')?.value || 'Pkt';
+                const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
+                const stdSkus = getStandardSkusForCategory(cat);
+
+                if (!stdSkus || stdSkus.length === 0) {
+                    showToast('No standard SKUs found for this category.', 'info');
+                    return;
+                }
+
+                const existingReturns = window.invoiceReturnDetailsRegistry[currentReturnModalRowId] || [];
+                const existingMap = {};
+                existingReturns.forEach(ret => {
+                    existingMap[ret.item] = ret;
+                });
+
+                const products = stdSkus.map(sk => ({
+                    item: sk.item,
+                    rate_unit: sk.rate_unit || uom,
+                    rate: sk.rate,
+                    qty_pkt: dispQty > 0 ? dispQty : 10,
+                    qty_kg: 0,
+                    amount: Math.round(sk.rate * (dispQty > 0 ? dispQty : 10))
+                }));
+
+                window.invoiceProductsRegistry[currentReturnModalRowId] = products;
+                renderReturnProductItemsInModal(products, existingMap, uom);
+                calculateReturnModalSummary();
+                showToast(`Loaded ${products.length} standard products for ${cat}.`, 'success');
+            }
+
+            function addCustomProductToReturnModal() {
+                const tbody = document.getElementById('retModalProductsTbody');
+                if (!tbody) return;
+                const pIdx = 'custom_' + Date.now();
+                const tr = document.createElement('tr');
+                tr.id = `retProdRow_${pIdx}`;
+                tr.style.borderBottom = '1px solid #334155';
+                tr.style.background = 'rgba(56, 189, 248, 0.08)';
+                tr.innerHTML = `
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="ret-item-check" onchange="onReturnItemCheckChanged('${pIdx}')" checked style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
+                    </td>
+                    <td>
+                        <input type="text" class="ret-item-name" list="paragonMasterSkuDatalist" onchange="onReturnItemNameChanged('${pIdx}')" placeholder="Type or select SKU (e.g. Chicken Ball 500gm)" value="Chicken Ball 500gm" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; font-weight: 600; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                    </td>
+                    <td style="text-align: right; color: #cbd5e1; font-weight: 700;">
+                        <span class="ret-item-disp-qty">10</span> <span style="font-size: 0.75rem; color: #94a3b8;">Pkt</span>
+                    </td>
+                    <td style="text-align: right; color: #38bdf8; font-weight: 700;">
+                        ৳ <input type="number" step="0.01" class="ret-item-rate" value="320.00" oninput="calculateReturnModalSummary()" style="width: 75px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #38bdf8; padding: 3px 5px; border-radius: 4px; font-size: 0.8rem;">
+                    </td>
+                    <td style="text-align: center;">
+                        <input type="number" min="0" step="any" class="ret-item-qty" value="1" oninput="onReturnItemQtyChanged('${pIdx}')" style="width: 80px; text-align: center; background: #0b1329; border: 1px solid #f59e0b; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
+                    </td>
+                    <td style="text-align: right; color: #ef4444; font-weight: 800; font-size: 0.85rem;" class="ret-item-val">
+                        ৳ 320
+                    </td>
+                    <td>
+                        <select class="ret-item-reason" style="width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.75rem;">
+                            <option value="R-03: Transit Damage / Breakage">R-03: Transit Damage</option>
+                            <option value="R-01: Shop Closed / Customer Unavailable">R-01: Shop Closed</option>
+                            <option value="R-02: Payment Shortage / Cash Not Ready">R-02: Payment Shortage</option>
+                            <option value="R-04: Wrong Product / Short Order">R-04: Wrong Product</option>
+                            <option value="R-05: Price Dispute">R-05: Price Dispute</option>
+                            <option value="R-06: Route Delay / Breakdown">R-06: Route Delay</option>
+                            <option value="R-07: Temperature Thaw / Quality Issue">R-07: Quality / Thaw Issue</option>
+                        </select>
+                    </td>
+                    <td style="text-align: center;">
+                        <button type="button" onclick="removeReturnProductRow('${pIdx}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 0 4px;" title="Remove SKU from return table">&times;</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -5712,7 +6075,12 @@
                 if (custCell) {
                     const badge = custCell.querySelector('a');
                     if (badge) {
-                        badge.innerHTML = `<i class="fa-solid fa-box-open text-cyan"></i> Returned: ${totalRetQty} items (${returnDetails.length} SKUs)`;
+                        if (returnDetails.length > 0) {
+                            const itemSummary = returnDetails.map(d => `${d.item} (${d.return_qty})`).join(', ');
+                            badge.innerHTML = `<i class="fa-solid fa-box-open text-cyan"></i> Returned: ${totalRetQty} items (${returnDetails.length} SKUs: ${escapeHtml(itemSummary.length > 40 ? itemSummary.substring(0, 37) + '...' : itemSummary)})`;
+                        } else {
+                            badge.innerHTML = `<i class="fa-solid fa-box-open"></i> Select Return Products`;
+                        }
                     }
                 }
 
@@ -12992,6 +13360,33 @@
 
                 <!-- Products Table Body -->
                 <div style="padding: 16px 24px; overflow-y: auto; flex: 1;">
+                    <!-- Quick Add SKU Selector Toolbar -->
+                    <div style="background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 320px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; white-space: nowrap; display: flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-cart-plus"></i> Select Product to Return:
+                            </label>
+                            <select id="retModalQuickSkuSelect" style="flex: 1; background: #0b1329; border: 1px solid #38bdf8; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600;">
+                                <!-- Populated dynamically with category SKUs (e.g. Chicken Ball 500gm, Nugget 1000gm, etc.) -->
+                            </select>
+                            <button type="button" class="btn btn-sm" onclick="addSelectedSkuToReturnModal()"
+                                style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; font-weight: 700; font-size: 0.8rem; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);">
+                                <i class="fa-solid fa-plus"></i> Add to Return List
+                            </button>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="loadAllCategorySkusToReturnModal()"
+                                title="Show all standard products for this depot category"
+                                style="border-color: #f59e0b; color: #fbbf24; font-size: 0.78rem; font-weight: 700; padding: 5px 12px; border-radius: 6px;">
+                                <i class="fa-solid fa-layer-group"></i> Show All Standard SKUs
+                            </button>
+                        </div>
+                    </div>
+
+                    <datalist id="paragonMasterSkuDatalist">
+                        <!-- Populated with all Paragon products -->
+                    </datalist>
+
                     <div style="margin-bottom: 8px; font-size: 0.8rem; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between;">
                         <span><i class="fa-solid fa-check-double text-cyan"></i> Check items to mark as returned, then enter the physical return quantity:</span>
                         <span style="font-size: 0.75rem; color: #64748b;">(Return Qty cannot exceed Dispatched Qty)</span>
@@ -13001,11 +13396,12 @@
                             <tr style="background: #1e293b;">
                                 <th style="width: 45px; text-align: center;">Ret?</th>
                                 <th>Product / SKU Description</th>
-                                <th style="text-align: right; width: 100px;">Disp Qty</th>
-                                <th style="text-align: right; width: 110px;">Unit Rate (৳)</th>
-                                <th style="text-align: center; width: 110px;">Return Qty</th>
-                                <th style="text-align: right; width: 110px;">Return Val (৳)</th>
-                                <th style="width: 190px;">Return Reason</th>
+                                <th style="text-align: right; width: 95px;">Disp Qty</th>
+                                <th style="text-align: right; width: 105px;">Unit Rate (৳)</th>
+                                <th style="text-align: center; width: 105px;">Return Qty</th>
+                                <th style="text-align: right; width: 105px;">Return Val (৳)</th>
+                                <th style="width: 185px;">Return Reason</th>
+                                <th style="width: 35px; text-align: center;"></th>
                             </tr>
                         </thead>
                         <tbody id="retModalProductsTbody">
@@ -13015,8 +13411,8 @@
                     <div
                         style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <button type="button" class="btn btn-sm btn-outline" onclick="addCustomProductToReturnModal()"
-                            style="border-color: #38bdf8; color: #38bdf8; font-size: 0.78rem; font-weight: 700; padding: 4px 10px;">
-                            <i class="fa-solid fa-plus"></i> Add Another SKU Item
+                            style="border-color: #38bdf8; color: #38bdf8; font-size: 0.78rem; font-weight: 700; padding: 5px 12px; border-radius: 6px;">
+                            <i class="fa-solid fa-plus"></i> Add Custom SKU Row
                         </button>
                         <div
                             style="font-size: 0.85rem; color: #cbd5e1; background: #1e293b; padding: 6px 14px; border-radius: 6px; border: 1px solid #334155;">

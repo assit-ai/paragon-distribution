@@ -5,6 +5,9 @@ import json
 import math
 import sqlite3
 import datetime
+import threading
+import time
+import urllib.request
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -691,6 +694,51 @@ def ensure_schema_migrations():
         print("Schema migration error:", e)
 
 ensure_schema_migrations()
+
+# ------------------------------------------------------------------------------
+# RENDER.COM KEEP-ALIVE DAEMON & HEALTH ENDPOINT
+# Free tier on Render spins down after 15 minutes of inactivity.
+# 1. /api/health and /ping return 200 OK instantly with zero database overhead.
+# 2. If RENDER_EXTERNAL_URL or KEEP_ALIVE_URL is set, background worker
+#    pings every 10 minutes to prevent Render from going to sleep.
+# ------------------------------------------------------------------------------
+@app.route('/api/health')
+@app.route('/ping')
+def health_check():
+    """Ultra-fast, zero-overhead health check endpoint for uptime monitors and keep-alive pings."""
+    return jsonify({
+        "status": "healthy",
+        "service": "paragon-distribution-portal",
+        "timestamp": datetime.datetime.now().isoformat()
+    }), 200
+
+def _start_render_keep_alive():
+    target_url = os.environ.get('KEEP_ALIVE_URL') or os.environ.get('RENDER_EXTERNAL_URL')
+    if not target_url:
+        return
+
+    def keep_alive_worker():
+        # Wait 90 seconds after boot to let app completely initialize
+        time.sleep(90)
+        clean_url = target_url.rstrip('/') + '/api/health'
+        print(f"[KEEP-ALIVE] Render auto-pinger daemon started for {clean_url} (interval: 10 mins)")
+        while True:
+            try:
+                req = urllib.request.Request(
+                    clean_url,
+                    headers={'User-Agent': 'Render-Self-KeepAlive/1.0'}
+                )
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    pass
+            except Exception as e:
+                pass
+            time.sleep(600)  # Ping every 10 minutes (Render timeout is 15 minutes)
+
+    t = threading.Thread(target=keep_alive_worker, daemon=True, name="RenderKeepAliveWorker")
+    t.start()
+
+# Launch keep-alive daemon on startup
+_start_render_keep_alive()
 
 # ----------------- AUTHENTICATION ROUTES -----------------
 @app.route('/api/current-user')
@@ -2357,11 +2405,6 @@ def parse_daily_entry_excel():
     except Exception as e:
         return jsonify({"success": False, "message": f"Error parsing Excel file: {str(e)}"}), 500
 
-
-# ----------------- HEALTH & OFFLINE SYNC -----------------
-@app.route('/api/health')
-def health_check():
-    return jsonify({"status": "online", "timestamp": datetime.datetime.now().isoformat()})
 
 # ----------------- REPORT CANCELLATION & AUDIT WORKFLOW -----------------
 @app.route('/api/reports/depot/<int:depot_id>')
