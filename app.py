@@ -901,6 +901,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/api/depots')
+@login_required
 def get_depots():
     conn = get_db()
     depots = conn.execute('SELECT * FROM depots ORDER BY id ASC').fetchall()
@@ -939,6 +940,7 @@ def save_depot():
     return jsonify({"success": True, "message": "Incharge / Depot saved successfully!"})
 
 @app.route('/api/dashboard/summary')
+@login_required
 def get_dashboard_summary():
     date_param = request.args.get('date', datetime.date.today().strftime('%Y-%m-%d'))
     conn = get_db()
@@ -1264,9 +1266,7 @@ def get_dashboard_summary():
 def clear_all_demo_data():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
-        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational data"}), 403
+    # Authorization is enforced by @admin_required above (verified session role only).
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1307,11 +1307,11 @@ def admin_clear_data():
     Selectively clears operational distribution data (reports, invoices, trips, saved route plans)
     based on flexible depot selection and date filtering (single date, date range, or all historical dates).
     """
+    # NOTE: authorization is enforced by @admin_required (verified session role only).
+    # The old check here trusted a client-supplied `role`/`X-Admin-Role` value, which any
+    # caller could spoof — that logic has been removed in favor of the decorator.
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
-        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational distribution data"}), 403
 
     depot_id = data.get('depot_id', 'all')
     date_mode = data.get('date_mode', 'single')  # 'single', 'range', 'all'
@@ -1639,9 +1639,7 @@ def delete_report(report_id):
 def admin_clear_all_uploaded_data():
     data = request.json if request.is_json else {}
     depot_id = data.get('depot_id') or request.args.get('depot_id')
-    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
-        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational data"}), 403
+    # Authorization is enforced by @admin_required above (verified session role only).
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1713,6 +1711,7 @@ def admin_reset_demo_data():
 
 
 @app.route('/api/reports/get-by-date')
+@login_required
 def get_report_by_date():
     depot_id = request.args.get('depot_id')
     report_date = request.args.get('date')
@@ -1744,12 +1743,10 @@ def get_report_by_date():
     })
 
 @app.route('/api/reports/delete-by-date', methods=['GET', 'POST', 'DELETE'])
-@login_required
+@admin_required
 def delete_report_by_date():
     data = request.json if request.is_json else {}
-    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
-        return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete submitted daily reports"}), 403
+    # Authorization is enforced by @admin_required above (verified session role only).
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
     report_date = data.get('date') or request.args.get('date')
@@ -2131,7 +2128,9 @@ def generate_live_master_excel(date_param=None, depot_id=None):
 @app.route('/api/sample-poloxy-data', methods=['GET'])
 @login_required
 def get_sample_poloxy_data():
-    sample_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'data', 'sample_poloxy_data.json')
+    # SECURITY: kept outside static/ so it can't be fetched directly (e.g. /static/data/...)
+    # by anyone without a session - only this @login_required route can serve it.
+    sample_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'private_data', 'sample_poloxy_data.json')
     if not os.path.exists(sample_file):
         return jsonify({"success": False, "message": "Sample Poloxy data asset not found."}), 404
     try:
@@ -2142,6 +2141,7 @@ def get_sample_poloxy_data():
         return jsonify({"success": False, "message": f"Error reading sample data: {str(e)}"}), 500
 
 @app.route('/api/export/excel')
+@login_required
 def export_master_excel():
     date_param = request.args.get('date', datetime.date.today().strftime('%Y-%m-%d'))
     depot_param = request.args.get('depot')
@@ -2162,6 +2162,7 @@ def export_master_excel():
 
 # ----------------- BULK EXCEL TEMPLATE (CRYSTAL CLEAR HIGH-VISIBILITY TYPOGRAPHY) -----------------
 @app.route('/api/template/daily-entry-excel')
+@login_required
 def download_daily_entry_template():
     depot_id = request.args.get('depot_id')
     depot_name = "Paragon Depot"
@@ -2311,6 +2312,7 @@ def download_daily_entry_template():
     )
 
 @app.route('/api/template/parse-excel', methods=['POST'])
+@login_required
 def parse_daily_entry_excel():
     if 'file' not in request.files:
         return jsonify({"success": False, "message": "No Excel file uploaded"}), 400
@@ -2408,6 +2410,7 @@ def parse_daily_entry_excel():
 
 # ----------------- REPORT CANCELLATION & AUDIT WORKFLOW -----------------
 @app.route('/api/reports/depot/<int:depot_id>')
+@login_required
 def get_depot_recent_reports(depot_id):
     conn = get_db()
     cursor = conn.cursor()
@@ -2446,6 +2449,7 @@ def request_report_cancellation():
     return jsonify({"success": True, "message": "Cancellation request submitted to Executive Admin for audit review."})
 
 @app.route('/api/reports/cancellations')
+@admin_required
 def get_pending_cancellations():
     conn = get_db()
     cursor = conn.cursor()
@@ -2526,6 +2530,7 @@ def get_admin_users():
     return jsonify({"success": True, "users": users})
 
 @app.route('/api/admin/users/update', methods=['POST'])
+@admin_required
 def update_admin_user():
     data = request.json or {}
     user_id = data.get('user_id')
@@ -2544,7 +2549,7 @@ def update_admin_user():
             UPDATE users
             SET display_name = ?, password = ?, is_active = ?
             WHERE id = ?
-        ''', (display_name, password.strip(), is_active, user_id))
+        ''', (display_name, generate_password_hash(password.strip()), is_active, user_id))
     else:
         cursor.execute('''
             UPDATE users
@@ -2662,6 +2667,7 @@ def match_depot_ref(branch_str, ref_str, order_no_str=''):
     return {"id": 9, "name": "09. Tejgaon - Fresh Egg", "category": "Fresh Eggs"}
 
 @app.route('/api/distribution/import-poloxy-orders', methods=['POST'])
+@login_required
 def import_poloxy_orders():
     if 'file' not in request.files:
         return jsonify({"success": False, "message": "No file uploaded. Please upload Sale Order Status Report.xlsx"}), 400
@@ -2919,6 +2925,7 @@ def import_poloxy_orders():
 # ----------------- ROUTES & CONSIGNEE MASTER APIS -----------------
 
 @app.route('/api/routes', methods=['GET', 'POST'])
+@login_required
 def handle_routes():
     conn = get_db()
     cursor = conn.cursor()
@@ -2980,6 +2987,7 @@ def delete_route(route_id):
     return jsonify({"success": True, "message": "Route deleted successfully!"})
 
 @app.route('/api/consignees', methods=['GET', 'POST'])
+@login_required
 def handle_consignees():
     conn = get_db()
     cursor = conn.cursor()
@@ -3048,6 +3056,7 @@ def delete_consignee(cid):
 # ----------------- FLEET VEHICLES & RENTAL APIS -----------------
 
 @app.route('/api/fleet', methods=['GET'])
+@login_required
 def get_fleet():
     depot_id = request.args.get('depot_id')
     conn = get_db()
@@ -3167,6 +3176,7 @@ def delete_fleet_vehicle(vid):
 # ----------------- DEPOT CREW (DRIVERS & DELIVERYMEN) APIS -----------------
 
 @app.route('/api/crew', methods=['GET', 'POST'])
+@login_required
 def handle_crew():
     conn = get_db()
     cursor = conn.cursor()
@@ -3256,6 +3266,7 @@ def delete_crew(cid):
 # ----------------- MULTI-CATEGORY CAPACITY & DEFAULT MAPPING APIS -----------------
 
 @app.route('/api/fleet/capacities', methods=['GET'])
+@login_required
 def get_fleet_capacities():
     depot_id = request.args.get('depot_id')
     conn = get_db()
@@ -3328,6 +3339,7 @@ def update_fleet_capacities():
     return jsonify({"success": True, "message": f"Multi-category capacities updated for vehicle successfully!"})
 
 @app.route('/api/crew/default-mapping', methods=['POST'])
+@login_required
 def update_crew_default_mapping():
     data = request.json or {}
     cid = data.get('id') or data.get('driver_id')
@@ -3390,6 +3402,7 @@ def get_depot_primary_category_info(depot_row):
 
 @app.route('/api/template/driver-vehicle-mapping-excel', methods=['GET'])
 @app.route('/api/template/depot-sku-assignment-template', methods=['GET'])
+@login_required
 def download_driver_vehicle_mapping_template():
     try:
         user_role = session.get('role')
@@ -3597,6 +3610,7 @@ def download_driver_vehicle_mapping_template():
 @app.route('/api/crew/mapping-bulk-upload', methods=['POST'])
 @app.route('/api/master/sku-mapping-bulk-upload', methods=['POST'])
 @app.route('/api/master/driver-vehicle-mapping-bulk-upload', methods=['POST'])
+@login_required
 def bulk_upload_driver_vehicle_mapping():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No Excel file uploaded'}), 400
@@ -3846,6 +3860,7 @@ def bulk_upload_driver_vehicle_mapping():
 
 @app.route('/api/master/mappings', methods=['GET'])
 @app.route('/api/master/skus', methods=['GET'])
+@login_required
 def get_master_mappings():
     depot_id = request.args.get('depot_id')
     conn = get_db()
@@ -3879,6 +3894,7 @@ def get_master_mappings():
 
 @app.route('/api/master/mapping', methods=['POST'])
 @app.route('/api/master/sku', methods=['POST'])
+@login_required
 def save_master_mapping():
     data = request.json or {}
     mapping_id = data.get('id')
@@ -3982,6 +3998,7 @@ def delete_master_mapping(mapping_id):
 # ----------------- INTER-DEPOT VEHICLE BORROWING APIS -----------------
 
 @app.route('/api/fleet/available-borrow', methods=['GET'])
+@login_required
 def get_available_borrow_vehicles():
     current_depot_id = request.args.get('depot_id') or request.args.get('exclude_depot_id')
     conn = get_db()
@@ -4005,6 +4022,7 @@ def get_available_borrow_vehicles():
     return jsonify({"success": True, "available_vehicles": vehicles})
 
 @app.route('/api/fleet/borrow-request', methods=['POST'])
+@login_required
 def create_borrow_request():
     data = request.json or {}
     req_depot_id = data.get('requesting_depot_id')
@@ -4077,6 +4095,7 @@ def clear_depot_borrowed_vehicles():
 
 
 @app.route('/api/template/routes-blank-template')
+@login_required
 def download_routes_blank_template():
     output = io.BytesIO()
     wb = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -4122,6 +4141,7 @@ def download_routes_blank_template():
 
 
 @app.route('/api/template/consignees-blank-template')
+@login_required
 def download_consignees_blank_template():
     output = io.BytesIO()
     wb = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -4164,6 +4184,7 @@ def download_consignees_blank_template():
 
 
 @app.route('/api/template/crew-blank-template')
+@login_required
 def download_crew_blank_template():
     output = io.BytesIO()
     wb = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -4208,6 +4229,7 @@ def download_crew_blank_template():
 
 
 @app.route('/api/template/fleet-blank-template')
+@login_required
 def download_fleet_blank_template():
     output = io.BytesIO()
     wb = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -4255,6 +4277,7 @@ def download_fleet_blank_template():
 # ----------------- BULK UPLOAD HANDLERS -----------------
 
 @app.route('/api/routes/bulk-upload', methods=['POST'])
+@login_required
 def bulk_upload_routes():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file uploaded'}), 400
@@ -4301,6 +4324,7 @@ def bulk_upload_routes():
 
 
 @app.route('/api/consignees/bulk-upload', methods=['POST'])
+@login_required
 def bulk_upload_consignees():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file uploaded'}), 400
@@ -4417,6 +4441,7 @@ def bulk_upload_consignees():
 
 
 @app.route('/api/crew/bulk-upload', methods=['POST'])
+@login_required
 def bulk_upload_crew():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file uploaded'}), 400
@@ -4479,6 +4504,7 @@ def bulk_upload_crew():
 
 
 @app.route('/api/fleet/bulk-upload', methods=['POST'])
+@login_required
 def bulk_upload_fleet():
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file uploaded'}), 400
@@ -4570,6 +4596,7 @@ def bulk_upload_fleet():
 
 
 @app.route('/api/template/universal-route-plan-excel')
+@login_required
 def download_universal_route_plan_template():
     depot_id = request.args.get('depot_id')
     date_param = request.args.get('date', datetime.date.today().strftime('%d/%m/%Y'))
@@ -4751,6 +4778,7 @@ def download_universal_route_plan_template():
     )
 
 @app.route('/api/distribution/export-van-runsheet-excel', methods=['POST'])
+@login_required
 def export_van_runsheet_excel():
     data = request.json or {}
     plan_data = data.get('plan', {})
@@ -4922,6 +4950,7 @@ def save_distribution_plan():
     return jsonify({"success": True, "message": f"Route plan for {plan_date} saved successfully!"})
 
 @app.route('/api/distribution/get-plan', methods=['GET'])
+@login_required
 def get_distribution_plan():
     depot_id = request.args.get('depot_id')
     plan_date = request.args.get('date') or datetime.date.today().strftime('%Y-%m-%d')
@@ -5020,6 +5049,7 @@ def get_distribution_plan():
     return jsonify({"success": True, "exists": False, "message": "No saved plan found for this date."})
 
 @app.route('/api/distribution/plan-history', methods=['GET'])
+@login_required
 def get_distribution_plan_history():
     depot_id = request.args.get('depot_id')
     if not depot_id:
@@ -5073,9 +5103,7 @@ def get_distribution_plan_history():
 def admin_clear_master_data():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
-    if role and role not in ['admin', 'guest'] and role != 'admin':
-        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
+    # Authorization is enforced by @admin_required above (verified session role only).
 
     clear_type = data.get('clear_type') or data.get('type') or request.args.get('clear_type') or request.args.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'mapping', 'all'
     raw_depot_id = data.get('depot_id') or request.args.get('depot_id')
@@ -5171,6 +5199,7 @@ def admin_clear_master_data():
     return jsonify({"success": True, "message": msg})
 
 @app.route('/api/fleet/borrowed-vehicles', methods=['GET'])
+@login_required
 def get_borrowed_vehicles():
     depot_id = request.args.get('depot_id')
     conn = get_db()
@@ -5196,9 +5225,7 @@ def get_borrowed_vehicles():
 def admin_clear_route_plan():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
-    if role != 'admin':
-        return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
+    # Authorization is enforced by @admin_required above (verified session role only).
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
     plan_date = data.get('date') or data.get('plan_date') or request.args.get('date') or request.args.get('plan_date')
@@ -5270,214 +5297,10 @@ def match_depot_from_ref(branch="", ref_no="", order_no=""):
 # POLOXY ERP BATCH PARSER WITH ROUTE & FLEET AUTO-MAPPING
 # ==============================================================================
 
-@app.route('/api/distribution/import-poloxy-orders', methods=['POST'])
-def api_import_poloxy_orders():
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'message': 'No file uploaded in request'}), 400
-        
-    file = request.files['file']
-    if not file.filename:
-        return jsonify({'success': False, 'message': 'Empty file selected'}), 400
-        
-    depot_id_param = request.form.get('depot_id')
-    active_depot_id = int(depot_id_param) if depot_id_param and depot_id_param.isdigit() else None
-    
-    try:
-        wb = openpyxl.load_workbook(file, data_only=True)
-        ws = wb.active
-        
-        header_row_idx = 2
-        for r_idx, row in enumerate(ws.iter_rows(max_row=8, values_only=True), 1):
-            row_str = " ".join([str(c) for c in row if c is not None]).upper()
-            if "ORDER NO" in row_str or "REF. NO" in row_str or "CUSTOMER" in row_str:
-                header_row_idx = r_idx
-                break
-                
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        # Load routes and consignee map
-        routes_map = {}
-        consignee_route_map = {}
-        if active_depot_id:
-            cursor.execute('SELECT id, route_name, route_code, default_vehicle_no FROM routes WHERE depot_id = ?', (active_depot_id,))
-            for r in cursor.fetchall():
-                routes_map[r['id']] = dict(r)
-                
-            cursor.execute('SELECT consignee_name, route_id FROM route_consignees WHERE depot_id = ?', (active_depot_id,))
-            for rc in cursor.fetchall():
-                consignee_route_map[rc['consignee_name'].strip().lower()] = rc['route_id']
-                
-        # Load depot fleet and crew
-        depot_fleet = []
-        depot_drivers = []
-        depot_deliverymen = []
-        if active_depot_id:
-            cursor.execute('SELECT * FROM fleet_vehicles WHERE depot_id = ? ORDER BY id ASC', (active_depot_id,))
-            depot_fleet = [dict(v) for v in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM depot_crew WHERE depot_id = ? AND role = 'driver'", (active_depot_id,))
-            depot_drivers = [dict(c) for c in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM depot_crew WHERE depot_id = ? AND role = 'delivery_man'", (active_depot_id,))
-            depot_deliverymen = [dict(c) for c in cursor.fetchall()]
-            
-        cursor.execute('SELECT * FROM depots')
-        depots_db = {d['id']: dict(d) for d in cursor.fetchall()}
-        conn.close()
-        
-        depots_result = {}
-        total_orders_parsed = 0
-        total_value_parsed = 0.0
-        
-        for row in ws.iter_rows(min_row=header_row_idx + 1, values_only=True):
-            if not row or not any(row):
-                continue
-            
-            sr_no = str(row[0] or '').strip()
-            date_val = str(row[1] or '').strip()
-            customer = str(row[2] or '').strip()
-            order_no = str(row[3] or '').strip()
-            ref_no = str(row[4] or '').strip()
-            branch = str(row[6] or '').strip()
-            item = str(row[7] or '').strip()
-            raw_rate_unit = str(row[8] or '').strip()
-            rate = float(row[9] or 0.0)
-            qty_bag = float(row[10] or 0.0)
-            qty_kg = float(row[11] or 0.0)
-            
-            # Column N (Index 13): Total Amount
-            total_amount_col_n = None
-            if len(row) > 13 and row[13] is not None and str(row[13]).strip() != '':
-                try:
-                    total_amount_col_n = float(row[13])
-                except (ValueError, TypeError):
-                    total_amount_col_n = None
-                    
-            d_note_id = str(row[27] or '').strip() if len(row) > 27 else ''
-            consignee_name = str(row[32] or '').strip() if len(row) > 32 and str(row[32]).strip() else customer
-            consignee_contact = str(row[33] or '').strip() if len(row) > 33 else ''
-            consignee_address = str(row[34] or '').strip() if len(row) > 34 else ''
-            
-            if not ref_no and not order_no and not item:
-                continue
-                
-            if active_depot_id:
-                depot_info = depots_db.get(active_depot_id, {'id': active_depot_id, 'name': 'Selected Depot', 'category': 'Food'})
-            else:
-                depot_info = match_depot_from_ref(branch, ref_no, order_no)
-                
-            d_id = depot_info['id']
-            d_name = depot_info['name']
-            d_cat = depot_info.get('category', 'Food')
-            
-            is_egg = d_id == 9 or "egg" in d_cat.lower()
-            is_dairy = d_id in [4, 11] or "dairy" in d_cat.lower()
-            primary_uom = "Pcs" if is_egg else ("Ltr" if is_dairy else "Pkt")
-            secondary_uom = "Kg" if not is_dairy else "Ltr"
-            rate_unit = raw_rate_unit or primary_uom
-            
-            if d_id not in depots_result:
-                depots_result[d_id] = {
-                    'depot_id': d_id,
-                    'depot_name': d_name,
-                    'category': d_cat,
-                    'primary_uom': primary_uom,
-                    'secondary_uom': secondary_uom,
-                    'orders_map': {},
-                    'fleet': depot_fleet,
-                    'drivers': depot_drivers,
-                    'deliverymen': depot_deliverymen,
-                    'routes': list(routes_map.values()),
-                    'total_outlets': 0,
-                    'total_pkts': 0.0,
-                    'total_kg': 0.0,
-                    'total_amount': 0.0
-                }
-                
-            ord_key = order_no or f"ORD-{sr_no or (total_orders_parsed + 1)}"
-            if ord_key not in depots_result[d_id]['orders_map']:
-                is_credit = any(kw in consignee_name.lower() for kw in ['shwapno', 'agora', 'meena', 'unimart', 'pran', 'aarong', 'lavender', 'food panda'])
-                
-                # Match route for consignee
-                matched_route_id = consignee_route_map.get(consignee_name.strip().lower())
-                matched_route = routes_map.get(matched_route_id) if matched_route_id else None
-                
-                depots_result[d_id]['orders_map'][ord_key] = {
-                    'order_no': ord_key,
-                    'date': date_val,
-                    'customer': customer,
-                    'consignee_name': consignee_name,
-                    'consignee_contact': consignee_contact,
-                    'consignee_address': consignee_address,
-                    'branch_category': branch or d_cat,
-                    'delivery_note_id': d_note_id,
-                    'route_id': matched_route_id,
-                    'route_name': matched_route['route_name'] if matched_route else 'General Route',
-                    'default_vehicle_no': matched_route['default_vehicle_no'] if matched_route else '',
-                    'items': [],
-                    'total_pkt': 0.0,
-                    'total_kg': 0.0,
-                    'total_amount': 0.0,
-                    'col_n_found': False,
-                    'assigned_van': '',
-                    'payment_mode': 'Credit' if is_credit else 'Cash',
-                    'expected_cash': 0.0,
-                    'rate_unit': rate_unit
-                }
-                depots_result[d_id]['total_outlets'] += 1
-                total_orders_parsed += 1
-                
-            if total_amount_col_n is not None and not depots_result[d_id]['orders_map'][ord_key]['col_n_found']:
-                if total_amount_col_n > 0:
-                    depots_result[d_id]['orders_map'][ord_key]['total_amount'] = total_amount_col_n
-                    depots_result[d_id]['orders_map'][ord_key]['col_n_found'] = True
-                    
-            item_line_amount = rate * (qty_kg if qty_kg > 0 else qty_bag)
-            depots_result[d_id]['orders_map'][ord_key]['items'].append({
-                'item': item,
-                'rate_unit': rate_unit,
-                'rate': rate,
-                'qty_pkt': qty_bag,
-                'qty_kg': qty_kg,
-                'amount': item_line_amount
-            })
-            
-            depots_result[d_id]['orders_map'][ord_key]['total_pkt'] += qty_bag
-            depots_result[d_id]['orders_map'][ord_key]['total_kg'] += qty_kg
-            depots_result[d_id]['total_pkts'] += qty_bag
-            depots_result[d_id]['total_kg'] += qty_kg
-            
-        # Finalize list
-        final_depots = []
-        for d_id, data in depots_result.items():
-            order_list = list(data['orders_map'].values())
-            d_total_val = 0.0
-            for o in order_list:
-                if not o['col_n_found'] or o['total_amount'] == 0:
-                    o['total_amount'] = sum(it['amount'] for it in o['items'])
-                d_total_val += o['total_amount']
-                if o['payment_mode'] == 'Cash':
-                    o['expected_cash'] = o['total_amount']
-                    
-            data['total_amount'] = d_total_val
-            data['orders'] = order_list
-            del data['orders_map']
-            total_value_parsed += d_total_val
-            final_depots.append(data)
-            
-        final_depots.sort(key=lambda x: x['total_outlets'], reverse=True)
-        
-        return jsonify({
-            'success': True,
-            'message': f'Poloxy ERP parsed {total_orders_parsed} orders for {final_depots[0]["depot_name"] if final_depots else "Selected Depot"}!',
-            'total_orders': total_orders_parsed,
-            'total_value': total_value_parsed,
-            'depots': final_depots
-        })
-        
-    except Exception as err:
-        return jsonify({'success': False, 'message': f'Error reading Poloxy file: {str(err)}'}), 500
+# NOTE: a duplicate, unreachable copy of the Poloxy-import route used to be here.
+# Flask always dispatched to the first-registered handler above, so this second
+# definition never actually ran - removed as dead code.
+
 
 
 
@@ -5563,6 +5386,7 @@ except Exception as e:
     print("Notice: Tracking DB init deferred:", e)
 
 @app.route('/api/tracking/depot-routes', methods=['GET'])
+@login_required
 def get_tracking_depot_routes():
     depot_id_param = str(request.args.get('depot_id') or 'ALL').strip()
     is_all = (depot_id_param.upper() == 'ALL' or depot_id_param == '0' or depot_id_param == '')
@@ -5801,6 +5625,7 @@ def get_tracking_depot_routes():
 
 @app.route('/api/tracking/mobile-ping', methods=['POST'])
 @app.route('/api/telematics/webhook', methods=['POST'])
+@login_required
 def receive_tracking_ping():
     data = request.json if request.is_json else request.form.to_dict()
     if not data:
@@ -5847,6 +5672,7 @@ def receive_tracking_ping():
     })
 
 @app.route('/api/tracking/live-positions', methods=['GET'])
+@login_required
 def get_live_tracking_positions():
     depot_id = request.args.get('depot_id')
     conn = get_db()
@@ -5896,6 +5722,7 @@ def update_tracking_drop_status():
     })
 
 @app.route('/api/tracking/simulate-movement', methods=['GET', 'POST'])
+@login_required
 def simulate_vehicle_movement():
     data = request.json if request.is_json else {}
     depot_val = str(data.get('depot_id') or request.args.get('depot_id') or 'ALL').strip().upper()

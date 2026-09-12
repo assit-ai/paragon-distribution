@@ -2744,6 +2744,22 @@
                             </div>
                         </div>
 
+                        <!-- Live GPS Location Sharing (Delivery Man) -->
+                        <div style="background: rgba(11, 19, 41, 0.85); border: 1px solid #1e293b; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px;">
+                                <i class="fa-solid fa-van-shuttle" style="color: #38bdf8;"></i>
+                                <select id="myVehicleSelect" style="background: #0b1329; border: 1px solid #334155; color: #e2e8f0; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                                    <option value="">-- Select Your Vehicle --</option>
+                                </select>
+                            </div>
+                            <button type="button" id="btnShareLocation" onclick="toggleLiveLocationSharing()" style="background: #0891b2; color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
+                                <i class="fa-solid fa-location-crosshairs"></i> Share My Live Location
+                            </button>
+                            <div id="gpsShareStatus" style="font-size: 0.78rem; color: #94a3b8; width: 100%;">
+                                Select your vehicle above, then tap "Share My Live Location" to let the office see your position on the map.
+                            </div>
+                        </div>
+
                         <!-- KPI Mini Stats Row -->
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(51, 65, 85, 0.6);">
                             <div style="background: rgba(11, 19, 41, 0.8); padding: 10px 14px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; gap: 12px;">
@@ -3545,6 +3561,7 @@
             async function handleLogout() {
                 sessionStorage.removeItem('paragon_active_session');
                 stopAutoRefresh();
+                stopLiveLocationSharing();
                 try {
                     await fetch('/api/logout');
                 } catch (e) { }
@@ -3849,7 +3866,7 @@
                                     <div>
                                         <div style="font-weight:700; color:#f8fafc; font-size:0.88rem;">${item.depot_name}</div>
                                         <div style="font-size:0.75rem; color:#94a3b8;">
-                                            <i class="fa-solid fa-user-tie"></i> ${item.incharge_name || 'Incharge'} <span style="color:#38bdf8;">(@${item.incharge_username || item.username || 'user'})</span>
+                                            <i class="fa-solid fa-user-tie"></i> ${escapeHtml(item.incharge_name || 'Incharge')} <span style="color:#38bdf8;">(@${escapeHtml(item.incharge_username || item.username || 'user')})</span>
                                         </div>
                                     </div>
                                 </div>
@@ -3996,8 +4013,11 @@
                         }
                         return;
                     }
+                    // Server responded but with an error status (e.g. session expired) -
+                    // tell the admin instead of silently showing an all-zero fallback.
+                    showToast(`Dashboard data failed to load (HTTP ${res.status}). Showing blank data until this is resolved - try refreshing or logging in again.`, 'error');
                 } catch (err) {
-                    // Fallback
+                    showToast('Could not reach the server for dashboard data. Showing blank data - check your connection and refresh.', 'error');
                 }
 
                 masterDashboardData = EMBEDDED_MASTER_SUMMARY;
@@ -4055,7 +4075,7 @@
                                 <tr>
                                     <td><strong>${d.depot_name}</strong></td>
                                     <td><small style="color:#38bdf8;">${d.category}</small></td>
-                                    <td>${d.incharge_name || '-'}</td>
+                                    <td>${escapeHtml(d.incharge_name || '-')}</td>
                                     <td class="text-center">${d.total_vehicles || 0}</td>
                                     <td class="text-center">${d.total_invoices || 0}</td>
                                     <td class="text-right"><strong>${formatTaka(d.dispatched_gross_val)}</strong></td>
@@ -4162,7 +4182,7 @@
                                 <tr>
                                     <td><strong>${d.depot_name}</strong></td>
                                     <td><small style="color:#38bdf8;">${d.category}</small></td>
-                                    <td>${d.incharge_name || '-'}</td>
+                                    <td>${escapeHtml(d.incharge_name || '-')}</td>
                                     <td class="text-right">${formatTaka(d.dispatched_gross_val)}</td>
                                     <td class="text-right text-green"><strong>${formatTaka(d.delivered_net_val)}</strong></td>
                                     <td class="text-center"><strong>${dRate}%</strong></td>
@@ -4266,7 +4286,7 @@
                                 <tr>
                                     <td><strong>${d.depot_name}</strong></td>
                                     <td><small style="color:#38bdf8;">${d.category}</small></td>
-                                    <td>${d.incharge_name || '-'}</td>
+                                    <td>${escapeHtml(d.incharge_name || '-')}</td>
                                     <td class="text-right">${formatTaka(d.dispatched_gross_val)}</td>
                                     <td class="text-right text-red"><strong>${formatTaka(d.returned_val)}</strong></td>
                                     <td class="text-center text-red"><strong>${retRate}%</strong></td>
@@ -4358,7 +4378,7 @@
                                 <td class="text-center"><strong>#${idx + 1}</strong></td>
                                 <td><strong>${d.depot_name}</strong></td>
                                 <td><small style="color:#38bdf8;">${d.category}</small></td>
-                                <td>${d.incharge_name || '-'}</td>
+                                <td>${escapeHtml(d.incharge_name || '-')}</td>
                                 <td class="text-right">${formatTaka(d.dispatched_gross_val || 0)}</td>
                                 <td class="text-right text-green">${formatTaka(d.delivered_net_val || 0)}</td>
                                 <td class="text-center"><strong>${hasData ? (d.success_rate + '%') : '-'}</strong></td>
@@ -4411,7 +4431,7 @@
                             <tr>
                                 <td><strong>${d.depot_name}</strong></td>
                                 <td><small style="color:#38bdf8;">${d.category}</small></td>
-                                <td>${d.incharge_name || '-'}</td>
+                                <td>${escapeHtml(d.incharge_name || '-')}</td>
                                 <td class="text-center"><strong>${d.total_vehicles || 0}</strong></td>
                                 <td class="text-center">${d.total_invoices || 0}</td>
                                 <td class="text-center"><strong>${hasData && d.capacity_util_pct > 0 ? d.capacity_util_pct + '%' : '-'}</strong></td>
@@ -4584,7 +4604,7 @@
                 </button>
             </td>
             <td>${d.category}</td>
-            <td>${d.incharge_name}</td>
+            <td>${escapeHtml(d.incharge_name)}</td>
             <td class="text-center">${d.total_vehicles}</td>
             <td class="text-center">${d.total_invoices}</td>
             <td class="text-center"><strong>${d.capacity_util_pct > 0 ? d.capacity_util_pct + '%' : '-'}</strong></td>
@@ -4747,7 +4767,7 @@
                         rowsHtml += `
                             <tr>
                                 <td><strong>${dp.depot_name}</strong></td>
-                                <td>${dp.incharge_name || '-'}</td>
+                                <td>${escapeHtml(dp.incharge_name || '-')}</td>
                                 <td class="text-center">${dp.total_vehicles || 0}</td>
                                 <td class="text-center">${dp.total_invoices || 0}</td>
                                 <td class="text-right"><strong>${formatTaka(dp.dispatched_gross_val || 0)}</strong></td>
@@ -4905,9 +4925,9 @@
                                         <td><strong>${f.trip_no || `TRIP-0${idx + 1}`}</strong></td>
                                         <td><strong>${f.vehicle_no || '-'}</strong></td>
                                         <td>${f.vehicle_type || '1.5T Van'}</td>
-                                        <td>${f.driver_name || '-'}</td>
-                                        <td>${f.delivery_man || '-'}</td>
-                                        <td>${f.route_name || 'Standard Distribution Route'}</td>
+                                        <td>${escapeHtml(f.driver_name || '-')}</td>
+                                        <td>${escapeHtml(f.delivery_man || '-')}</td>
+                                        <td>${escapeHtml(f.route_name || 'Standard Distribution Route')}</td>
                                         <td class="text-right">${cap.toLocaleString()} Kg</td>
                                         <td class="text-right">${load.toLocaleString()} Kg</td>
                                         <td class="text-center"><strong>${u}%</strong></td>
@@ -4932,7 +4952,7 @@
                                 invRowsHtml += `
                                     <tr>
                                         <td><strong>${inv.invoice_no || `INV-${i + 1}`}</strong></td>
-                                        <td><strong style="color:#fff;">${inv.customer_name || 'Customer Outlet'}</strong></td>
+                                        <td><strong style="color:#fff;">${escapeHtml(inv.customer_name || 'Customer Outlet')}</strong></td>
                                         <td>${inv.trip_no || 'TRIP-01'}</td>
                                         <td><small style="color:#38bdf8;">${inv.product_category || category}</small></td>
                                         <td class="text-center"><code>${inv.sku_uom || defaultUom}</code></td>
@@ -6548,7 +6568,7 @@
             <td class="text-center"><code>#${d.id}</code></td>
             <td><strong>${d.name}</strong></td>
             <td>${d.category}</td>
-            <td><strong style="color:var(--accent-cyan); font-size:0.95rem;">${d.incharge_name || 'Vacant / Not Set'}</strong></td>
+            <td><strong style="color:var(--accent-cyan); font-size:0.95rem;">${escapeHtml(d.incharge_name || 'Vacant / Not Set')}</strong></td>
             <td>${d.contact || '017XXXXXXXX'}</td>
             <td>${d.region || 'Central'}</td>
             <td class="text-center"><code>${d.default_uom || 'Pkt'}</code></td>
@@ -6556,7 +6576,7 @@
                 <button type="button" class="btn btn-primary btn-sm" style="background:#2563eb; color:#ffffff; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;" onclick="openEditDepotModal(${d.id})">
                     <i class="fa-solid fa-user-pen"></i> Edit
                 </button>
-                <button type="button" class="btn btn-sm" style="background:#0891b2; color:#ffffff; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; margin-left:4px;" onclick="openPasswordResetModal(${d.id}, '${d.name}', '${d.incharge_name || ''}', '${d.slug}')" title="Change or reset incharge login password">
+                <button type="button" class="btn btn-sm" style="background:#0891b2; color:#ffffff; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; margin-left:4px;" onclick="openPasswordResetModal(${d.id}, '${escapeJsAttr(d.name)}', '${escapeJsAttr(d.incharge_name || '')}', '${escapeJsAttr(d.slug)}')" title="Change or reset incharge login password">
                     <i class="fa-solid fa-key"></i> Password
                 </button>
                 <button type="button" class="btn btn-sm" style="background:#ef4444; color:#ffffff; font-weight:700; padding:6px 8px; border-radius:6px; cursor:pointer; margin-left:4px;" onclick="deleteDepotReport(${d.id}, '${d.name}')" title="Delete this depot daily report">
@@ -7252,10 +7272,10 @@
                 <tr>
                     <td style="font-weight: 700; color: #38bdf8;">#${r.id}</td>
                     <td><strong>${r.depot_name}</strong></td>
-                    <td>${r.incharge_name}</td>
+                    <td>${escapeHtml(r.incharge_name)}</td>
                     <td>${r.report_date}</td>
                     <td style="font-weight: 700; color: #f87171;">৳ ${Number(r.dispatched_gross_val).toLocaleString()}</td>
-                    <td style="font-size: 0.82rem; color: #fbbf24;"><em>"${r.cancellation_reason || 'Correction required'}"</em></td>
+                    <td style="font-size: 0.82rem; color: #fbbf24;"><em>"${escapeHtml(r.cancellation_reason || 'Correction required')}"</em></td>
                     <td>
                         <div style="display: flex; gap: 6px;">
                             <button class="btn btn-outline" onclick="approveCancellation(${r.id})" style="padding: 4px 8px; font-size: 0.75rem; border-color: #ef4444; color: #ef4444;" title="Void report so it doesn't affect company totals">
@@ -7430,7 +7450,7 @@
                             tbody.innerHTML = discrepancies.map(d => `
                     <tr style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444;">
                         <td><strong style="color: #fff; font-size: 0.95rem;">${d.name}</strong><br><small style="color: #38bdf8;">${d.category}</small></td>
-                        <td>${d.incharge_name}</td>
+                        <td>${escapeHtml(d.incharge_name)}</td>
                         <td style="font-weight: 700;">৳ ${Number(d.dispatched_gross_val).toLocaleString()}</td>
                         <td style="color: #4ade80;">৳ ${Number(d.delivered_net_val).toLocaleString()}</td>
                         <td style="color: #f87171;">৳ ${Number(d.returned_val || 0).toLocaleString()}</td>
@@ -8412,7 +8432,7 @@
                 bucket.style.display = 'block';
 
                 const uom = getDepotUOMInfo(currentPlanData.depot_id, currentPlanData.depot_category);
-                const vanOptions = currentPlanData.vans.map((v, i) => `<option value="${v.id}">Van ${i + 1}: ${v.vehicle_no} (${v.driver_name})</option>`).join('');
+                const vanOptions = currentPlanData.vans.map((v, i) => `<option value="${v.id}">Van ${i + 1}: ${escapeHtml(v.vehicle_no)} (${escapeHtml(v.driver_name)})</option>`).join('');
 
                 container.innerHTML = `
         <table class="data-table" style="font-size: 0.82rem; width: 100%;">
@@ -8433,7 +8453,7 @@
                 ${unassigned.map((o, idx) => `
                     <tr>
                         <td>${idx + 1}</td>
-                        <td><strong>${o.consignee_name}</strong><br><span style="font-size: 0.75rem; color: #94a3b8;">${o.consignee_address || ''}</span></td>
+                        <td><strong>${escapeHtml(o.consignee_name)}</strong><br><span style="font-size: 0.75rem; color: #94a3b8;">${escapeHtml(o.consignee_address || '')}</span></td>
                         <td><code>${o.order_no}</code></td>
                         <td><code>${o.delivery_note_id || '-'}</code></td>
                         <td><span style="font-size: 0.75rem; color: #38bdf8;">${o.branch_category || 'Food'}</span></td>
@@ -9297,7 +9317,7 @@
                 list.innerHTML = routes.map((r, i) => `
                     <div style="background: #0b1329; border: 1px solid #334155; border-radius: 6px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
                         <div>
-                            <strong style="color: #38bdf8; font-size: 0.85rem;">${r.route_name}</strong>
+                            <strong style="color: #38bdf8; font-size: 0.85rem;">${escapeHtml(r.route_name)}</strong>
                             <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">
                                 <code>${r.route_code || 'RT-' + (i+1)}</code> &bull; Default Van: <span style="color: #fbbf24;">${r.default_vehicle_no || 'Unassigned'}</span> &bull; <strong style="color: #4ade80;">${r.consignee_count || 0} Outlets Mapped</strong>
                             </div>
@@ -9312,7 +9332,7 @@
             function populateRouteDropdowns(routes) {
                 const select = document.getElementById('newConsigneeRouteSelect');
                 if (select) {
-                    select.innerHTML = routes.map(r => `<option value="${r.id}">${r.route_name}</option>`).join('');
+                    select.innerHTML = routes.map(r => `<option value="${r.id}">${escapeHtml(r.route_name)}</option>`).join('');
                 }
             }
 
@@ -9393,8 +9413,8 @@
                 tbody.innerHTML = consignees.map((c, idx) => `
                     <tr>
                         <td>${idx + 1}</td>
-                        <td><strong style="color: #fff;">${c.consignee_name}</strong></td>
-                        <td><span style="color: #38bdf8; font-weight: 600;">${c.route_name || 'General Route'}</span></td>
+                        <td><strong style="color: #fff;">${escapeHtml(c.consignee_name)}</strong></td>
+                        <td><span style="color: #38bdf8; font-weight: 600;">${escapeHtml(c.route_name || 'General Route')}</span></td>
                         <td><span style="color: #94a3b8; font-size: 0.8rem;">${c.address || '-'} (${c.phone || '-'})</span></td>
                         <td><span style="background: ${c.payment_mode === 'Credit' ? '#1e3a8a' : '#166534'}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${c.payment_mode}</span></td>
                         <td style="text-align: center;">
@@ -11404,9 +11424,9 @@
                 </tr>
                 <tr>
                     <td style="padding: 5px 8px; font-weight: 700; background: #f1f5f9; border: 1px solid #000;">Driver:</td>
-                    <td style="padding: 5px 8px; border: 1px solid #000;">${van.driver_name || 'Assigned Driver'} (${van.driver_mobile || '-'})</td>
+                    <td style="padding: 5px 8px; border: 1px solid #000;">${escapeHtml(van.driver_name || 'Assigned Driver')} (${van.driver_mobile || '-'})</td>
                     <td style="padding: 5px 8px; font-weight: 700; background: #f1f5f9; border: 1px solid #000;">Delivery Man:</td>
-                    <td style="padding: 5px 8px; border: 1px solid #000;">${van.delivery_man || 'Assigned Delivery Man'} (${van.delivery_man_mobile || '-'})</td>
+                    <td style="padding: 5px 8px; border: 1px solid #000;">${escapeHtml(van.delivery_man || 'Assigned Delivery Man')} (${escapeHtml(van.delivery_man_mobile || '-')})</td>
                 </tr>
                 <tr>
                     <td style="padding: 5px 8px; font-weight: 700; background: #f1f5f9; border: 1px solid #000;">Route / Territory:</td>
@@ -11437,8 +11457,8 @@
                         <tr>
                             <td style="border: 1px solid #000; padding: 4px 2px; text-align: center;">${idx + 1}</td>
                             <td style="border: 1px solid #000; padding: 4px 6px; font-weight: 700;">
-                                ${ot.consignee_name}
-                                ${ot.contact_person ? `<br><span style="font-size: 0.72rem; font-weight: normal; color: #475569;">${ot.contact_person}</span>` : ''}
+                                ${escapeHtml(ot.consignee_name)}
+                                ${ot.contact_person ? `<br><span style="font-size: 0.72rem; font-weight: normal; color: #475569;">${escapeHtml(ot.contact_person)}</span>` : ''}
                             </td>
                             <td style="border: 1px solid #000; padding: 4px; text-align: center; font-family: monospace; font-size: 0.76rem;">${ot.order_no}</td>
                             <td style="border: 1px solid #000; padding: 4px; text-align: center; font-family: monospace; font-size: 0.76rem;">${ot.delivery_note_id || '-'}</td>
@@ -12257,10 +12277,14 @@
                             attributionControl: false
                         });
 
-                        // Standard OpenStreetMap Tile Layer (100% reliable & high speed)
-                        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        // Dark-styled tile layer (CartoDB Dark Matter) so the map matches the
+                        // dashboard's dark theme instead of clashing with a bright white basemap.
+                        // (This portal only has one — dark — theme; there is no light/dark toggle
+                        // to detect, so we simply match the map to the UI it's always shown in.)
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                             maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap contributors'
+                            subdomains: 'abcd',
+                            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
                         }).addTo(trackingMap);
 
                         // Create LayerGroups for clean rendering
@@ -12392,6 +12416,9 @@
                     renderTrackingMapData(data, shouldFitBounds);
                     renderTrackingFeedSidebar(data);
                     updateTrackingKPIs(data);
+                    if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'delivery_man') {
+                        populateMyVehicleSelect();
+                    }
 
                     const syncTimeEl = document.getElementById('trackingLastSyncTime');
                     if (syncTimeEl) {
@@ -12466,7 +12493,7 @@
                         const opt = document.createElement('option');
                         opt.value = r.route_code;
                         const depotPrefix = (data.is_all_depots && r.depot_name) ? `[${r.depot_name.split(' ')[0]}] ` : '';
-                        opt.textContent = `${depotPrefix}${r.vehicle_no} - ${r.route_name}`;
+                        opt.textContent = `${depotPrefix}${r.vehicle_no} - ${escapeHtml(r.route_name)}`;
                         routeFilter.appendChild(opt);
                     });
                     if (currentFilterVal && routeFilter.querySelector(`option[value="${currentFilterVal}"]`)) {
@@ -12594,7 +12621,7 @@
                                 <div style="min-width: 230px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                         <span style="font-weight:800; font-size:0.75rem; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px;">
-                                            Stop #${drop.sequence_order || (dIdx + 1)} ${r.depot_name ? ('• ' + r.depot_name.split(' ')[0]) : ''}
+                                            Stop #${drop.sequence_order || (dIdx + 1)} ${r.depot_name ? ('• ' + escapeHtml(r.depot_name.split(' ')[0])) : ''}
                                         </span>
                                         <span style="font-size:0.75rem; font-weight:700; color:${stBadgeColor};">
                                             <i class="fa-solid ${stIcon}"></i> ${stText}
@@ -12649,11 +12676,11 @@
                                     <i class="fa-solid fa-truck"></i> ${r.vehicle_no} <span style="font-size:0.75rem; color:#94a3b8;">(${r.ownership || 'Owned'})</span>
                                 </div>
                                 <div style="font-size: 0.82rem; color: #cbd5e1; font-weight: 600;">
-                                    ${r.depot_name ? ('<span style="color:#38bdf8;">[' + r.depot_name + ']</span> ') : ''}${r.route_name || r.route_code}
+                                    ${r.depot_name ? ('<span style="color:#38bdf8;">[' + escapeHtml(r.depot_name) + ']</span> ') : ''}${escapeHtml(r.route_name || r.route_code)}
                                 </div>
                                 <hr style="border: 0; border-top: 1px solid #334155; margin: 6px 0;">
                                 <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.6;">
-                                    <div><strong>Driver:</strong> ${r.driver_name} (<a href="tel:${r.driver_mobile}" style="color:#38bdf8;">${r.driver_mobile}</a>)</div>
+                                    <div><strong>Driver:</strong> ${escapeHtml(r.driver_name)} (<a href="tel:${escapeHtml(r.driver_mobile)}" style="color:#38bdf8;">${escapeHtml(r.driver_mobile)}</a>)</div>
                                     <div><strong>Speed:</strong> <span style="color:#22c55e; font-weight:700;">${vPos.speed || 0} km/h</span></div>
                                     <div><strong>Progress:</strong> ${r.completed_drops || 0} / ${r.total_drops || 0} Drops Delivered</div>
                                     <div><strong>Fleet:</strong> <span style="color:${isOwned ? '#38bdf8' : '#f59e0b'}; font-weight:700;">${r.ownership || 'Owned'}</span></div>
@@ -12745,7 +12772,7 @@
                                         <i class="fa-solid fa-truck-moving"></i> ${r.vehicle_no} ${depotBadge} ${ownershipBadge}
                                     </div>
                                     <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 1px;">
-                                        ${r.route_name || r.route_code}
+                                        ${escapeHtml(r.route_name || r.route_code)}
                                     </div>
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
@@ -12757,7 +12784,7 @@
                             </div>
 
                             <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">
-                                <i class="fa-solid fa-user text-cyan"></i> ${r.driver_name} | <a href="tel:${r.driver_mobile}" style="color: #38bdf8;"><i class="fa-solid fa-phone"></i> ${r.driver_mobile}</a>
+                                <i class="fa-solid fa-user text-cyan"></i> ${escapeHtml(r.driver_name)} | <a href="tel:${escapeHtml(r.driver_mobile)}" style="color: #38bdf8;"><i class="fa-solid fa-phone"></i> ${escapeHtml(r.driver_mobile)}</a>
                             </div>
 
                             <!-- Progress Bar -->
@@ -12887,6 +12914,119 @@
             function recenterTrackingMap() {
                 if (trackingData) {
                     renderTrackingMapData(trackingData, true);
+                }
+            }
+
+            // ------------------------------------------------------------------
+            // REAL GPS LOCATION SHARING (Delivery Man's own phone browser)
+            // Uses the browser's Geolocation API to read the phone's real GPS
+            // and pushes it to /api/tracking/mobile-ping every ~12 seconds while
+            // sharing is switched on. This is what makes Live Fleet Tracking show
+            // an actual live position instead of only the "Simulate Movement" demo.
+            // ------------------------------------------------------------------
+            let gpsWatchId = null;
+            let lastGpsSendTime = 0;
+            const GPS_SEND_INTERVAL_MS = 12000;
+
+            function populateMyVehicleSelect() {
+                const sel = document.getElementById('myVehicleSelect');
+                if (!sel || !trackingData || !Array.isArray(trackingData.routes)) return;
+                const prevVal = sel.value;
+                sel.innerHTML = '<option value="">-- Select Your Vehicle --</option>' +
+                    trackingData.routes.map(r =>
+                        `<option value="${escapeHtml(r.vehicle_no)}" data-route-code="${escapeHtml(r.route_code || '')}" data-mobile="${escapeHtml(r.driver_mobile || '')}">${escapeHtml(r.vehicle_no)} — ${escapeHtml(r.driver_name || r.route_name || '')}</option>`
+                    ).join('');
+
+                if (prevVal) {
+                    sel.value = prevVal;
+                } else if (typeof currentUser !== 'undefined' && currentUser && currentUser.display_name) {
+                    const myName = currentUser.display_name.trim().toLowerCase();
+                    const match = trackingData.routes.find(r => (r.driver_name || '').trim().toLowerCase() === myName);
+                    if (match) sel.value = match.vehicle_no;
+                }
+            }
+
+            function stopLiveLocationSharing() {
+                if (gpsWatchId !== null && navigator.geolocation) {
+                    navigator.geolocation.clearWatch(gpsWatchId);
+                }
+                gpsWatchId = null;
+                const btn = document.getElementById('btnShareLocation');
+                const statusEl = document.getElementById('gpsShareStatus');
+                if (btn) {
+                    btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Share My Live Location';
+                    btn.style.background = '#0891b2';
+                }
+                if (statusEl) statusEl.textContent = 'Location sharing is OFF.';
+            }
+
+            function toggleLiveLocationSharing() {
+                if (gpsWatchId !== null) {
+                    stopLiveLocationSharing();
+                    return;
+                }
+
+                if (!navigator.geolocation) {
+                    showToast('GPS is not supported on this device/browser.', 'error');
+                    return;
+                }
+
+                const vehicleSel = document.getElementById('myVehicleSelect');
+                const vehicleNo = vehicleSel ? vehicleSel.value : '';
+                if (!vehicleNo) {
+                    showToast('Please select your vehicle first.', 'error');
+                    return;
+                }
+
+                const selectedOpt = vehicleSel.selectedOptions[0];
+                const routeCode = selectedOpt ? selectedOpt.dataset.routeCode : '';
+                const fallbackMobile = selectedOpt ? selectedOpt.dataset.mobile : '';
+
+                const statusEl = document.getElementById('gpsShareStatus');
+                if (statusEl) statusEl.textContent = 'Requesting GPS permission from your phone...';
+
+                gpsWatchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const { latitude, longitude, heading, speed, accuracy } = pos.coords;
+                        if (statusEl) {
+                            statusEl.textContent = `GPS active — accuracy ±${Math.round(accuracy || 0)}m — last fix ${new Date().toLocaleTimeString()}`;
+                        }
+
+                        const now = Date.now();
+                        if (now - lastGpsSendTime < GPS_SEND_INTERVAL_MS) return;
+                        lastGpsSendTime = now;
+
+                        fetch('/api/tracking/mobile-ping', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                vehicle_no: vehicleNo,
+                                depot_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.depot_id : null,
+                                driver_name: (typeof currentUser !== 'undefined' && currentUser) ? (currentUser.display_name || '') : '',
+                                driver_mobile: fallbackMobile || ((typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : ''),
+                                route_id: routeCode,
+                                lat: latitude,
+                                lng: longitude,
+                                heading: heading || 0,
+                                speed: speed ? (speed * 3.6) : 0
+                            })
+                        }).catch(() => { /* silent - will retry on next GPS fix */ });
+                    },
+                    (err) => {
+                        let msg = 'GPS error: ' + err.message;
+                        if (err.code === 1) msg = 'Location permission denied. Please allow location access for this site in your phone browser settings.';
+                        else if (err.code === 2) msg = 'Position unavailable. Please check your phone GPS/network connection.';
+                        else if (err.code === 3) msg = 'GPS request timed out. Retrying...';
+                        showToast(msg, 'error');
+                        if (statusEl) statusEl.textContent = msg;
+                    },
+                    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+                );
+
+                const btn = document.getElementById('btnShareLocation');
+                if (btn) {
+                    btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Sharing Location';
+                    btn.style.background = '#dc2626';
                 }
             }
 
