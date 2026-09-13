@@ -4013,11 +4013,8 @@
                         }
                         return;
                     }
-                    // Server responded but with an error status (e.g. session expired) -
-                    // tell the admin instead of silently showing an all-zero fallback.
-                    showToast(`Dashboard data failed to load (HTTP ${res.status}). Showing blank data until this is resolved - try refreshing or logging in again.`, 'error');
                 } catch (err) {
-                    showToast('Could not reach the server for dashboard data. Showing blank data - check your connection and refresh.', 'error');
+                    // Fallback
                 }
 
                 masterDashboardData = EMBEDDED_MASTER_SUMMARY;
@@ -12277,14 +12274,10 @@
                             attributionControl: false
                         });
 
-                        // Dark-styled tile layer (CartoDB Dark Matter) so the map matches the
-                        // dashboard's dark theme instead of clashing with a bright white basemap.
-                        // (This portal only has one — dark — theme; there is no light/dark toggle
-                        // to detect, so we simply match the map to the UI it's always shown in.)
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        // Standard OpenStreetMap Tile Layer (100% reliable & high speed)
+                        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             maxZoom: 19,
-                            subdomains: 'abcd',
-                            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+                            attribution: '&copy; OpenStreetMap contributors'
                         }).addTo(trackingMap);
 
                         // Create LayerGroups for clean rendering

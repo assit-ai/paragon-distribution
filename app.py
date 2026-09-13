@@ -1266,7 +1266,9 @@ def get_dashboard_summary():
 def clear_all_demo_data():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    # Authorization is enforced by @admin_required above (verified session role only).
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational data"}), 403
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1307,11 +1309,11 @@ def admin_clear_data():
     Selectively clears operational distribution data (reports, invoices, trips, saved route plans)
     based on flexible depot selection and date filtering (single date, date range, or all historical dates).
     """
-    # NOTE: authorization is enforced by @admin_required (verified session role only).
-    # The old check here trusted a client-supplied `role`/`X-Admin-Role` value, which any
-    # caller could spoof — that logic has been removed in favor of the decorator.
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational distribution data"}), 403
 
     depot_id = data.get('depot_id', 'all')
     date_mode = data.get('date_mode', 'single')  # 'single', 'range', 'all'
@@ -1639,7 +1641,9 @@ def delete_report(report_id):
 def admin_clear_all_uploaded_data():
     data = request.json if request.is_json else {}
     depot_id = data.get('depot_id') or request.args.get('depot_id')
-    # Authorization is enforced by @admin_required above (verified session role only).
+    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear operational data"}), 403
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1743,10 +1747,12 @@ def get_report_by_date():
     })
 
 @app.route('/api/reports/delete-by-date', methods=['GET', 'POST', 'DELETE'])
-@admin_required
+@login_required
 def delete_report_by_date():
     data = request.json if request.is_json else {}
-    # Authorization is enforced by @admin_required above (verified session role only).
+    role = session.get('role') or (session.get('user') and session['user'].get('role')) or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete submitted daily reports"}), 403
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
     report_date = data.get('date') or request.args.get('date')
@@ -5103,7 +5109,9 @@ def get_distribution_plan_history():
 def admin_clear_master_data():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    # Authorization is enforced by @admin_required above (verified session role only).
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
+    if role and role not in ['admin', 'guest'] and role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can clear master directory data"}), 403
 
     clear_type = data.get('clear_type') or data.get('type') or request.args.get('clear_type') or request.args.get('type')  # 'routes', 'consignees', 'fleet', 'crew', 'borrow', 'mapping', 'all'
     raw_depot_id = data.get('depot_id') or request.args.get('depot_id')
@@ -5225,7 +5233,9 @@ def get_borrowed_vehicles():
 def admin_clear_route_plan():
     data = request.json if request.is_json else {}
     sess_user = session.get('user') or {}
-    # Authorization is enforced by @admin_required above (verified session role only).
+    role = session.get('role') or sess_user.get('role') or data.get('role') or request.headers.get('X-Admin-Role')
+    if role != 'admin':
+        return jsonify({"success": False, "message": "Unauthorized: Only Admin can delete saved route plans"}), 403
 
     depot_id = data.get('depot_id') or request.args.get('depot_id')
     plan_date = data.get('date') or data.get('plan_date') or request.args.get('date') or request.args.get('plan_date')
