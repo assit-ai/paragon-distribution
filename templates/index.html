@@ -2489,8 +2489,14 @@
                                     title="Download Live Master Distribution Excel Report">
                                     <i class="fa-solid fa-file-excel"></i> Master Distribution Excel Report
                                 </a>
-                                <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddDepot" style="padding: 7px 14px; font-weight: 700;">
+                                <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddDepot" onclick="openAddDepotModal()"
+                                    style="padding: 7px 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
                                     <i class="fa-solid fa-plus"></i> Add New Depot
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline" id="btnOpenBulkDepots" onclick="openBulkDepotModal()"
+                                    style="border-color: #0d9488; color: #2dd4bf; background: rgba(13, 148, 136, 0.15); padding: 7px 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                                    title="Upload multiple depots via Excel spreadsheet (.xlsx)">
+                                    <i class="fa-solid fa-file-excel"></i> 📥 Bulk Upload Depots
                                 </button>
                                 <button type="button" class="btn btn-sm" id="btnClearAllUploadedData"
                                     onclick="openAdminClearModal('demo_data')"
@@ -2660,18 +2666,18 @@
                                 <div class="modal-title" id="depotModalTitle">
                                     <i class="fa-solid fa-user-pen text-cyan"></i> Edit Depot & Incharge
                                 </div>
-                                <button type="button" class="btn-close" id="closeDepotModalBtn"><i
+                                <button type="button" class="btn-close" id="closeDepotModalBtn" onclick="closeDepotModal()"><i
                                         class="fa-solid fa-xmark"></i></button>
                             </div>
                             <form id="depotEditForm" style="padding: 24px;">
                                 <input type="hidden" id="editDepotId">
                                 <div class="form-group" style="margin-bottom: 14px;">
                                     <label for="editDepotName">Depot / Factory Name <span class="req">*</span></label>
-                                    <input type="text" id="editDepotName" required>
+                                    <input type="text" id="editDepotName" required placeholder="e.g. Bogra Depot - Frozen">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 14px;">
                                     <label for="editCategory">Category / Channel <span class="req">*</span></label>
-                                    <input type="text" id="editCategory" required>
+                                    <input type="text" id="editCategory" required placeholder="e.g. Frozen Food, Dairy, Tea, Fresh Eggs">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 14px;">
                                     <label for="editInchargeName">Incharge Name & Designation <span
@@ -2679,11 +2685,26 @@
                                     <input type="text" id="editInchargeName"
                                         placeholder="e.g. Sajedul Islam (Asst. Manager)" required>
                                 </div>
-                                <div class="form-row" style="margin-bottom: 20px;">
+                                <div class="form-row" style="margin-bottom: 14px;">
                                     <div class="form-group col-6">
                                         <label for="editContact">Contact Phone Number</label>
                                         <input type="text" id="editContact" placeholder="017XXXXXXXX">
                                     </div>
+                                    <div class="form-group col-6">
+                                        <label for="editRegion">Region / Territory <span class="req">*</span></label>
+                                        <select id="editRegion">
+                                            <option value="Central">Central</option>
+                                            <option value="Central Dhaka">Central Dhaka</option>
+                                            <option value="Dhaka North">Dhaka North</option>
+                                            <option value="Gazipur">Gazipur</option>
+                                            <option value="Chittagong">Chittagong</option>
+                                            <option value="Sylhet">Sylhet</option>
+                                            <option value="North Bengal">North Bengal</option>
+                                            <option value="South Bengal">South Bengal</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row" style="margin-bottom: 14px;">
                                     <div class="form-group col-6">
                                         <label for="editUOM">Default SKU / UOM</label>
                                         <select id="editUOM">
@@ -2695,14 +2716,81 @@
                                             <option value="Mixed">Mixed</option>
                                         </select>
                                     </div>
+                                    <div class="form-group col-6" id="editInitialPasswordGroup" style="display: none;">
+                                        <label for="editInitialPassword">Incharge Password</label>
+                                        <input type="text" id="editInitialPassword" value="depot123" placeholder="Default: depot123">
+                                    </div>
                                 </div>
-                                <div class="form-actions" style="margin-top: 0;">
+                                <div class="form-actions" style="margin-top: 10px;">
                                     <button type="button" class="btn btn-outline"
-                                        id="cancelDepotModalBtn">Cancel</button>
+                                        id="cancelDepotModalBtn" onclick="closeDepotModal()">Cancel</button>
                                     <button type="submit" class="btn btn-primary"><i
-                                            class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                                            class="fa-solid fa-floppy-disk"></i> Save Incharge & Depot</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- Modal for Bulk Uploading Depots via Excel -->
+                    <div id="bulkDepotModal" class="modal-overlay" style="display: none !important;">
+                        <div class="modal-container" style="max-width: 600px;">
+                            <div class="modal-header" style="background: #0f172a; border-bottom: 1px solid #1e293b;">
+                                <div class="modal-title" style="display: flex; align-items: center; gap: 8px; color: #2dd4bf; font-weight: 800;">
+                                    <i class="fa-solid fa-file-excel"></i> Bulk Import Depots & Incharges (Excel)
+                                </div>
+                                <button type="button" class="btn-close" onclick="closeBulkDepotModal()">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <div style="padding: 24px;">
+                                <div style="background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+                                    <h4 style="margin: 0 0 6px; color: #2dd4bf; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-circle-info"></i> Step 1: Download Standard Template
+                                    </h4>
+                                    <p style="margin: 0 0 10px; font-size: 0.82rem; color: #94a3b8;">
+                                        Download our pre-formatted spreadsheet template, fill in your depot names, product channels, and incharges, then upload it below.
+                                    </p>
+                                    <a href="/api/template/depots-blank-template" class="btn btn-sm"
+                                        style="background: #0f766e; color: #fff; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px;">
+                                        <i class="fa-solid fa-download"></i> Download Excel Template (.xlsx)
+                                    </a>
+                                </div>
+
+                                <div style="margin-bottom: 18px;">
+                                    <h4 style="margin: 0 0 8px; color: #f8fafc; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Step 2: Select & Upload Completed File
+                                    </h4>
+                                    <div id="bulkDepotDropZone"
+                                        style="border: 2px dashed #334155; border-radius: 10px; padding: 24px 16px; text-align: center; background: #0b1329; cursor: pointer; transition: all 0.2s ease;">
+                                        <i class="fa-solid fa-file-excel" style="font-size: 32px; color: #2dd4bf; margin-bottom: 8px; display: block;"></i>
+                                        <div style="font-weight: 700; color: #e2e8f0; font-size: 0.9rem;" id="bulkDepotFileName">
+                                            Click to browse or drag & drop Excel file (.xlsx)
+                                        </div>
+                                        <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">
+                                            Supports .xlsx and .xlsm files up to 20MB
+                                        </div>
+                                        <input type="file" id="bulkDepotFileInput" accept=".xlsx,.xlsm,.xltx" style="display: none;" onchange="handleBulkDepotFileSelect(event)">
+                                    </div>
+                                </div>
+
+                                <div id="bulkDepotProgress" style="display: none; margin-bottom: 16px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #2dd4bf; margin-bottom: 4px;">
+                                        <span>Uploading & processing depots...</span>
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                    </div>
+                                    <div style="height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 100%; height: 100%; background: #0d9488; animation: pulse 1s infinite;"></div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                                    <button type="button" class="btn btn-outline" onclick="closeBulkDepotModal()">Cancel</button>
+                                    <button type="button" class="btn btn-primary" id="btnSubmitBulkDepots" onclick="submitBulkDepotUpload()"
+                                        style="background: #0d9488; border-color: #0d9488; color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload & Process Depots
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -6679,7 +6767,7 @@
                 <button type="button" class="btn btn-sm" style="background:#0891b2; color:#ffffff; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; margin-left:4px;" onclick="openPasswordResetModal(${d.id}, '${escapeJsAttr(d.name)}', '${escapeJsAttr(d.incharge_name || '')}', '${escapeJsAttr(d.slug)}')" title="Change or reset incharge login password">
                     <i class="fa-solid fa-key"></i> Password
                 </button>
-                <button type="button" class="btn btn-sm" style="background:#ef4444; color:#ffffff; font-weight:700; padding:6px 8px; border-radius:6px; cursor:pointer; margin-left:4px;" onclick="deleteDepotReport(${d.id}, '${escapeJsAttr(d.name)}')" title="Delete this depot daily report">
+                <button type="button" class="btn btn-sm" style="background:#ef4444; color:#ffffff; font-weight:700; padding:6px 8px; border-radius:6px; cursor:pointer; margin-left:4px;" onclick="confirmDeleteDepot(${d.id}, '${escapeJsAttr(d.name)}')" title="Delete this depot entry permanently">
                     <i class="fa-solid fa-trash"></i> Delete
                 </button>
             </td>
@@ -6695,7 +6783,7 @@
                 const modalTitle = document.getElementById('modalDepotTitle');
                 const modalBody = document.getElementById('modalBodyContent');
 
-                modalTitle.innerHTML = `<i class="fa-solid fa-key text-cyan"></i> <span>Manage Incharge Password: <strong>${depotName}</strong></span>`;
+                modalTitle.innerHTML = `<i class="fa-solid fa-key text-cyan"></i> <span>Manage Incharge Password: <strong>${escapeHtml(depotName)}</strong></span>`;
 
                 modalBody.innerHTML = `
         <div class="card" style="max-width: 500px; margin: 0 auto;">
@@ -6705,11 +6793,11 @@
             <div style="padding: 24px;">
                 <div style="margin-bottom: 14px;">
                     <label style="font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:4px;">Depot & Incharge:</label>
-                    <input type="text" value="${depotName} (${inchargeName})" readonly style="width:100%; padding:8px 10px; background:#0b1329; border:1px solid #334155; color:#94a3b8; border-radius:6px;">
+                    <input type="text" value="${escapeHtml(depotName)} (${escapeHtml(inchargeName)})" readonly style="width:100%; padding:8px 10px; background:#0b1329; border:1px solid #334155; color:#94a3b8; border-radius:6px;">
                 </div>
                 <div style="margin-bottom: 14px;">
                     <label style="font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:4px;">Login Username / User ID:</label>
-                    <input type="text" id="resetUsernameInput" value="${slug}" style="width:100%; padding:8px 10px; background:#0b1329; border:1px solid #334155; color:#fff; border-radius:6px;">
+                    <input type="text" id="resetUsernameInput" value="${escapeHtml(slug)}" style="width:100%; padding:8px 10px; background:#0b1329; border:1px solid #334155; color:#fff; border-radius:6px;">
                 </div>
                 <div style="margin-bottom: 20px;">
                     <label style="font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:4px;">New Password:</label>
@@ -6766,6 +6854,26 @@
                 }
             }
 
+            async function confirmDeleteDepot(depotId, depotName) {
+                if (!confirm(`Are you sure you want to permanently delete depot "${depotName}"?\n\nThis will remove the depot entry and its incharge credentials.`)) {
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/api/depots/delete/${depotId}`, { method: 'POST' });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || `Depot ${depotName} deleted successfully.`, 'success');
+                        await loadDepots();
+                        loadDashboardSummary();
+                    } else {
+                        showToast(data.message || 'Failed to delete depot', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error connecting to server to delete depot.', 'error');
+                }
+            }
+
             function deleteDepotReport(depotId, depotName) {
                 if (typeof openAdminClearModal === 'function') {
                     openAdminClearModal('depot_report', depotId, depotName);
@@ -6799,12 +6907,18 @@
                 document.getElementById('editCategory').value = d.category;
                 document.getElementById('editInchargeName').value = d.incharge_name || '';
                 document.getElementById('editContact').value = d.contact || '';
+                const regEl = document.getElementById('editRegion');
+                if (regEl) regEl.value = d.region || 'Central';
                 document.getElementById('editUOM').value = d.default_uom || 'Pkt';
+                const pwdGroup = document.getElementById('editInitialPasswordGroup');
+                if (pwdGroup) pwdGroup.style.display = 'none';
 
-                document.getElementById('depotModalTitle').innerHTML = `<i class="fa-solid fa-user-pen text-cyan"></i> Change Incharge: <strong>${d.name}</strong>`;
+                document.getElementById('depotModalTitle').innerHTML = `<i class="fa-solid fa-user-pen text-cyan"></i> Edit Depot & Incharge: <strong>${escapeHtml(d.name)}</strong>`;
                 const m = document.getElementById('depotEditModal');
-                m.classList.add('active');
-                m.style.setProperty('display', 'flex', 'important');
+                if (m) {
+                    m.classList.add('active');
+                    m.style.setProperty('display', 'flex', 'important');
+                }
             }
 
             function openAddDepotModal() {
@@ -6813,12 +6927,141 @@
                 document.getElementById('editCategory').value = '';
                 document.getElementById('editInchargeName').value = '';
                 document.getElementById('editContact').value = '';
+                const regEl = document.getElementById('editRegion');
+                if (regEl) regEl.value = 'Central';
                 document.getElementById('editUOM').value = 'Pkt';
+                const pwdGroup = document.getElementById('editInitialPasswordGroup');
+                if (pwdGroup) pwdGroup.style.display = 'block';
+                const pwdInput = document.getElementById('editInitialPassword');
+                if (pwdInput) pwdInput.value = 'depot123';
 
                 document.getElementById('depotModalTitle').innerHTML = '<i class="fa-solid fa-plus text-green"></i> Add New Distribution Depot & Incharge';
                 const m = document.getElementById('depotEditModal');
-                m.classList.add('active');
-                m.style.setProperty('display', 'flex', 'important');
+                if (m) {
+                    m.classList.add('active');
+                    m.style.setProperty('display', 'flex', 'important');
+                }
+            }
+
+            function closeDepotModal() {
+                const m = document.getElementById('depotEditModal');
+                if (m) {
+                    m.classList.remove('active');
+                    m.style.setProperty('display', 'none', 'important');
+                }
+            }
+
+            // ================= BULK DEPOT UPLOADER =================
+            let selectedBulkDepotFile = null;
+
+            function openBulkDepotModal() {
+                selectedBulkDepotFile = null;
+                const fileInp = document.getElementById('bulkDepotFileInput');
+                if (fileInp) fileInp.value = '';
+                const fileNameEl = document.getElementById('bulkDepotFileName');
+                if (fileNameEl) fileNameEl.textContent = 'Click to browse or drag & drop Excel file (.xlsx)';
+                const prog = document.getElementById('bulkDepotProgress');
+                if (prog) prog.style.display = 'none';
+
+                const m = document.getElementById('bulkDepotModal');
+                if (m) {
+                    m.classList.add('active');
+                    m.style.setProperty('display', 'flex', 'important');
+                }
+
+                setupBulkDepotDropZone();
+            }
+
+            function closeBulkDepotModal() {
+                const m = document.getElementById('bulkDepotModal');
+                if (m) {
+                    m.classList.remove('active');
+                    m.style.setProperty('display', 'none', 'important');
+                }
+                selectedBulkDepotFile = null;
+            }
+
+            function setupBulkDepotDropZone() {
+                const dropZone = document.getElementById('bulkDepotDropZone');
+                const fileInput = document.getElementById('bulkDepotFileInput');
+                if (!dropZone || !fileInput) return;
+
+                dropZone.onclick = () => fileInput.click();
+
+                dropZone.ondragover = (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#2dd4bf';
+                    dropZone.style.background = 'rgba(13, 148, 136, 0.15)';
+                };
+
+                dropZone.ondragleave = (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#334155';
+                    dropZone.style.background = '#0b1329';
+                };
+
+                dropZone.ondrop = (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#334155';
+                    dropZone.style.background = '#0b1329';
+                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleBulkDepotFile(e.dataTransfer.files[0]);
+                    }
+                };
+            }
+
+            function handleBulkDepotFileSelect(e) {
+                if (e.target.files && e.target.files.length > 0) {
+                    handleBulkDepotFile(e.target.files[0]);
+                }
+            }
+
+            function handleBulkDepotFile(file) {
+                if (!file.name.match(/\.(xlsx|xlsm|xltx)$/i)) {
+                    showToast('Please select an Excel file (.xlsx)', 'error');
+                    return;
+                }
+                selectedBulkDepotFile = file;
+                const fileNameEl = document.getElementById('bulkDepotFileName');
+                if (fileNameEl) {
+                    fileNameEl.innerHTML = `<span style="color:#2dd4bf;"><i class="fa-solid fa-file-excel"></i> ${escapeHtml(file.name)}</span> <small style="color:#94a3b8;">(${Math.round(file.size / 1024)} KB)</small>`;
+                }
+            }
+
+            async function submitBulkDepotUpload() {
+                if (!selectedBulkDepotFile) {
+                    showToast('Please select an Excel (.xlsx) file first!', 'error');
+                    return;
+                }
+
+                const prog = document.getElementById('bulkDepotProgress');
+                const btn = document.getElementById('btnSubmitBulkDepots');
+                if (prog) prog.style.display = 'block';
+                if (btn) btn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('file', selectedBulkDepotFile);
+
+                try {
+                    const res = await fetch('/api/depots/bulk-upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || 'Bulk depots uploaded successfully!', 'success');
+                        closeBulkDepotModal();
+                        await loadDepots();
+                        loadDashboardSummary();
+                    } else {
+                        showToast(data.message || 'Bulk upload failed.', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error connecting to server for bulk upload.', 'error');
+                } finally {
+                    if (prog) prog.style.display = 'none';
+                    if (btn) btn.disabled = false;
+                }
             }
 
             function setupDepotSettingsEvents() {
@@ -6830,15 +7073,14 @@
                 const resetBtn = document.getElementById('btnMasterReset');
 
                 if (addBtn) addBtn.onclick = openAddDepotModal;
-                if (closeBtn) closeBtn.onclick = () => { modal.classList.remove('active'); modal.style.setProperty('display', 'none', 'important'); };
-                if (cancelBtn) cancelBtn.onclick = () => { modal.classList.remove('active'); modal.style.setProperty('display', 'none', 'important'); };
+                if (closeBtn) closeBtn.onclick = closeDepotModal;
+                if (cancelBtn) cancelBtn.onclick = closeDepotModal;
                 if (resetBtn) resetBtn.onclick = triggerMasterReset;
 
                 if (modal) {
                     modal.onclick = (e) => {
                         if (e.target === modal) {
-                            modal.classList.remove('active');
-                            modal.style.setProperty('display', 'none', 'important');
+                            closeDepotModal();
                         }
                     };
                 }
@@ -6847,13 +7089,17 @@
                     form.onsubmit = async (e) => {
                         e.preventDefault();
                         const idVal = document.getElementById('editDepotId').value;
+                        const regEl = document.getElementById('editRegion');
+                        const pwdEl = document.getElementById('editInitialPassword');
                         const payload = {
                             id: idVal ? parseInt(idVal) : null,
-                            name: document.getElementById('editDepotName').value,
-                            category: document.getElementById('editCategory').value,
-                            incharge_name: document.getElementById('editInchargeName').value,
-                            contact: document.getElementById('editContact').value,
-                            default_uom: document.getElementById('editUOM').value
+                            name: document.getElementById('editDepotName').value.trim(),
+                            category: document.getElementById('editCategory').value.trim(),
+                            incharge_name: document.getElementById('editInchargeName').value.trim(),
+                            contact: document.getElementById('editContact').value.trim(),
+                            region: regEl ? regEl.value : 'Central',
+                            default_uom: document.getElementById('editUOM').value,
+                            initial_password: pwdEl ? pwdEl.value.trim() : 'depot123'
                         };
 
                         try {
@@ -6864,23 +7110,30 @@
                             });
                             const result = await res.json();
                             if (result.success) {
-                                showToast('Incharge information changed & updated successfully!', 'success');
-                                modal.classList.remove('active');
-                                modal.style.setProperty('display', 'none', 'important');
+                                showToast(result.message || 'Incharge & Depot saved successfully!', 'success');
+                                closeDepotModal();
                                 await loadDepots();
                                 loadDashboardSummary();
                             } else {
-                                showToast('Failed to save incharge information.', 'error');
+                                showToast(result.message || 'Failed to save incharge information.', 'error');
                             }
                         } catch (err) {
                             console.error(err);
                             showToast('Incharge saved locally.', 'success');
-                            modal.classList.remove('active');
-                            modal.style.setProperty('display', 'none', 'important');
+                            closeDepotModal();
                         }
                     };
                 }
             }
+
+            window.openAddDepotModal = openAddDepotModal;
+            window.openEditDepotModal = openEditDepotModal;
+            window.closeDepotModal = closeDepotModal;
+            window.confirmDeleteDepot = confirmDeleteDepot;
+            window.openBulkDepotModal = openBulkDepotModal;
+            window.closeBulkDepotModal = closeBulkDepotModal;
+            window.handleBulkDepotFileSelect = handleBulkDepotFileSelect;
+            window.submitBulkDepotUpload = submitBulkDepotUpload;
 
 
             // ================= BULK EXCEL IMPORT & TEMPLATE ENGINE =================
