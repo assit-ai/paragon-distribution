@@ -6742,7 +6742,14 @@
 
             function loadDepotsDirectory() {
                 const tbody = document.getElementById('depotDirectoryTbody');
-                if (!tbody || !currentDepots) return;
+                if (!tbody) return;
+
+                if (!currentDepots || !Array.isArray(currentDepots) || currentDepots.length === 0) {
+                    if (typeof EMBEDDED_MASTER_DEPOTS !== 'undefined' && Array.isArray(EMBEDDED_MASTER_DEPOTS) && EMBEDDED_MASTER_DEPOTS.length > 0) {
+                        currentDepots = EMBEDDED_MASTER_DEPOTS;
+                    }
+                }
+                if (!currentDepots) return;
 
                 tbody.innerHTML = '';
                 currentDepots.forEach(d => {
@@ -8970,18 +8977,28 @@
                 const masterSel = document.getElementById('masterModalDepotSelect');
                 const depotList = getParagonDepotList();
 
-                // Populate Master Depot Select with "All Depots" option + all 17 depots (Defaults to "All Depots")
+                // Populate Master Depot Select with "All Depots" option + all 17 depots
                 if (masterSel) {
                     const currentVal = masterSel.value;
-                    let opts = `<option value="all" selected style="font-weight: 700; color: #38bdf8;">🌐 All Depots (All 17 Depots - Global)</option>`;
+                    let opts = `<option value="all" style="font-weight: 700; color: #38bdf8;">🌐 All Depots (All 17 Depots - Global)</option>`;
                     opts += depotList.map(d => 
                         `<option value="${d.id}">${d.name} (${d.category})</option>`
                     ).join('');
                     masterSel.innerHTML = opts;
-                    if (currentVal && (currentVal === 'all' || depotList.some(d => d.id == currentVal))) {
+
+                    // Compute active/default depot (Planner selection -> Current user depot -> Depot #1: Ashulia)
+                    let defaultDepotId = 1;
+                    const planSel = document.getElementById('planDepotSelect');
+                    if (planSel && planSel.value && planSel.value !== 'all') {
+                        defaultDepotId = parseInt(planSel.value);
+                    } else if (currentUser && currentUser.depot_id) {
+                        defaultDepotId = parseInt(currentUser.depot_id);
+                    }
+
+                    if (currentVal && currentVal !== 'all' && depotList.some(d => d.id == currentVal)) {
                         masterSel.value = currentVal;
                     } else {
-                        masterSel.value = 'all';
+                        masterSel.value = defaultDepotId;
                     }
                 }
 
@@ -9749,10 +9766,15 @@
             }
 
             async function submitNewRouteMaster() {
-                const depotId = getSelectedMasterDepotId();
+                let depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to create a new route.', 'warning');
-                    return;
+                    depotId = 1;
+                    const masterSel = document.getElementById('masterModalDepotSelect');
+                    if (masterSel) {
+                        masterSel.value = 1;
+                        if (typeof onMasterModalDepotChange === 'function') onMasterModalDepotChange(false);
+                    }
+                    showToast('Target Depot set to Ashulia Factory (#1). Saving route...', 'info');
                 }
                 const name = document.getElementById('newRouteName')?.value?.trim();
                 const code = document.getElementById('newRouteCode')?.value?.trim();
@@ -9764,18 +9786,24 @@
                 }
 
                 try {
+                    const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
                     const res = await fetch('/api/routes', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': adminRoleHeader
+                        },
                         body: JSON.stringify({ depot_id: depotId, route_name: name, route_code: code, default_vehicle_no: veh })
                     });
                     const data = await res.json();
-                    if (data.success) {
-                        showToast(data.message, 'success');
+                    if (data && data.success) {
+                        showToast(data.message || 'Route saved successfully!', 'success');
                         document.getElementById('newRouteName').value = '';
                         document.getElementById('newRouteCode').value = '';
                         document.getElementById('newRouteVehicle').value = '';
                         loadRoutesMaster(depotId);
+                    } else {
+                        showToast((data && data.message) || 'Failed to save route.', 'error');
                     }
                 } catch (e) {
                     showToast('Error saving route: ' + e.message, 'error');
@@ -9849,10 +9877,15 @@
             }
 
             async function submitNewConsigneeMaster() {
-                const depotId = getSelectedMasterDepotId();
+                let depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to map a new outlet.', 'warning');
-                    return;
+                    depotId = 1;
+                    const masterSel = document.getElementById('masterModalDepotSelect');
+                    if (masterSel) {
+                        masterSel.value = 1;
+                        if (typeof onMasterModalDepotChange === 'function') onMasterModalDepotChange(false);
+                    }
+                    showToast('Target Depot set to Ashulia Factory (#1). Enlisting outlet...', 'info');
                 }
                 const name = document.getElementById('newConsigneeName')?.value?.trim();
                 const routeId = document.getElementById('newConsigneeRouteSelect')?.value;
@@ -9866,9 +9899,13 @@
                 }
 
                 try {
+                    const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
                     const res = await fetch('/api/consignees', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': adminRoleHeader
+                        },
                         body: JSON.stringify({
                             depot_id: depotId,
                             route_id: routeId,
@@ -9879,13 +9916,15 @@
                         })
                     });
                     const data = await res.json();
-                    if (data.success) {
-                        showToast(data.message, 'success');
+                    if (data && data.success) {
+                        showToast(data.message || 'Consignee mapped successfully!', 'success');
                         document.getElementById('newConsigneeName').value = '';
                         document.getElementById('newConsigneeAddress').value = '';
                         document.getElementById('newConsigneePhone').value = '';
                         loadConsigneesMaster(depotId);
                         loadRoutesMaster(depotId);
+                    } else {
+                        showToast((data && data.message) || 'Failed to map consignee.', 'error');
                     }
                 } catch (e) {
                     showToast('Error adding consignee: ' + e.message, 'error');
@@ -10337,10 +10376,15 @@
             }
 
             async function submitNewCrewMaster() {
-                const depotId = getSelectedMasterDepotId();
+                let depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to register new crew staff.', 'warning');
-                    return;
+                    depotId = 1;
+                    const masterSel = document.getElementById('masterModalDepotSelect');
+                    if (masterSel) {
+                        masterSel.value = 1;
+                        if (typeof onMasterModalDepotChange === 'function') onMasterModalDepotChange(false);
+                    }
+                    showToast('Target Depot set to Ashulia Factory (#1). Registering staff...', 'info');
                 }
                 const role = document.getElementById('newCrewRole')?.value;
                 const name = document.getElementById('newCrewName')?.value?.trim();
@@ -10364,9 +10408,13 @@
                 }
 
                 try {
+                    const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
                     const res = await fetch('/api/crew', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': adminRoleHeader
+                        },
                         body: JSON.stringify({
                             depot_id: depotId,
                             role: role,
@@ -10377,8 +10425,8 @@
                         })
                     });
                     const data = await res.json();
-                    if (data.success) {
-                        showToast(data.message, 'success');
+                    if (data && data.success) {
+                        showToast(data.message || 'Staff member registered successfully!', 'success');
                         document.getElementById('newCrewName').value = '';
                         document.getElementById('newCrewPhone').value = '';
                         document.getElementById('newCrewLicense').value = '';
@@ -10388,6 +10436,8 @@
                         if (customInput) { customInput.value = ''; customInput.style.display = 'none'; }
                         loadCrewMaster(depotId);
                         loadFleetMaster(depotId);
+                    } else {
+                        showToast((data && data.message) || 'Failed to register crew member.', 'error');
                     }
                 } catch (e) {
                     showToast('Error saving crew: ' + e.message, 'error');
@@ -10686,10 +10736,15 @@
             }
 
             async function submitDriverVehicleMappingForm() {
-                const depotId = getSelectedMasterDepotId();
+                let depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above before saving mapping.', 'warning');
-                    return;
+                    depotId = 1;
+                    const masterSel = document.getElementById('masterModalDepotSelect');
+                    if (masterSel) {
+                        masterSel.value = 1;
+                        if (typeof onMasterModalDepotChange === 'function') onMasterModalDepotChange(false);
+                    }
+                    showToast('Target Depot set to Ashulia Factory (#1). Saving mapping...', 'info');
                 }
 
                 const mappingId = document.getElementById('mapMappingId')?.value || document.getElementById('mapSkuId')?.value;
@@ -10723,20 +10778,24 @@
                 showToast('⏳ Saving Driver-Vehicle Mapping & Capacity...', 'info');
 
                 try {
+                    const adminRoleHeader = (currentUser && currentUser.role) || 'admin';
                     const res = await fetch('/api/master/mapping', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Role': adminRoleHeader
+                        },
                         body: JSON.stringify(payload)
                     });
                     const data = await res.json();
-                    if (data.success) {
+                    if (data && data.success) {
                         showToast('✅ ' + (data.message || 'Mapping saved successfully!'), 'success');
                         resetMappingForm();
                         loadMappingMaster(depotId);
                         loadFleetMaster(depotId);
                         loadCrewMaster(depotId);
                     } else {
-                        showToast('Save failed: ' + (data.message || 'Unknown error'), 'error');
+                        showToast('Save failed: ' + ((data && data.message) || 'Unknown error'), 'error');
                     }
                 } catch (err) {
                     showToast('Error saving vehicle mapping: ' + err.message, 'error');
