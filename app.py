@@ -25,29 +25,17 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = session.get('user')
-        if user and user.get('authenticated'):
-            return f(*args, **kwargs)
-        req_role = request.headers.get('X-Admin-Role')
-        if not req_role and request.is_json:
-            req_role = (request.json or {}).get('role')
-        if req_role in ('admin', 'incharge', 'delivery_man'):
-            return f(*args, **kwargs)
-        return jsonify({"success": False, "message": "Authentication required. Please log in first."}), 401
+        if not user or not user.get('authenticated'):
+            return jsonify({"success": False, "message": "Authentication required. Please log in first."}), 401
+        return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = session.get('user')
-        if user and user.get('authenticated') and user.get('role') == 'admin':
-            return f(*args, **kwargs)
-        req_role = request.headers.get('X-Admin-Role')
-        if not req_role and request.is_json:
-            req_role = (request.json or {}).get('role')
-        if req_role == 'admin':
-            return f(*args, **kwargs)
         if not user or not user.get('authenticated'):
-            return jsonify({"success": False, "message": "Authentication required. Please log in as Administrator."}), 401
+            return jsonify({"success": False, "message": "Authentication required. Please log in first."}), 401
         if user.get('role') != 'admin':
             return jsonify({"success": False, "message": "Unauthorized: Administrator privileges required."}), 403
         return f(*args, **kwargs)
@@ -828,9 +816,9 @@ def api_login():
     conn.close()
     return jsonify({"success": False, "message": "Invalid username or password. Please check your credentials."}), 401
 
-@app.route('/api/logout', methods=['GET', 'POST'])
+@app.route('/api/logout')
 def api_logout():
-    session.clear()
+    session.pop('user', None)
     return jsonify({"success": True, "message": "Logged out successfully"})
 
 
@@ -904,14 +892,6 @@ def reset_user_password():
         else:
             cursor.execute('UPDATE users SET password = ? WHERE depot_id = ?', (hashed_pwd, depot_id))
             
-        if cursor.rowcount == 0:
-            d = cursor.execute('SELECT name, incharge_name, slug FROM depots WHERE id = ?', (depot_id,)).fetchone()
-            if d:
-                u_name = (new_username or d['slug']).lower().strip()
-                d_name = f"{d['name']} (Incharge: {d['incharge_name']})"
-                cursor.execute('INSERT INTO users (username, password, role, depot_id, display_name, is_active) VALUES (?, ?, "incharge", ?, ?, 1)',
-                               (u_name, hashed_pwd, depot_id, d_name))
-            
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Credentials / Password updated successfully!"})
@@ -921,237 +901,43 @@ def index():
     return render_template('index.html')
 
 @app.route('/api/depots')
+@login_required
 def get_depots():
     conn = get_db()
-    depots = [dict(row) for row in conn.execute('SELECT * FROM depots ORDER BY id').fetchall()]
+    depots = conn.execute('SELECT * FROM depots ORDER BY id ASC').fetchall()
     conn.close()
-    return jsonify(depots)
+    return jsonify([dict(row) for row in depots])
 
 @app.route('/api/depots/save', methods=['POST'])
 @admin_required
 def save_depot():
-    data = request.json or {}
+    data = request.json
     conn = get_db()
     cursor = conn.cursor()
     
     depot_id = data.get('id')
-    name = (data.get('name') or '').strip()
-    category = (data.get('category') or '').strip()
-    incharge_name = (data.get('incharge_name') or '').strip()
-    contact = (data.get('contact') or '').strip()
-    region = (data.get('region') or 'Central').strip()
-    default_uom = (data.get('default_uom') or 'Pkt').strip()
-    initial_password = (data.get('initial_password') or 'depot123').strip()
+    name = data.get('name')
+    category = data.get('category')
+    incharge_name = data.get('incharge_name')
+    contact = data.get('contact')
+    region = data.get('region', 'Central')
+    default_uom = data.get('default_uom', 'Pkt')
     
-    if not name or not category or not incharge_name:
-        conn.close()
-        return jsonify({"success": False, "message": "Depot Name, Category, and Incharge Name are required."}), 400
-
-    d_display = f"{name} (Incharge: {incharge_name})"
-
     if depot_id:
         cursor.execute('''
         UPDATE depots SET name = ?, category = ?, incharge_name = ?, contact = ?, region = ?, default_uom = ?
         WHERE id = ?
         ''', (name, category, incharge_name, contact, region, default_uom, depot_id))
-        
-        saved_id = depot_id
-        # Sync incharge display_name in users table
-        cursor.execute('UPDATE users SET display_name = ? WHERE depot_id = ? AND role = "incharge"', (d_display, depot_id))
-        if cursor.rowcount == 0:
-            slug = name.lower().replace(' ', '_').replace('-', '_')
-            cursor.execute('''
-            INSERT OR IGNORE INTO users (username, password, role, depot_id, display_name, is_active)
-            VALUES (?, ?, 'incharge', ?, ?, 1)
-            ''', (slug, generate_password_hash('depot123'), depot_id, d_display))
     else:
         slug = name.lower().replace(' ', '_').replace('-', '_')
-        existing = cursor.execute('SELECT id FROM depots WHERE name = ? OR slug = ?', (name, slug)).fetchone()
-        if existing:
-            conn.close()
-            return jsonify({"success": False, "message": f"A depot with name '{name}' already exists."}), 400
-
         cursor.execute('''
         INSERT INTO depots (name, slug, category, incharge_name, contact, region, default_uom)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (name, slug, category, incharge_name, contact, region, default_uom))
-        new_depot_id = cursor.lastrowid
         
-        # Automatically provision login account for this new incharge
-        u_pwd = generate_password_hash(initial_password if initial_password else 'depot123')
-        cursor.execute('''
-        INSERT OR IGNORE INTO users (username, password, role, depot_id, display_name, is_active)
-        VALUES (?, ?, 'incharge', ?, ?, 1)
-        ''', (slug, u_pwd, new_depot_id, d_display))
-        saved_id = new_depot_id
-
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": "Incharge / Depot saved successfully!", "id": saved_id})
-
-@app.route('/api/depots/delete/<int:depot_id>', methods=['POST', 'DELETE'])
-@admin_required
-def delete_depot_entry(depot_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    depot = cursor.execute('SELECT name FROM depots WHERE id = ?', (depot_id,)).fetchone()
-    if not depot:
-        conn.close()
-        return jsonify({"success": False, "message": "Depot not found."}), 404
-
-    depot_name = depot['name']
-    cursor.execute('DELETE FROM users WHERE depot_id = ? AND role = "incharge"', (depot_id,))
-    cursor.execute('DELETE FROM depots WHERE id = ?', (depot_id,))
-    
-    conn.commit()
-    conn.close()
-    return jsonify({"success": True, "message": f"Depot '{depot_name}' and its incharge credentials removed successfully."})
-
-@app.route('/api/template/depots-blank-template')
-@login_required
-def download_depots_blank_template():
-    output = io.BytesIO()
-    wb = xlsxwriter.Workbook(output, {'in_memory': True})
-    ws = wb.add_worksheet('Depots Template')
-    
-    hdr_fmt = wb.add_format({'bold': True, 'font_size': 11, 'font_color': '#FFFFFF', 'bg_color': '#0F766E', 'align': 'center', 'valign': 'vcenter', 'border': 1})
-    tip_fmt = wb.add_format({'font_size': 9, 'font_color': '#64748B', 'italic': True})
-    th_fmt = wb.add_format({'bold': True, 'font_size': 9.5, 'font_color': '#FFFFFF', 'bg_color': '#0F172A', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'text_wrap': True})
-    sample_fmt = wb.add_format({'font_size': 9, 'font_color': '#334155', 'bg_color': '#F8FAFC', 'border': 1, 'border_color': '#CBD5E1'})
-
-    ws.set_column(0, 0, 6)   # SL
-    ws.set_column(1, 1, 32)  # Depot Name
-    ws.set_column(2, 2, 22)  # Category
-    ws.set_column(3, 3, 30)  # Incharge Name & Desig
-    ws.set_column(4, 4, 18)  # Contact
-    ws.set_column(5, 5, 18)  # Region
-    ws.set_column(6, 6, 14)  # Default UOM
-    ws.set_column(7, 7, 22)  # Initial Password
-
-    ws.merge_range('A1:H1', 'PARAGON AGRO LIMITED - DEPOTS & INCHARGES MASTER BATCH UPLOAD TEMPLATE', hdr_fmt)
-    ws.merge_range('A2:H2', 'Instructions: Fill in Depot Name, Category, Incharge Name (Mandatory). Region, Contact, UOM and Password are optional (Default password: depot123). Save and upload.', tip_fmt)
-    ws.set_row(0, 24)
-    ws.set_row(1, 16)
-
-    headers = [
-        'SL',
-        'Depot / Factory Name *',
-        'Product Category *',
-        'Incharge Name & Designation *',
-        'Contact Phone',
-        'Region',
-        'Default UOM (Pkt/Kg/Pcs/Ltr)',
-        'Initial Password (Optional)'
-    ]
-    for col, h in enumerate(headers):
-        ws.write(3, col, h, th_fmt)
-    ws.set_row(3, 24)
-
-    sample_data = [
-        (1, 'Bogra Depot - Frozen', 'Frozen Food', 'Nazrul Islam (Officer)', '01711223344', 'North Bengal', 'Pkt', 'depot123'),
-        (2, 'Comilla Depot - Dairy', 'Dairy', 'Enamul Haque (Sr. Exec)', '01711556677', 'Chittagong', 'Ltr', 'depot123'),
-        (3, 'Barisal Depot - Chicken', 'Processed Chicken', 'Kabir Hossain (Supervisor)', '01711889900', 'South Bengal', 'Kg', 'depot123')
-    ]
-    for r_idx, row in enumerate(sample_data, 4):
-        for c_idx, val in enumerate(row):
-            ws.write(r_idx, c_idx, val, sample_fmt)
-
-    wb.close()
-    output.seek(0)
-    return send_file(
-        output,
-        download_name="Paragon_Depots_Master_Upload_Template.xlsx",
-        as_attachment=True,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-@app.route('/api/depots/bulk-upload', methods=['POST'])
-@admin_required
-def bulk_upload_depots():
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'message': 'No Excel file uploaded. Please select a .xlsx file.'}), 400
-    file = request.files['file']
-    if not file.filename.lower().endswith(('.xlsx', '.xlsm', '.xltx')):
-        return jsonify({'success': False, 'message': 'Invalid file format. Please upload an Excel (.xlsx) file.'}), 400
-
-    try:
-        wb = openpyxl.load_workbook(file, data_only=True)
-        ws = wb.active
-        conn = get_db()
-        cursor = conn.cursor()
-
-        imported_count = 0
-        updated_count = 0
-
-        for row in ws.iter_rows(values_only=True):
-            if not row or not any(row):
-                continue
-            r_str = " ".join([str(c) for c in row if c is not None]).upper()
-            if "DEPOT / FACTORY NAME" in r_str or "PARAGON AGRO" in r_str or "INSTRUCTIONS" in r_str or "PRODUCT CATEGORY" in r_str:
-                continue
-
-            name = str(row[1] if len(row) > 1 and row[1] is not None else '').strip()
-            category = str(row[2] if len(row) > 2 and row[2] is not None else 'General').strip()
-            incharge_name = str(row[3] if len(row) > 3 and row[3] is not None else 'Incharge').strip()
-            contact = str(row[4] if len(row) > 4 and row[4] is not None else '').strip()
-            region = str(row[5] if len(row) > 5 and row[5] is not None else 'Central').strip()
-            default_uom = str(row[6] if len(row) > 6 and row[6] is not None else 'Pkt').strip()
-            initial_pwd = str(row[7] if len(row) > 7 and row[7] is not None else 'depot123').strip()
-
-            if not name or name.lower() in ['sl', 'depot name', 'depot / factory name']:
-                continue
-
-            slug = name.lower().replace(' ', '_').replace('-', '_')
-            if not default_uom or default_uom in ['-', 'N/A']:
-                default_uom = 'Pkt'
-            if not region or region in ['-', 'N/A']:
-                region = 'Central'
-            if not initial_pwd or initial_pwd in ['-', 'N/A']:
-                initial_pwd = 'depot123'
-
-            cursor.execute('SELECT id FROM depots WHERE name = ? OR slug = ?', (name, slug))
-            exist = cursor.fetchone()
-            display_name = f"{name} (Incharge: {incharge_name})"
-
-            if exist:
-                depot_id = exist['id']
-                cursor.execute('''
-                UPDATE depots SET category = ?, incharge_name = ?, contact = ?, region = ?, default_uom = ?
-                WHERE id = ?
-                ''', (category, incharge_name, contact, region, default_uom, depot_id))
-                
-                cursor.execute('UPDATE users SET display_name = ? WHERE depot_id = ? AND role = "incharge"',
-                               (display_name, depot_id))
-                if cursor.rowcount == 0:
-                    cursor.execute('''
-                    INSERT OR IGNORE INTO users (username, password, role, depot_id, display_name, is_active)
-                    VALUES (?, ?, 'incharge', ?, ?, 1)
-                    ''', (slug, generate_password_hash(initial_pwd), depot_id, display_name))
-                updated_count += 1
-            else:
-                cursor.execute('''
-                INSERT INTO depots (name, slug, category, incharge_name, contact, region, default_uom)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (name, slug, category, incharge_name, contact, region, default_uom))
-                new_id = cursor.lastrowid
-                
-                cursor.execute('''
-                INSERT OR IGNORE INTO users (username, password, role, depot_id, display_name, is_active)
-                VALUES (?, ?, 'incharge', ?, ?, 1)
-                ''', (slug, generate_password_hash(initial_pwd), new_id, display_name))
-                imported_count += 1
-
-        conn.commit()
-        conn.close()
-        return jsonify({
-            'success': True,
-            'imported': imported_count,
-            'updated': updated_count,
-            'message': f"Bulk upload completed: {imported_count} new depots added, {updated_count} existing depots updated!"
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'message': f"Failed to process Excel file: {str(e)}"}), 500
+    return jsonify({"success": True, "message": "Incharge / Depot saved successfully!"})
 
 @app.route('/api/dashboard/summary')
 @login_required
