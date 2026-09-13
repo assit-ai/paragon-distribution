@@ -1526,6 +1526,11 @@
                     <a href="/api/export/excel" id="exportBtn" class="btn btn-export" title="Download Master Distribution Excel Report">
                         <i class="fa-solid fa-file-excel"></i> Excel Report
                     </a>
+                    <button type="button" class="btn btn-sm" onclick="handleLogout()"
+                        style="background:#ef4444; color:#fff; padding:6px 12px; font-size:0.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border:none; border-radius:6px; transition:all 0.2s;"
+                        title="Sign out of system">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
                 </div>
             </header>
 
@@ -1561,8 +1566,9 @@
                         <i class="fa-solid fa-key"></i> Change Password
                     </button>
 
-                    <button type="button" class="btn btn-sm" id="btnLogout"
-                        style="background:#ef4444; color:#fff; padding:6px 14px; font-size:0.85rem; font-weight:700;">
+                    <button type="button" class="btn btn-sm" id="btnLogout" onclick="handleLogout()"
+                        style="background:#ef4444; color:#fff; padding:6px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border:none; border-radius:6px; box-shadow:0 2px 8px rgba(239,68,68,0.3); transition:all 0.2s;"
+                        title="Log out and return to login screen">
                         <i class="fa-solid fa-right-from-bracket"></i> Logout
                     </button>
                 </div>
@@ -2778,6 +2784,11 @@
                                 <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 800;">
                                     <i class="fa-solid fa-circle" style="font-size: 8px; animation: pulse 1.5s infinite;"></i> ON ROUTE
                                 </span>
+                                <button type="button" onclick="handleLogout()" class="btn btn-sm"
+                                    style="background:#ef4444; color:#fff; font-size:0.8rem; font-weight:700; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"
+                                    title="Logout courier rider session">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                                </button>
                             </div>
                         </div>
 
@@ -3596,21 +3607,72 @@
             }
 
             async function handleLogout() {
-                sessionStorage.removeItem('paragon_active_session');
-                stopAutoRefresh();
-                stopLiveLocationSharing();
                 try {
-                    await fetch('/api/logout');
+                    sessionStorage.removeItem('paragon_active_session');
+                    sessionStorage.clear();
+                } catch (e) {
+                    console.warn('Error clearing sessionStorage:', e);
+                }
+
+                try {
+                    stopAutoRefresh();
+                } catch (e) {
+                    console.warn('Error stopping auto refresh:', e);
+                }
+
+                try {
+                    stopLiveLocationSharing();
+                } catch (e) {
+                    console.warn('Error stopping live location sharing:', e);
+                }
+
+                try {
+                    if (typeof stopTrackingAutoPoll === 'function') {
+                        stopTrackingAutoPoll();
+                    }
                 } catch (e) { }
 
+                try {
+                    await fetch('/api/logout', { method: 'POST' });
+                } catch (e) {
+                    try {
+                        await fetch('/api/logout', { method: 'GET' });
+                    } catch (err) { }
+                }
+
                 currentUser = { authenticated: false, role: 'guest', username: '', depot_id: null, display_name: 'Not Logged In' };
+
+                // Close any open modals
+                try {
+                    document.querySelectorAll('.modal-overlay').forEach(m => {
+                        m.classList.remove('active');
+                        m.style.setProperty('display', 'none', 'important');
+                    });
+                } catch (e) { }
+
                 const userInp = document.getElementById('loginUsernameInput');
                 const passInp = document.getElementById('loginPasswordInput');
                 if (userInp) userInp.value = '';
                 if (passInp) passInp.value = '';
-                updateUserBadge();
-                applyUserPermissions();
-                showToast('Logged out successfully.', 'success');
+
+                try {
+                    updateUserBadge();
+                } catch (e) { }
+
+                try {
+                    applyUserPermissions();
+                } catch (e) { }
+
+                window.scrollTo({ top: 0, behavior: 'instant' });
+
+                if (typeof showToast === 'function') {
+                    showToast('Logged out successfully.', 'success');
+                }
+
+                // Clean reload to ensure completely pristine state
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 400);
             }
 
             window.toggleShowPassword = toggleShowPassword;

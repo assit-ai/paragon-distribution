@@ -816,9 +816,9 @@ def api_login():
     conn.close()
     return jsonify({"success": False, "message": "Invalid username or password. Please check your credentials."}), 401
 
-@app.route('/api/logout')
+@app.route('/api/logout', methods=['GET', 'POST'])
 def api_logout():
-    session.pop('user', None)
+    session.clear()
     return jsonify({"success": True, "message": "Logged out successfully"})
 
 
