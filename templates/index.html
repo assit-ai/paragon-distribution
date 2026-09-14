@@ -9453,10 +9453,33 @@
                 }
             }
 
+            function flashDepotSelectRequired(message) {
+                showToast(message, 'warning');
+                const sel = document.getElementById('masterModalDepotSelect');
+                if (sel) {
+                    if (typeof sel.scrollIntoView === 'function') {
+                        try { sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { try { sel.scrollIntoView(); } catch (e2) {} }
+                    }
+                    sel.style.transition = 'box-shadow 0.15s ease';
+                    let flashes = 0;
+                    const flashInterval = setInterval(() => {
+                        sel.style.boxShadow = (flashes % 2 === 0) ? '0 0 0 3px #ef4444' : 'none';
+                        flashes++;
+                        if (flashes >= 6) {
+                            clearInterval(flashInterval);
+                            sel.style.boxShadow = 'none';
+                        }
+                    }, 200);
+                    if (typeof sel.focus === 'function') {
+                        try { sel.focus(); } catch (e) {}
+                    }
+                }
+            }
+
             async function submitNewRouteMaster() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to create a new route.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot above to create a new route.');
                     return;
                 }
                 const name = document.getElementById('newRouteName')?.value?.trim();
@@ -9556,7 +9579,7 @@
             async function submitNewConsigneeMaster() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to map a new outlet.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot above to map a new outlet.');
                     return;
                 }
                 const name = document.getElementById('newConsigneeName')?.value?.trim();
@@ -9870,7 +9893,7 @@
             async function submitNewFleetVehicleMaster() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to register or edit a vehicle.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot above to register or edit a vehicle.');
                     return;
                 }
                 const editId = document.getElementById('editVehId')?.value || null;
@@ -10044,7 +10067,7 @@
             async function submitNewCrewMaster() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above to register new crew staff.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot above to register new crew staff.');
                     return;
                 }
                 const role = document.getElementById('newCrewRole')?.value;
@@ -10120,7 +10143,7 @@
                 
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above before uploading Excel data.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot above before uploading Excel data.');
                     event.target.value = '';
                     return;
                 }
@@ -10393,7 +10416,7 @@
             async function submitDriverVehicleMappingForm() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    showToast('Please select a specific Target Depot above before saving mapping.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot above before saving mapping.');
                     return;
                 }
 
@@ -10642,7 +10665,7 @@
             async function requestBorrowVehicle(vehId, lendingDepotId, vehNo) {
                 const requestingDepotId = getSelectedMasterDepotId();
                 if (requestingDepotId === 'all') {
-                    showToast('Please select a specific Target Depot from the dropdown above before borrowing a vehicle.', 'warning');
+                    flashDepotSelectRequired('Please select a specific Target Depot from the dropdown above before borrowing a vehicle.');
                     return;
                 }
                 try {
