@@ -1242,6 +1242,32 @@ def get_dashboard_summary():
         'completion_rate': round((total_done_entries / len(incharge_users) * 100), 1) if incharge_users else 0
     }
 
+    # Merge "in transit" (dispatched but evening entry not yet done) dispatch values from
+    # saved_route_plans into the main dashboard's per-depot cards and totals. Without this,
+    # a depot that has been dispatched today shows as all-zero on the main Dashboard even
+    # though the Compliance Summary correctly shows "In Transit & Awaiting Evening Entry" -
+    # because the two used different data sources (daily_reports vs saved_route_plans).
+    tot_in_transit_val = 0
+    total_in_transit_depots = 0
+    depot_list_by_id = {d['depot_id']: d for d in depot_list}
+    for entry in daily_entry_summary:
+        if entry['status'] == 'Dispatched':
+            tot_in_transit_val += entry['dispatched_val']
+            total_in_transit_depots += 1
+            dep_card = depot_list_by_id.get(entry['depot_id'])
+            if dep_card is not None:
+                dep_card['dispatched_gross_val'] = entry['dispatched_val']
+                dep_card['is_in_transit'] = True
+                dep_card['total_vehicles'] = entry['total_vehicles']
+                dep_card['total_invoices'] = entry['total_invoices']
+                tot_vehicles += entry['total_vehicles']
+                tot_invoices += entry['total_invoices']
+                # success_rate/return_rate stay 0 here on purpose - delivered/returned aren't
+                # known yet for an in-transit depot, so "0%" would be misleading either way;
+                # the frontend should use is_in_transit to show "Awaiting Evening Entry" instead.
+
+    tot_dispatched += tot_in_transit_val
+
     conn.close()
     return jsonify({
         "kpis": {
@@ -1252,7 +1278,9 @@ def get_dashboard_summary():
             "total_vehicles": tot_vehicles,
             "avg_capacity_util": avg_capacity_util,
             "total_stock_variance": tot_stock_var,
-            "total_cash_variance": tot_cash_var
+            "total_cash_variance": tot_cash_var,
+            "total_in_transit_val": tot_in_transit_val,
+            "total_in_transit_depots": total_in_transit_depots
         },
         "depots": depot_list,
         "categories": categories,

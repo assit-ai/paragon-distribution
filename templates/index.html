@@ -1658,6 +1658,9 @@
                                     Summary</span>
                             </div>
                             <div class="kpi-val" id="kpiDispatched">৳ 0</div>
+                            <div id="kpiInTransitNote" style="font-size: 0.72rem; color: #eab308; font-weight: 700; margin-top: 2px; display: none;">
+                                <i class="fa-solid fa-truck-fast"></i> <span id="kpiInTransitText"></span>
+                            </div>
                             <div class="kpi-footer"><i class="fa-solid fa-layer-group"></i> <strong>Click for Category &
                                     Depot Summary &raquo;</strong></div>
                         </a>
@@ -4579,6 +4582,17 @@
                 if (succEl) succEl.textContent = `${kpis.delivery_success_rate}%`;
                 if (fleetEl) fleetEl.textContent = `${kpis.total_vehicles} Vans / ${kpis.avg_capacity_util}% Util`;
 
+                const inTransitNote = document.getElementById('kpiInTransitNote');
+                const inTransitText = document.getElementById('kpiInTransitText');
+                if (inTransitNote && inTransitText) {
+                    if (kpis.total_in_transit_depots > 0) {
+                        inTransitNote.style.display = 'block';
+                        inTransitText.textContent = `Includes ${formatTaka(kpis.total_in_transit_val)} in transit from ${kpis.total_in_transit_depots} depot(s) - evening entry still pending`;
+                    } else {
+                        inTransitNote.style.display = 'none';
+                    }
+                }
+
                 const theftCard = document.getElementById('cardTheft');
                 const kpiTheft = document.getElementById('kpiTheft');
                 const banner = document.getElementById('pilferageBanner');
@@ -4648,13 +4662,19 @@
 
                     const isOk = (d.audit_status === 'OK / Verified');
                     const badgeClass = isOk ? 'badge-verified' : 'badge-alert';
+                    const inTransitBadge = d.is_in_transit
+                        ? ' <span style="background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.4); border-radius: 4px; padding: 1px 6px; font-size: 0.7rem; font-weight: 700; white-space: nowrap;"><i class="fa-solid fa-truck-fast"></i> In Transit</span>'
+                        : '';
+                    const successRateCell = d.is_in_transit
+                        ? '<span style="color: #eab308; font-weight: 700; font-size: 0.78rem;">Awaiting Entry</span>'
+                        : `<strong>${d.success_rate || ((d.delivered_net_val / d.dispatched_gross_val) * 100).toFixed(1)}%</strong>`;
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
             <td>
                 <button type="button" class="btn-drill" onclick="openDepotDrilldown(${d.depot_id})">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> ${d.depot_name}
-                </button>
+                </button>${inTransitBadge}
             </td>
             <td>${d.category}</td>
             <td>${escapeHtml(d.incharge_name)}</td>
@@ -4664,7 +4684,7 @@
             <td class="text-right">${formatTaka(d.dispatched_gross_val)}</td>
             <td class="text-right text-green"><strong>${formatTaka(d.delivered_net_val)}</strong></td>
             <td class="text-right text-red">${formatTaka(d.returned_val)}</td>
-            <td class="text-center"><strong>${d.success_rate || ((d.delivered_net_val / d.dispatched_gross_val) * 100).toFixed(1)}%</strong></td>
+            <td class="text-center">${successRateCell}</td>
             <td class="text-center ${d.stock_mismatch_qty > 0 ? 'text-red' : ''}">${d.stock_mismatch_qty}</td>
             <td class="text-center">${d.adjustment_status}</td>
             <td class="text-center"><span class="${badgeClass}">${d.audit_status}</span></td>
