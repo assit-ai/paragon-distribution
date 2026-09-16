@@ -3119,6 +3119,67 @@ def delete_consignee(cid):
 
 # ----------------- FLEET VEHICLES & RENTAL APIS -----------------
 
+@app.route('/api/fleet/overview', methods=['GET'])
+@admin_required
+def get_fleet_overview():
+    """
+    Admin-only: fleet counts for EVERY depot in one call, so the admin panel can show
+    registered / active-dispatched / spare / rental / under-maintenance per depot
+    without hitting /api/fleet once per depot.
+    """
+    plan_date = request.args.get('date') or datetime.date.today().strftime('%Y-%m-%d')
+    conn = get_db()
+    cursor = conn.cursor()
+
+    depots = cursor.execute('SELECT id, name, category FROM depots ORDER BY id').fetchall()
+
+    # Registered fleet grouped by depot and status
+    fleet_rows = cursor.execute('''
+        SELECT depot_id,
+               COUNT(*) AS total,
+               SUM(CASE WHEN status = 'Under Maintenance' THEN 1 ELSE 0 END) AS maintenance,
+               SUM(CASE WHEN ownership IN ('Rental', 'Borrowed') THEN 1 ELSE 0 END) AS rental
+        FROM fleet_vehicles
+        GROUP BY depot_id
+    ''').fetchall()
+    fleet_by_depot = {r['depot_id']: dict(r) for r in fleet_rows}
+
+    # Vans actually dispatched today, read from the saved route plan
+    plan_rows = cursor.execute(
+        'SELECT depot_id, total_vans FROM saved_route_plans WHERE plan_date = ?', (plan_date,)
+    ).fetchall()
+    dispatched_by_depot = {pr['depot_id']: (pr['total_vans'] or 0) for pr in plan_rows}
+
+    overview = []
+    totals = {'registered': 0, 'dispatched': 0, 'spare': 0, 'rental': 0, 'maintenance': 0}
+    for d in depots:
+        f = fleet_by_depot.get(d['id'], {})
+        registered = f.get('total') or 0
+        maintenance = f.get('maintenance') or 0
+        rental = f.get('rental') or 0
+        dispatched = dispatched_by_depot.get(d['id'], 0)
+        # Spare excludes vehicles under maintenance - they exist but aren't available today.
+        spare = max(0, (registered - maintenance) - dispatched)
+
+        overview.append({
+            'depot_id': d['id'],
+            'depot_name': d['name'],
+            'category': d['category'],
+            'registered': registered,
+            'dispatched': dispatched,
+            'spare': spare,
+            'rental': rental,
+            'maintenance': maintenance
+        })
+        totals['registered'] += registered
+        totals['dispatched'] += dispatched
+        totals['spare'] += spare
+        totals['rental'] += rental
+        totals['maintenance'] += maintenance
+
+    conn.close()
+    return jsonify({"success": True, "date": plan_date, "depots": overview, "totals": totals})
+
 @app.route('/api/fleet', methods=['GET'])
 @login_required
 def get_fleet():

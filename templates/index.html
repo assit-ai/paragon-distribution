@@ -2562,6 +2562,47 @@
                         </div>
                     </div>
 
+                    <!-- CARD: FLEET STATUS OVERVIEW - ALL DEPOTS (ADMIN ONLY) -->
+                    <div class="card admin-only" style="margin-top: 24px;">
+                        <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                            <div class="card-title">
+                                <i class="fa-solid fa-truck-fast text-cyan"></i> Fleet Status Overview &bull; All Depots
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="loadAdminFleetOverview()" style="padding: 6px 12px; font-weight: 700; border-color: #38bdf8; color: #38bdf8;">
+                                <i class="fa-solid fa-rotate"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="adminFleetOverviewSummary" style="display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 20px 14px; font-size: 0.85rem;">
+                            <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered: <strong id="ovRegistered" style="color:#fff;">0</strong></span>
+                            <span style="color: #64748b;">|</span>
+                            <span style="color: #4ade80;"><i class="fa-solid fa-route"></i> Dispatched Today: <strong id="ovDispatched">0</strong></span>
+                            <span style="color: #64748b;">|</span>
+                            <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle: <strong id="ovSpare">0</strong></span>
+                            <span style="color: #64748b;">|</span>
+                            <span style="color: #fbbf24;"><i class="fa-solid fa-key"></i> Rental / Borrowed: <strong id="ovRental">0</strong></span>
+                            <span style="color: #64748b;">|</span>
+                            <span style="color: #f97316;"><i class="fa-solid fa-screwdriver-wrench"></i> Under Maintenance/Repair: <strong id="ovMaintenance">0</strong></span>
+                        </div>
+                        <div style="overflow-x: auto; padding: 0 4px 8px;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Depot</th>
+                                        <th>Category</th>
+                                        <th class="text-center">Registered Fleet</th>
+                                        <th class="text-center">Dispatched Today</th>
+                                        <th class="text-center">Spare / Idle</th>
+                                        <th class="text-center">Rental / Borrowed</th>
+                                        <th class="text-center">Under Maintenance/Repair</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminFleetOverviewTbody">
+                                    <!-- Populated by loadAdminFleetOverview() -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- CARD: ADMIN LIVE GPS FLEET & VAN TRACKING TELEMATICS CONTROL -->
                     <div class="card" style="margin-top: 24px; border: 1.5px solid rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.95); border-radius: var(--radius-lg); box-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.25);">
                         <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding: 18px 24px;">
@@ -3676,6 +3717,7 @@
                             if (target === 'settings-tab') {
                                 loadDepotsDirectory();
                                 loadAdminUsersList();
+                                loadAdminFleetOverview();
                             } else if (target === 'plan-tab') {
                                 initRoutePlanner();
                             } else if (target === 'tracking-tab') {
@@ -7415,6 +7457,53 @@
             }
 
             // User Management for Admin
+            async function loadAdminFleetOverview() {
+                const tbody = document.getElementById('adminFleetOverviewTbody');
+                if (!tbody) return;
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:14px;">Loading fleet overview...</td></tr>';
+
+                const dateEl = document.getElementById('globalDatePicker') || document.getElementById('planDatePicker');
+                const dateParam = (dateEl && dateEl.value) ? `?date=${encodeURIComponent(dateEl.value)}` : '';
+
+                try {
+                    const res = await fetch(`/api/fleet/overview${dateParam}`);
+                    const data = await res.json();
+                    if (!data.success) {
+                        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#f87171; padding:14px;">${escapeHtml(data.message || 'Failed to load fleet overview')}</td></tr>`;
+                        return;
+                    }
+
+                    const t = data.totals || {};
+                    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || 0; };
+                    setTxt('ovRegistered', t.registered);
+                    setTxt('ovDispatched', t.dispatched);
+                    setTxt('ovSpare', t.spare);
+                    setTxt('ovRental', t.rental);
+                    setTxt('ovMaintenance', t.maintenance);
+
+                    if (!data.depots || data.depots.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:14px;">No depots found.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.depots.map(d => `
+                        <tr>
+                            <td><strong>${escapeHtml(d.depot_name)}</strong></td>
+                            <td>${escapeHtml(d.category || '-')}</td>
+                            <td class="text-center"><strong>${d.registered}</strong></td>
+                            <td class="text-center" style="color:#4ade80;">${d.dispatched}</td>
+                            <td class="text-center" style="color:#facc15;">${d.spare}</td>
+                            <td class="text-center" style="color:#fbbf24;">${d.rental}</td>
+                            <td class="text-center">${d.maintenance > 0
+                                ? `<span style="background:rgba(249,115,22,0.2); color:#fb923c; border:1px solid #f97316; padding:2px 9px; border-radius:12px; font-weight:700;"><i class="fa-solid fa-screwdriver-wrench"></i> ${d.maintenance}</span>`
+                                : '0'}</td>
+                        </tr>
+                    `).join('');
+                } catch (err) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#f87171; padding:14px;">Network error loading fleet overview.</td></tr>';
+                }
+            }
+
             async function loadAdminUsersList() {
                 const tbody = document.getElementById('adminUsersTbody');
                 if (!tbody) return;
