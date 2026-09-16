@@ -9722,9 +9722,12 @@
                         <td>${v.default_driver_name || 'Unassigned'} <br><span style="color: #94a3b8; font-size: 0.75rem;">${v.default_driver_phone || ''}</span></td>
                         <td>${v.default_deliv_name || 'Unassigned'} <br><span style="color: #94a3b8; font-size: 0.75rem;">${v.default_deliv_phone || ''}</span></td>
                         <td style="text-align: center;">
-                            <span style="background: ${v.status === 'Active' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(234, 179, 8, 0.2)'}; color: ${v.status === 'Active' ? '#4ade80' : '#facc15'}; border: 1px solid ${v.status === 'Active' ? '#22c55e' : '#eab308'}; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">
-                                ${v.status}
-                            </span>
+                            <button type="button" onclick="toggleVehicleMaintenanceStatus(${v.id}, '${escapeJsAttr(v.vehicle_no)}', '${escapeJsAttr(v.status || 'Active')}')"
+                                title="Click to switch between Active and Under Maintenance/Repair"
+                                style="cursor: pointer; background: ${v.status === 'Under Maintenance' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.2)'}; color: ${v.status === 'Under Maintenance' ? '#fb923c' : '#4ade80'}; border: 1px solid ${v.status === 'Under Maintenance' ? '#f97316' : '#22c55e'}; padding: 3px 9px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">
+                                <i class="fa-solid ${v.status === 'Under Maintenance' ? 'fa-screwdriver-wrench' : 'fa-circle-check'}"></i>
+                                ${v.status === 'Under Maintenance' ? 'Under Maintenance' : (v.status || 'Active')}
+                            </button>
                         </td>
                         <td style="text-align: center; white-space: nowrap;">
                             <button type="button" onclick="editFleetVehicleMaster(${v.id})" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin-right: 4px;" title="Edit Vehicle & Capacity">
@@ -9977,6 +9980,36 @@
                     }
                 } catch (e) {
                     showToast('Error saving vehicle: ' + e.message, 'error');
+                }
+            }
+
+            async function toggleVehicleMaintenanceStatus(vehId, vehicleNo, currentStatus) {
+                const goingToMaintenance = (currentStatus !== 'Under Maintenance');
+                const newStatus = goingToMaintenance ? 'Under Maintenance' : 'Active';
+                const confirmMsg = goingToMaintenance
+                    ? `Mark vehicle "${vehicleNo}" as UNDER MAINTENANCE / REPAIR?\n\nIt will be excluded from today's available spare vans and from cross-depot borrowing until you mark it Active again.`
+                    : `Mark vehicle "${vehicleNo}" back as ACTIVE (available for dispatch)?`;
+
+                if (!confirm(confirmMsg)) return;
+
+                const depotId = getSelectedMasterDepotId();
+                try {
+                    const res = await fetch(`/api/fleet/vehicle/${vehId}/status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(goingToMaintenance
+                            ? `🔧 ${vehicleNo} marked Under Maintenance / Repair.`
+                            : `✅ ${vehicleNo} is Active again and available for dispatch.`, 'success');
+                        loadFleetMaster(depotId);
+                    } else {
+                        showToast(data.message || 'Failed to update vehicle status', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error updating vehicle status: ' + e.message, 'error');
                 }
             }
 
@@ -12375,6 +12408,7 @@
             window.loadBorrowableFleet = loadBorrowableFleet;
             window.requestBorrowVehicle = requestBorrowVehicle;
             window.openAddFleetVehicleForm = openAddFleetVehicleForm;
+            window.toggleVehicleMaintenanceStatus = toggleVehicleMaintenanceStatus;
             window.closeAddFleetVehicleForm = closeAddFleetVehicleForm;
             window.submitNewFleetVehicleMaster = submitNewFleetVehicleMaster;
             window.editFleetVehicleMaster = editFleetVehicleMaster;

@@ -3205,6 +3205,42 @@ def save_fleet_vehicle():
     conn.close()
     return jsonify({"success": True, "message": f"Vehicle {vehicle_no} (Capacity: {capacity_kg} {capacity_units}) saved successfully!"})
 
+@app.route('/api/fleet/vehicle/<int:vid>/status', methods=['POST', 'PATCH'])
+@app.route('/api/fleet/vehicle/status', methods=['POST', 'PATCH'])
+@login_required
+def update_fleet_vehicle_status(vid=None):
+    """
+    Update ONLY a vehicle's status (e.g. mark it Under Maintenance / back to Active)
+    without touching capacity, driver assignment or any other field. Used by the
+    one-click status toggle in the fleet table.
+    """
+    data = request.json or {}
+    target_vid = vid or data.get('id') or data.get('vehicle_id')
+    new_status = (data.get('status') or '').strip()
+
+    if not target_vid:
+        return jsonify({"success": False, "message": "Vehicle ID is required"}), 400
+
+    allowed_statuses = ('Active', 'Under Maintenance')
+    if new_status not in allowed_statuses:
+        return jsonify({"success": False, "message": f"Status must be one of: {', '.join(allowed_statuses)}"}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    row = cursor.execute('SELECT vehicle_no FROM fleet_vehicles WHERE id = ?', (target_vid,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "message": "Vehicle not found"}), 404
+
+    cursor.execute('UPDATE fleet_vehicles SET status = ? WHERE id = ?', (new_status, target_vid))
+    conn.commit()
+    conn.close()
+    return jsonify({
+        "success": True,
+        "status": new_status,
+        "message": f"Vehicle {row['vehicle_no']} marked as {new_status}."
+    })
+
 @app.route('/api/fleet/vehicle/<int:vid>/capacity', methods=['POST', 'PATCH'])
 @app.route('/api/fleet/vehicle/capacity', methods=['POST', 'PATCH'])
 @login_required
