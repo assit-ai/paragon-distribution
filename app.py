@@ -560,6 +560,43 @@ def ensure_schema_migrations():
             c.execute("ALTER TABLE fleet_vehicles ADD COLUMN capacity_units TEXT DEFAULT 'Kg'")
         if 'category_capacities' not in f_cols:
             c.execute("ALTER TABLE fleet_vehicles ADD COLUMN category_capacities TEXT")
+
+        # Depot GPS coordinates: previously the live map used a hardcoded DEPOT_COORDINATES
+        # dict in code that listed depots (Cumilla, Barishal, Narayanganj...) which do not
+        # exist in this company. Coordinates now live in the DB per real depot and are
+        # editable from the Admin Panel, so the map always matches the real depot list.
+        c.execute("PRAGMA table_info(depots)")
+        d_cols = [r[1] for r in c.fetchall()]
+        if 'latitude' not in d_cols:
+            c.execute("ALTER TABLE depots ADD COLUMN latitude REAL")
+        if 'longitude' not in d_cols:
+            c.execute("ALTER TABLE depots ADD COLUMN longitude REAL")
+
+        # Seed approximate coordinates by matching the depot's real location keyword.
+        # These are starting points only - the admin can correct any of them by hand.
+        location_hints = [
+            ('ashulia',      23.8960, 90.3220),
+            ('gazipur',      23.9999, 90.4203),
+            ('sirajganj',    24.4533, 89.7006),
+            ('sylhet',       24.8949, 91.8687),
+            ('tejgaon',      23.7644, 90.3928),
+            ('mohakhali',    23.7806, 90.4074),
+            ('ctg',          22.3569, 91.7832),
+            ('chittagong',   22.3569, 91.7832),
+            ('chattogram',   22.3569, 91.7832),
+            ('jessore',      23.1664, 89.2081),
+            ('jashore',      23.1664, 89.2081),
+            ('rangpur',      25.7439, 89.2752),
+        ]
+        c.execute("SELECT id, name, latitude, longitude FROM depots")
+        for dep_id, dep_name, dep_lat, dep_lng in c.fetchall():
+            if dep_lat is not None and dep_lng is not None:
+                continue  # never overwrite a coordinate the admin has already set
+            lname = (dep_name or '').lower()
+            match = next((h for h in location_hints if h[0] in lname), None)
+            if match:
+                c.execute("UPDATE depots SET latitude = ?, longitude = ? WHERE id = ?",
+                          (match[1], match[2], dep_id))
             
         # Backfill category capacities for existing vehicles
         c.execute("SELECT id, vehicle_no, vehicle_type, capacity_kg, category_capacities FROM fleet_vehicles")
@@ -908,6 +945,55 @@ def get_depots():
     conn.close()
     return jsonify([dict(row) for row in depots])
 
+@app.route('/api/depots/<int:depot_id>/coordinates', methods=['POST', 'PATCH'])
+@admin_required
+def update_depot_coordinates(depot_id):
+    """
+    Update ONLY a depot's map coordinates. Kept separate from /api/depots/save so that
+    correcting a pin on the live map can never touch the depot's name, incharge, category
+    or UoM by accident.
+    """
+    data = request.json or {}
+    raw_lat = data.get('latitude')
+    raw_lng = data.get('longitude')
+
+    # Allow clearing a depot's coordinates (it then stops appearing on the map)
+    if (raw_lat is None or str(raw_lat).strip() == '') and (raw_lng is None or str(raw_lng).strip() == ''):
+        conn = get_db()
+        conn.execute('UPDATE depots SET latitude = NULL, longitude = NULL WHERE id = ?', (depot_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "Depot coordinates cleared. It will not appear on the live map."})
+
+    try:
+        latitude = float(raw_lat)
+        longitude = float(raw_lng)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Latitude and longitude must both be numbers."}), 400
+
+    if not (-90 <= latitude <= 90):
+        return jsonify({"success": False, "message": "Latitude must be between -90 and 90."}), 400
+    if not (-180 <= longitude <= 180):
+        return jsonify({"success": False, "message": "Longitude must be between -180 and 180."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    row = cursor.execute('SELECT name FROM depots WHERE id = ?', (depot_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "message": "Depot not found"}), 404
+
+    cursor.execute('UPDATE depots SET latitude = ?, longitude = ? WHERE id = ?',
+                   (latitude, longitude, depot_id))
+    conn.commit()
+    conn.close()
+    return jsonify({
+        "success": True,
+        "latitude": latitude,
+        "longitude": longitude,
+        "message": f"Coordinates for {row['name']} updated to ({latitude}, {longitude})."
+    })
+
 @app.route('/api/depots/save', methods=['POST'])
 @admin_required
 def save_depot():
@@ -922,18 +1008,35 @@ def save_depot():
     contact = data.get('contact')
     region = data.get('region', 'Central')
     default_uom = data.get('default_uom', 'Pkt')
-    
+
+    # Optional GPS coordinates for the live fleet map. Blank/omitted means "leave as is"
+    # on update, so editing a depot's name never wipes coordinates already set.
+    def _parse_coord(val, lo, hi):
+        if val is None or str(val).strip() == '':
+            return None
+        try:
+            num = float(val)
+        except (TypeError, ValueError):
+            return None
+        return num if lo <= num <= hi else None
+
+    latitude = _parse_coord(data.get('latitude'), -90, 90)
+    longitude = _parse_coord(data.get('longitude'), -180, 180)
+
     if depot_id:
         cursor.execute('''
         UPDATE depots SET name = ?, category = ?, incharge_name = ?, contact = ?, region = ?, default_uom = ?
         WHERE id = ?
         ''', (name, category, incharge_name, contact, region, default_uom, depot_id))
+        if latitude is not None and longitude is not None:
+            cursor.execute('UPDATE depots SET latitude = ?, longitude = ? WHERE id = ?',
+                           (latitude, longitude, depot_id))
     else:
         slug = name.lower().replace(' ', '_').replace('-', '_')
         cursor.execute('''
-        INSERT INTO depots (name, slug, category, incharge_name, contact, region, default_uom)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (name, slug, category, incharge_name, contact, region, default_uom))
+        INSERT INTO depots (name, slug, category, incharge_name, contact, region, default_uom, latitude, longitude)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, slug, category, incharge_name, contact, region, default_uom, latitude, longitude))
         
     conn.commit()
     conn.close()
@@ -5450,7 +5553,7 @@ def match_depot_from_ref(branch="", ref_no="", order_no=""):
     ]
     for d_id, kws in depot_keywords:
         if any(kw in combined for kw in kws):
-            name = DEPOT_COORDINATES.get(d_id, {}).get('name', f'Depot #{d_id}')
+            name = get_depot_coordinates().get(d_id, {}).get('name', f'Depot #{d_id}')
             return {'id': d_id, 'name': name, 'category': 'Food'}
     return {'id': 1, 'name': 'Tejgaon Head Office & Central Depot', 'category': 'Central Food'}
 
@@ -5470,25 +5573,29 @@ def match_depot_from_ref(branch="", ref_no="", order_no=""):
 # LIVE GPS & ROUTE MONITORING APIS (LEAFLET + OPENSTREETMAP ENGINE)
 # ==============================================================================
 
-DEPOT_COORDINATES = {
-    1: {"lat": 23.7644, "lng": 90.3928, "name": "Tejgaon Head Office & Central Depot"},
-    2: {"lat": 22.3569, "lng": 91.7832, "name": "Chittagong Central Depot"},
-    3: {"lat": 24.8949, "lng": 91.8687, "name": "Sylhet Regional Depot"},
-    4: {"lat": 23.7644, "lng": 90.3928, "name": "Tejgaon Dairy Plant"},
-    5: {"lat": 24.3636, "lng": 88.6241, "name": "Rajshahi Regional Depot"},
-    6: {"lat": 22.8456, "lng": 89.5403, "name": "Khulna Regional Depot"},
-    7: {"lat": 23.7680, "lng": 90.3980, "name": "Tejgaon Frozen Foods Depot"},
-    8: {"lat": 24.8465, "lng": 89.3777, "name": "Bogura Sales Depot"},
-    9: {"lat": 23.7620, "lng": 90.3950, "name": "Tejgaon Fresh Egg Depot"},
-    10: {"lat": 24.7471, "lng": 90.4203, "name": "Mymensingh Distribution Hub"},
-    11: {"lat": 23.7660, "lng": 90.3910, "name": "Tejgaon Liquid Milk Depot"},
-    12: {"lat": 22.7010, "lng": 90.3535, "name": "Barishal Regional Depot"},
-    13: {"lat": 23.4682, "lng": 91.1788, "name": "Cumilla Regional Depot"},
-    14: {"lat": 22.3590, "lng": 91.7850, "name": "Chittagong Dry Food Depot"},
-    15: {"lat": 23.8475, "lng": 90.2577, "name": "Savar Poultry & Feed Depot"},
-    16: {"lat": 23.6238, "lng": 90.5000, "name": "Narayanganj Sales Depot"},
-    17: {"lat": 23.9999, "lng": 90.4203, "name": "Gazipur Feed & Breeder Depot"},
-}
+# NOTE: depot coordinates used to be a hardcoded dict here, listing depots that do not
+# exist in this company (Cumilla, Barishal, Narayanganj, ...). They are now read from the
+# depots table, so the live map always reflects the real 17 depots and the admin can edit
+# any depot's latitude/longitude from the Admin Panel.
+DEFAULT_MAP_CENTER = {"lat": 23.7644, "lng": 90.3928}
+
+
+def get_depot_coordinates():
+    """Return {depot_id: {lat, lng, name}} for every depot that has coordinates set."""
+    coords = {}
+    try:
+        conn = get_db()
+        rows = conn.execute(
+            "SELECT id, name, latitude, longitude FROM depots "
+            "WHERE latitude IS NOT NULL AND longitude IS NOT NULL"
+        ).fetchall()
+        conn.close()
+        for r in rows:
+            coords[r['id']] = {"lat": r['latitude'], "lng": r['longitude'], "name": r['name']}
+    except Exception:
+        pass
+    return coords
+
 
 SAMPLE_OUTLET_OFFSETS = [
     {"name": "Shwapno Super Shop - Outlet #1", "dlat": 0.0150, "dlng": 0.0120, "contact": "01711-223344", "inv": "INV-240901"},
@@ -5556,7 +5663,8 @@ def get_tracking_depot_routes():
     if not date_param:
         date_param = datetime.date.today().strftime('%Y-%m-%d')
 
-    target_depot_ids = list(DEPOT_COORDINATES.keys()) if is_all else []
+    depot_coord_map = get_depot_coordinates()
+    target_depot_ids = list(depot_coord_map.keys()) if is_all else []
     if not is_all:
         try:
             target_depot_ids = [int(depot_id_param)]
@@ -5583,7 +5691,7 @@ def get_tracking_depot_routes():
     depot_origins = []
 
     for d_id in target_depot_ids:
-        depot_coords = DEPOT_COORDINATES.get(d_id, {"lat": 23.7644, "lng": 90.3928, "name": f"Depot #{d_id}"})
+        depot_coords = depot_coord_map.get(d_id, {"lat": DEFAULT_MAP_CENTER["lat"], "lng": DEFAULT_MAP_CENTER["lng"], "name": f"Depot #{d_id}"})
         depot_origins.append({
             "id": d_id,
             "name": depot_coords["name"],
@@ -5889,7 +5997,8 @@ def simulate_vehicle_movement():
     depot_val = str(data.get('depot_id') or request.args.get('depot_id') or 'ALL').strip().upper()
     is_all = (depot_val == 'ALL' or depot_val == '0')
     
-    target_depot_ids = list(DEPOT_COORDINATES.keys()) if is_all else []
+    depot_coord_map = get_depot_coordinates()
+    target_depot_ids = list(depot_coord_map.keys()) if is_all else []
     if not is_all:
         try:
             target_depot_ids = [int(depot_val)]
@@ -5901,7 +6010,7 @@ def simulate_vehicle_movement():
     for d_id in target_depot_ids:
         cursor.execute('SELECT * FROM live_tracking_positions WHERE depot_id = ?', (d_id,))
         rows = cursor.fetchall()
-        depot_coords = DEPOT_COORDINATES.get(d_id, {"lat": 23.7644, "lng": 90.3928, "name": f"Depot #{d_id}"})
+        depot_coords = depot_coord_map.get(d_id, {"lat": DEFAULT_MAP_CENTER["lat"], "lng": DEFAULT_MAP_CENTER["lng"], "name": f"Depot #{d_id}"})
         if not rows:
             # No demo vehicle injection — skip depots with no real tracking data
             continue

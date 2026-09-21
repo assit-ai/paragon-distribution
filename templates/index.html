@@ -2523,6 +2523,7 @@
                                         <th>Contact Phone</th>
                                         <th>Region</th>
                                         <th class="text-center">Default UOM</th>
+                                        <th class="text-center">Map Location (Lat, Lng)</th>
                                         <th class="text-center admin-only">Admin Actions</th>
                                     </tr>
                                 </thead>
@@ -3618,6 +3619,11 @@
                             authenticated: true,
                             ...data.user
                         };
+                        // Depots are fetched at page load, before a session exists, so that
+                        // first call returns 401 and falls back to hardcoded embedded data
+                        // (which has no real coordinates/fields). Re-fetch now that we're
+                        // authenticated so every screen uses real DB data for this session.
+                        await loadDepots();
                         updateUserBadge();
                         applyUserPermissions();
                         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -6689,6 +6695,11 @@
             <td>${escapeHtml(d.contact || '017XXXXXXXX')}</td>
             <td>${escapeHtml(d.region || 'Central')}</td>
             <td class="text-center"><code>${escapeHtml(d.default_uom || 'Pkt')}</code></td>
+            <td class="text-center">
+                ${(d.latitude !== null && d.latitude !== undefined && d.longitude !== null && d.longitude !== undefined)
+                    ? `<button type="button" onclick="openDepotCoordinatesPrompt(${d.id}, '${escapeJsAttr(d.name)}', ${d.latitude}, ${d.longitude})" title="Click to edit this depot's map coordinates" style="cursor:pointer; background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid #22c55e; padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:700; font-family:monospace;"><i class="fa-solid fa-location-dot"></i> ${Number(d.latitude).toFixed(4)}, ${Number(d.longitude).toFixed(4)}</button>`
+                    : `<button type="button" onclick="openDepotCoordinatesPrompt(${d.id}, '${escapeJsAttr(d.name)}', null, null)" title="Set this depot's map coordinates" style="cursor:pointer; background:rgba(249,115,22,0.15); color:#fb923c; border:1px solid #f97316; padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:700;"><i class="fa-solid fa-location-crosshairs"></i> Not Set</button>`}
+            </td>
             <td class="text-center admin-only">
                 <button type="button" class="btn btn-primary btn-sm" style="background:#2563eb; color:#ffffff; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;" onclick="openEditDepotModal(${d.id})">
                     <i class="fa-solid fa-user-pen"></i> Edit
@@ -6705,6 +6716,56 @@
                 });
 
                 setupDepotSettingsEvents();
+            }
+
+            async function openDepotCoordinatesPrompt(depotId, depotName, curLat, curLng) {
+                const hasCoords = (curLat !== null && curLat !== undefined);
+                const promptMsg =
+                    `Map coordinates for: ${depotName}\n\n` +
+                    `Enter as "latitude, longitude" (e.g. 23.7644, 90.3928).\n` +
+                    `Tip: in Google Maps, right-click the exact spot and click the numbers to copy them.\n\n` +
+                    `Leave completely blank to remove this depot from the live map.`;
+
+                const defaultVal = hasCoords ? `${curLat}, ${curLng}` : '';
+                const input = prompt(promptMsg, defaultVal);
+                if (input === null) return; // cancelled
+
+                const trimmed = input.trim();
+                let payload;
+
+                if (trimmed === '') {
+                    if (!confirm(`Remove ${depotName} from the live fleet map?`)) return;
+                    payload = { latitude: null, longitude: null };
+                } else {
+                    const parts = trimmed.split(',').map(s => s.trim());
+                    if (parts.length !== 2 || parts.some(p => p === '' || isNaN(Number(p)))) {
+                        showToast('Please enter two numbers separated by a comma, e.g. 23.7644, 90.3928', 'error');
+                        return;
+                    }
+                    const lat = Number(parts[0]);
+                    const lng = Number(parts[1]);
+                    if (lat < -90 || lat > 90) { showToast('Latitude must be between -90 and 90.', 'error'); return; }
+                    if (lng < -180 || lng > 180) { showToast('Longitude must be between -180 and 180.', 'error'); return; }
+                    payload = { latitude: lat, longitude: lng };
+                }
+
+                try {
+                    const res = await fetch(`/api/depots/${depotId}/coordinates`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || 'Coordinates updated.', 'success');
+                        await loadDepots();
+                        loadDepotsDirectory();
+                    } else {
+                        showToast(data.message || 'Failed to update coordinates', 'error');
+                    }
+                } catch (e) {
+                    showToast('Network error updating coordinates: ' + e.message, 'error');
+                }
             }
 
             function openPasswordResetModal(depotId, depotName, inchargeName, slug) {
