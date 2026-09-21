@@ -17,6 +17,18 @@
     <!-- Leaflet.js & OpenStreetMap Engine (100% Free & Unlimited) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Early Theme Loader to prevent flash of wrong theme -->
+    <script>
+        (function() {
+            try {
+                const savedTheme = localStorage.getItem('paragon_theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.add('light-theme');
+                }
+            } catch(e) {}
+        })();
+    </script>
     <style>
         :root {
             --bg-primary: #0b1329;
@@ -45,6 +57,30 @@
             --radius-sm: 6px;
             --radius-md: 10px;
             --radius-lg: 14px;
+        }
+
+        /* ---------------- LIGHT MODE THEME TOKENS ---------------- */
+        [data-theme="light"], html.light-theme, body.light-theme {
+            --bg-primary: #f0f4f9;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --border-color: #cbd5e1;
+            --border-subtle: #e2e8f0;
+
+            --primary-blue: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent-cyan: #0284c7;
+            --accent-green: #16a34a;
+            --accent-red: #dc2626;
+            --accent-amber: #d97706;
+
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-dim: #64748b;
+
+            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.12);
         }
 
         * {
@@ -1374,6 +1410,336 @@
             filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
 
+        /* -------------------------------------------------------------
+           COMPREHENSIVE LIGHT THEME OVERRIDES (HIGH CONTRAST & CRISP UI)
+           ------------------------------------------------------------- */
+        [data-theme="light"] body,
+        html.light-theme body,
+        body.light-theme {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-theme="light"] .top-navbar,
+        html.light-theme .top-navbar,
+        body.light-theme .top-navbar {
+            background: rgba(255, 255, 255, 0.96) !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        [data-theme="light"] .brand-text h1,
+        html.light-theme .brand-text h1,
+        body.light-theme .brand-text h1 {
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .brand-text p,
+        html.light-theme .brand-text p,
+        body.light-theme .brand-text p {
+            color: #64748b !important;
+        }
+
+        [data-theme="light"] .nav-tabs,
+        html.light-theme .nav-tabs,
+        body.light-theme .nav-tabs {
+            background: #e2e8f0 !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] .nav-tab,
+        html.light-theme .nav-tab,
+        body.light-theme .nav-tab {
+            color: #475569 !important;
+        }
+
+        [data-theme="light"] .nav-tab:hover,
+        html.light-theme .nav-tab:hover,
+        body.light-theme .nav-tab:hover {
+            color: #0f172a !important;
+            background: rgba(0, 0, 0, 0.06) !important;
+        }
+
+        [data-theme="light"] .nav-tab.active,
+        html.light-theme .nav-tab.active,
+        body.light-theme .nav-tab.active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+        }
+
+        [data-theme="light"] .user-auth-bar,
+        html.light-theme .user-auth-bar,
+        body.light-theme .user-auth-bar {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        [data-theme="light"] #userDisplayName,
+        html.light-theme #userDisplayName,
+        body.light-theme #userDisplayName {
+            color: #1e293b !important;
+        }
+
+        [data-theme="light"] .auto-refresh-widget,
+        html.light-theme .auto-refresh-widget,
+        body.light-theme .auto-refresh-widget {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] .card,
+        html.light-theme .card,
+        body.light-theme .card {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        [data-theme="light"] .card-header,
+        html.light-theme .card-header,
+        body.light-theme .card-header {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .card-title,
+        html.light-theme .card-title,
+        body.light-theme .card-title {
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .dashboard-filter-bar,
+        html.light-theme .dashboard-filter-bar,
+        body.light-theme .dashboard-filter-bar {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        [data-theme="light"] .filter-group label,
+        html.light-theme .filter-group label,
+        body.light-theme .filter-group label {
+            color: #334155 !important;
+        }
+
+        [data-theme="light"] .kpi-card,
+        html.light-theme .kpi-card,
+        body.light-theme .kpi-card {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        [data-theme="light"] .kpi-card.card-cyan,
+        html.light-theme .kpi-card.card-cyan,
+        body.light-theme .kpi-card.card-cyan {
+            background: linear-gradient(135deg, #ffffff, #f0f9ff) !important;
+            border-color: #bae6fd !important;
+        }
+
+        [data-theme="light"] .kpi-card.card-green,
+        html.light-theme .kpi-card.card-green,
+        body.light-theme .kpi-card.card-green {
+            background: linear-gradient(135deg, #ffffff, #f0fdf4) !important;
+            border-color: #bbf7d0 !important;
+        }
+
+        [data-theme="light"] .kpi-card.card-red,
+        html.light-theme .kpi-card.card-red,
+        body.light-theme .kpi-card.card-red {
+            background: linear-gradient(135deg, #ffffff, #fef2f2) !important;
+            border-color: #fecaca !important;
+        }
+
+        [data-theme="light"] .kpi-card.card-amber,
+        html.light-theme .kpi-card.card-amber,
+        body.light-theme .kpi-card.card-amber {
+            background: linear-gradient(135deg, #ffffff, #fffbeb) !important;
+            border-color: #fde68a !important;
+        }
+
+        [data-theme="light"] .kpi-card.card-blue,
+        html.light-theme .kpi-card.card-blue,
+        body.light-theme .kpi-card.card-blue {
+            background: linear-gradient(135deg, #ffffff, #eff6ff) !important;
+            border-color: #bfdbfe !important;
+        }
+
+        [data-theme="light"] .kpi-header,
+        html.light-theme .kpi-header,
+        body.light-theme .kpi-header {
+            color: #475569 !important;
+        }
+
+        [data-theme="light"] .kpi-val,
+        html.light-theme .kpi-val,
+        body.light-theme .kpi-val {
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .kpi-footer,
+        html.light-theme .kpi-footer,
+        body.light-theme .kpi-footer {
+            color: #64748b !important;
+            border-color: #f1f5f9 !important;
+        }
+
+        [data-theme="light"] .data-table,
+        html.light-theme .data-table,
+        body.light-theme .data-table {
+            color: #1e293b !important;
+        }
+
+        [data-theme="light"] .data-table th,
+        html.light-theme .data-table th,
+        body.light-theme .data-table th {
+            background: #f1f5f9 !important;
+            color: #1e293b !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] .data-table td,
+        html.light-theme .data-table td,
+        body.light-theme .data-table td {
+            border-color: #f1f5f9 !important;
+            color: #1e293b !important;
+        }
+
+        [data-theme="light"] .data-table tbody tr:hover,
+        html.light-theme .data-table tbody tr:hover,
+        body.light-theme .data-table tbody tr:hover {
+            background: #f8fafc !important;
+        }
+
+        [data-theme="light"] .data-table tfoot,
+        html.light-theme .data-table tfoot,
+        body.light-theme .data-table tfoot {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] input,
+        [data-theme="light"] select,
+        [data-theme="light"] textarea,
+        html.light-theme input,
+        html.light-theme select,
+        html.light-theme textarea,
+        body.light-theme input,
+        body.light-theme select,
+        body.light-theme textarea {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] input:focus,
+        [data-theme="light"] select:focus,
+        [data-theme="light"] textarea:focus,
+        html.light-theme input:focus,
+        html.light-theme select:focus,
+        html.light-theme textarea:focus,
+        body.light-theme input:focus,
+        body.light-theme select:focus,
+        body.light-theme textarea:focus {
+            border-color: #2563eb !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+        }
+
+        [data-theme="light"] .modal-content,
+        html.light-theme .modal-content,
+        body.light-theme .modal-content {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        [data-theme="light"] .modal-header,
+        [data-theme="light"] .modal-footer,
+        html.light-theme .modal-header,
+        html.light-theme .modal-footer,
+        body.light-theme .modal-header,
+        body.light-theme .modal-footer {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* Leaflet Tiles Inversion filter disabled in Light mode */
+        [data-theme="light"] .dark-map-tiles .leaflet-tile-pane,
+        html.light-theme .dark-map-tiles .leaflet-tile-pane,
+        body.light-theme .dark-map-tiles .leaflet-tile-pane {
+            filter: none !important;
+        }
+
+        /* -------------------------------------------------------------
+           ROUTE PLANNER SETTINGS ACCORDION STYLES
+           ------------------------------------------------------------- */
+        .route-settings-accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .route-settings-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.25s ease;
+            box-shadow: var(--shadow-card);
+        }
+
+        .route-settings-card:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .route-settings-header {
+            padding: 14px 20px;
+            background: rgba(15, 23, 42, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+
+        [data-theme="light"] .route-settings-header,
+        html.light-theme .route-settings-header,
+        body.light-theme .route-settings-header {
+            background: #f8fafc !important;
+        }
+
+        .route-settings-header:hover {
+            background: rgba(56, 189, 248, 0.08) !important;
+        }
+
+        .route-settings-body {
+            padding: 18px 22px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="light"] .route-settings-body,
+        html.light-theme .route-settings-body,
+        body.light-theme .route-settings-body {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        .accordion-chevron {
+            transition: transform 0.3s ease;
+            color: var(--accent-cyan);
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 
@@ -1523,6 +1889,13 @@
                         <label for="filterDate"><i class="fa-regular fa-calendar"></i> Date:</label>
                         <input type="date" id="filterDate">
                     </div>
+                    <!-- Quick Theme Toggle Button -->
+                    <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="btn btn-outline"
+                        style="border-color: #38bdf8; color: #38bdf8; padding: 7px 12px; font-weight: 700; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.1);"
+                        title="Toggle Light / Dark Mode">
+                        <i class="fa-solid fa-sun" id="themeToggleIcon" style="color: #f59e0b;"></i>
+                        <span id="themeToggleText">Light Mode</span>
+                    </button>
                     <a href="/api/export/excel" id="exportBtn" class="btn btn-export" title="Download Master Distribution Excel Report">
                         <i class="fa-solid fa-file-excel"></i> Excel Report
                     </a>
@@ -1553,6 +1926,12 @@
                         style="display: none; border-color: #f59e0b; color: #fbbf24; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; background: rgba(245, 158, 11, 0.18); box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);">
                         <i class="fa-solid fa-arrows-rotate fa-spin"></i> <span id="pendingSyncCount">1 Offline Pending
                             &rarr; Sync Now</span>
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-outline" id="themeToggleBtn2" onclick="toggleTheme()"
+                        style="border-color: #38bdf8; color: #38bdf8; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); display: inline-flex; align-items: center; gap: 6px;"
+                        title="Toggle Theme (Dark / Light Mode)">
+                        <i class="fa-solid fa-circle-half-stroke"></i> <span id="themeToggleText2">Light / Dark</span>
                     </button>
 
                     <button type="button" class="btn btn-sm btn-outline" id="btnOpenChangePassword" onclick="openChangePasswordModal()"
@@ -1904,196 +2283,308 @@
 
                 <!-- TAB: ROUTE PLANNING & VAN DISPATCH MODULE -->
                 <section id="plan-tab" class="tab-pane">
-                    <!-- ROUTE PLANNING BULK EXCEL OPERATIONS BAR -->
-                    <div class="card"
-                        style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-lg); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
-                        <div
-                            style="padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+
+                    <!-- HERO / COMMAND BAR FOR ROUTE PLANNER -->
+                    <div class="card" style="margin-bottom: 16px; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);">
+                        <!-- Top Title & Quick Actions Row -->
+                        <div style="padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));">
                             <div style="display: flex; align-items: center; gap: 14px;">
-                                <div
-                                    style="width: 44px; height: 44px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #38bdf8;">
-                                    <i class="fa-solid fa-file-excel"></i>
-                                </div>
-                                <div>
-                                    <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 2px;">
-                                        Route Planning Bulk Excel Import & Blank Template</h3>
-                                    <p style="font-size: 0.82rem; color: #94a3b8;">Download blank route plan Excel &rarr;
-                                        Fill van trips & customer orders offline &rarr; Upload to auto-create all delivery vans & run sheets!</p>
-                                </div>
-                            </div>
-
-                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                <button type="button" class="btn btn-outline" onclick="downloadUniversalRouteTemplate()"
-                                    style="border-color: #38bdf8; color: #38bdf8; padding: 9px 16px; font-weight: 700; font-size: 0.85rem;">
-                                    <i class="fa-solid fa-cloud-arrow-down"></i> Download Blank Template (.xlsx)
-                                </button>
-
-                                <input type="file" id="routePlanBulkFileInput" accept=".xlsx, .xls" style="display: none;"
-                                    onchange="handleRoutePlanBulkUpload(event)">
-                                <button type="button" class="btn btn-primary" onclick="triggerRoutePlanBulkFileSelect()"
-                                    style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 9px 18px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Route Plan Excel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Top Control & Action Bar -->
-                    <div class="card"
-                        style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius-lg); box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6);">
-                        <div
-                            style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                            <div style="display: flex; align-items: center; gap: 14px;">
-                                <div
-                                    style="width: 48px; height: 48px; background: linear-gradient(135deg, #0284c7, #2563eb); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);">
+                                <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #0284c7, #2563eb); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);">
                                     <i class="fa-solid fa-route"></i>
                                 </div>
                                 <div>
                                     <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-bottom: 2px;">
-                                        Universal Daily Distribution Route Planner</h3>
-                                    <p style="font-size: 0.84rem; color: #94a3b8;">1-Click Poloxy ERP Order Import
-                                        &bull; Smart Van Allocation &bull; Printable Driver Trip Run-Sheets &bull; Zero
-                                        Pilferage Reconcile</p>
+                                        Universal Daily Distribution Route Planner
+                                    </h3>
+                                    <p style="font-size: 0.82rem; color: #94a3b8;">
+                                        1-Click Poloxy ERP Order Import &bull; Smart Van Allocation &bull; Printable Driver Trip Run-Sheets &bull; Zero Pilferage Reconcile
+                                    </p>
                                 </div>
                             </div>
 
-                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <!-- 1-Click Poloxy ERP Report Batch Import Button -->
                                 <button type="button" class="btn btn-primary" onclick="triggerTopPoloxyImport()"
-                                    style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 9px 16px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);"
+                                    style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 8px 14px; font-weight: 800; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);"
                                     title="Import Poloxy ERP Sales Orders or Auto-Populate Plan with 1-Click">
-                                    <i class="fa-solid fa-file-import"></i> ⚡ 1-Click Poloxy ERP Import
+                                    <i class="fa-solid fa-file-import"></i> ⚡ 1-Click Poloxy Import
                                 </button>
                                 <input type="file" id="topPoloxyFileInput" accept=".xlsx, .xls" style="display: none;"
                                     onchange="handleTopPoloxyFileSelect(event)">
 
-                                <!-- Master Fleet & Route Directory Button -->
-                                <button type="button" class="btn" onclick="openMasterFleetModal('routes')"
-                                    style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; font-weight: 800; padding: 9px 16px; border: none; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
-                                    title="Open Master Hub to enlist Routes, Consignees, Vehicles, Drivers and Delivery Staff">
-                                    <i class="fa-solid fa-sliders"></i> ⚙️ Fleet & Route Master
-                                </button>
-                                 <!-- Auto-Distribute Rebalancer -->
-                                 <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
-                                     style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 800; padding: 9px 16px; border: none; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
-                                     title="Auto assign loaded orders evenly across pre-defined routes and delivery vans">
-                                     <i class="fa-solid fa-wand-magic-sparkles"></i> ✨ Auto-Distribute
-                                 </button>
-
-                                 <!-- Submit & Dispatch Plan Button -->
-                                 <button type="button" class="btn" onclick="submitAndDispatchRoutePlan()"
-                                     style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 800; padding: 9px 18px; border: none; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
-                                     title="Submit Final Delivery Plan to Dispatch & Auto-Populate Daily Entry">
-                                     <i class="fa-solid fa-paper-plane"></i> 🚀 Submit & Dispatch Plan
-                                 </button>
-
-                                 <!-- Clear Plan Data Button -->
-                                 <button type="button" class="btn btn-outline" onclick="clearActiveRoutePlan()"
-                                     style="border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1); padding: 9px 14px; font-weight: 800; font-size: 0.85rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
-                                     title="Clear active delivery vans, unassigned orders and uploaded Poloxy data">
-                                     <i class="fa-solid fa-trash-can"></i> 🧹 Clear Plan Data
-                                 </button>
-
-                                <button type="button" class="btn" onclick="openPlanHistoryModal()"
-                                    style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; padding: 9px 14px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
-                                    title="View Previously Uploaded / Dispatched Plans for Today or Past Dates">
-                                    <i class="fa-solid fa-clock-rotate-left"></i> 📅 Plan History
+                                <!-- Toggle Route Settings Accordion Button -->
+                                <button type="button" class="btn" id="btnToggleRouteSettings" onclick="toggleRouteSettingsCenter()"
+                                    style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: #fff; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                                    title="Click to Expand or Collapse Route Planner & Distribution Settings Options">
+                                    <i class="fa-solid fa-sliders"></i> <span id="routeSettingsBtnText">⚙️ Settings & Options</span>
+                                    <i class="fa-solid fa-chevron-down" id="routeSettingsMasterIcon" style="transition: transform 0.3s ease;"></i>
                                 </button>
 
-                                <button type="button" class="btn btn-primary" onclick="openRentalVanModal()"
-                                    style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 9px 14px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);"
-                                    title="Add Rental Vehicle for high volume orders">
-                                    <i class="fa-solid fa-key"></i> + Rental Van
+                                <!-- Auto-Distribute Rebalancer -->
+                                <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
+                                    style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(234, 179, 8, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                                    title="Auto assign loaded orders evenly across pre-defined routes and delivery vans">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> ✨ Auto-Distribute
                                 </button>
 
-                                <button type="button" class="btn btn-primary" onclick="openMasterFleetModal('borrow')"
-                                    style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border: none; padding: 9px 14px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4);"
-                                    title="Borrow idle vehicle from neighboring depot">
-                                    <i class="fa-solid fa-handshake"></i> 🔄 Borrow Van
+                                <!-- Submit & Dispatch Plan Button -->
+                                <button type="button" class="btn" onclick="submitAndDispatchRoutePlan()"
+                                    style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 800; padding: 8px 16px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                                    title="Submit Final Delivery Plan to Dispatch & Auto-Populate Daily Entry">
+                                    <i class="fa-solid fa-paper-plane"></i> 🚀 Submit & Dispatch
                                 </button>
 
+                                <!-- Run Sheets -->
                                 <button type="button" class="btn btn-outline" onclick="printAllVanRunSheets()"
-                                    style="border-color: #f59e0b; color: #fbbf24; padding: 9px 14px; font-weight: 700; font-size: 0.85rem;"
+                                    style="border-color: #f59e0b; color: #fbbf24; padding: 8px 12px; font-weight: 700; font-size: 0.84rem;"
                                     title="Print clean A4 run sheets for all delivery vans">
-                                    <i class="fa-solid fa-print"></i> Print Run Sheets
+                                    <i class="fa-solid fa-print"></i> Run Sheets
                                 </button>
 
+                                <!-- Excel Report -->
                                 <button type="button" class="btn btn-export" id="planExcelReportBtn" onclick="exportCurrentPlanToExcel()"
-                                    style="padding: 9px 16px; font-weight: 700; font-size: 0.85rem;" title="Download Route Plan & Van Dispatch Run-Sheets as Excel">
-                                    <i class="fa-solid fa-file-excel"></i> Excel Report
+                                    style="padding: 8px 14px; font-weight: 700; font-size: 0.84rem;" title="Download Route Plan & Van Dispatch Run-Sheets as Excel">
+                                    <i class="fa-solid fa-file-excel"></i> Excel
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Filter & Target Selector Bar -->
-                        <div
-                            style="padding: 12px 24px; background: rgba(15, 23, 42, 0.8); border-top: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
-                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;"><i
-                                            class="fa-solid fa-warehouse"></i> Depot / Plant:</label>
+                        <!-- Quick Filter & Target Selector Bar -->
+                        <div style="padding: 10px 22px; background: rgba(15, 23, 42, 0.8); border-top: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 0.82rem; font-weight: 700; color: #38bdf8;"><i class="fa-solid fa-warehouse"></i> Depot:</label>
                                     <select id="planDepotSelect"
-                                        style="padding: 7px 12px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.85rem; font-weight: 600;"
+                                        style="padding: 6px 10px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.82rem; font-weight: 600;"
                                         onchange="onPlanDepotChange()">
                                         <!-- Populated dynamically -->
                                     </select>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;"><i
-                                            class="fa-solid fa-calendar-day"></i> Date:</label>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 0.82rem; font-weight: 700; color: #38bdf8;"><i class="fa-solid fa-calendar-day"></i> Date:</label>
                                     <input type="date" id="planDatePicker"
-                                        style="padding: 6px 10px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.85rem; font-weight: 600;"
+                                        style="padding: 5px 8px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.82rem; font-weight: 600;"
                                         onchange="onPlanDateChange()">
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;"><i
-                                            class="fa-solid fa-clock"></i> Shift:</label>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 0.82rem; font-weight: 700; color: #38bdf8;"><i class="fa-solid fa-clock"></i> Shift:</label>
                                     <select id="planShiftSelect"
-                                        style="padding: 7px 10px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.85rem;"
+                                        style="padding: 6px 8px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 0.82rem;"
                                         onchange="onPlanShiftChange()">
                                         <option value="Morning Shift" selected>Morning Shift</option>
                                         <option value="Evening Shift">Evening Shift</option>
                                         <option value="Night Shift">Night Shift</option>
                                         <option value="Special Shift">Special / Custom Shift</option>
                                     </select>
-                                    <label style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; margin-left: 2px;"><i
-                                            class="fa-regular fa-clock"></i> Time:</label>
+                                    <label style="font-size: 0.82rem; font-weight: 700; color: #38bdf8; margin-left: 2px;"><i class="fa-regular fa-clock"></i> Time:</label>
                                     <input type="time" id="planShiftTimeInput" value="07:00"
-                                        style="padding: 6px 10px; background: #0b1329; border: 1px solid #334155; color: #38bdf8; border-radius: 6px; font-size: 0.85rem; font-weight: 700;"
+                                        style="padding: 5px 8px; background: #0b1329; border: 1px solid #334155; color: #38bdf8; border-radius: 6px; font-size: 0.82rem; font-weight: 700;"
                                         title="Manually Set Departure Time">
                                 </div>
                             </div>
 
                             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <div id="planImportStatusBadge"
-                                    style="display: none; align-items: center; gap: 8px; font-size: 0.85rem; color: #4ade80; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; padding: 6px 12px; border-radius: 6px;">
+                                    style="display: none; align-items: center; gap: 6px; font-size: 0.82rem; color: #4ade80; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; padding: 5px 10px; border-radius: 6px;">
                                     <i class="fa-solid fa-circle-check"></i> <span id="planImportStatusText">Poloxy ERP Orders Loaded</span>
                                 </div>
                                 <button type="button" id="btnReloadSavedPlan" class="btn btn-outline btn-sm" onclick="loadSavedPlanForCurrentSelection()"
-                                    style="display: none; border-color: #38bdf8; color: #38bdf8; font-size: 0.82rem; font-weight: 700; background: rgba(56, 189, 248, 0.12);">
+                                    style="display: none; border-color: #38bdf8; color: #38bdf8; font-size: 0.8rem; font-weight: 700; background: rgba(56, 189, 248, 0.12);">
                                     <i class="fa-solid fa-rotate"></i> <span id="planSavedPillText">Plan Available • Load</span>
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Depot Fleet Capacity & Spare Vans Real-Time Status Bar -->
-                        <div id="depotFleetStatusBar"
-                            style="padding: 10px 24px; background: rgba(11, 19, 41, 0.95); border-top: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.82rem;">
-                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered Depot Fleet: <strong id="barTotalFleet" style="color: #fff;">0 Vans</strong></span>
-                                <span style="color: #64748b;">|</span>
-                                <span style="color: #4ade80;"><i class="fa-solid fa-route"></i> Active Dispatched Vans: <strong id="barActiveVans">0</strong></span>
-                                <span style="color: #64748b;">|</span>
-                                <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle Vans Today: <strong id="barSpareVans">0</strong></span>
-                                <span style="color: #64748b;">|</span>
-                                <span style="color: #fbbf24;"><i class="fa-solid fa-key"></i> Rental / Borrowed: <strong id="barRentalVans">0</strong></span>
-                                <span style="color: #64748b;">|</span>
-                                <span style="color: #f97316;"><i class="fa-solid fa-screwdriver-wrench"></i> Under Maintenance/Repair: <strong id="barMaintenanceVans">0</strong></span>
+                    <!-- EXPANDABLE ROUTE PLANNER SETTINGS & CONTROLS ACCORDION -->
+                    <div id="routePlannerSettingsAccordion" class="route-settings-accordion" style="display: none; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding: 0 4px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-sliders"></i> ROUTE & DISTRIBUTION SETTINGS CONTROLS (ক্লিক করে ওপেন বা বন্ধ করুন)
+                            </span>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(true)" style="padding: 3px 8px; font-size: 0.75rem; border-color: #38bdf8; color: #38bdf8;">
+                                    <i class="fa-solid fa-angles-down"></i> Expand All
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(false)" style="padding: 3px 8px; font-size: 0.75rem; border-color: #94a3b8; color: #94a3b8;">
+                                    <i class="fa-solid fa-angles-up"></i> Collapse All
+                                </button>
                             </div>
-                            <div>
-                                <span id="barFleetAlertBadge" style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 0.78rem;">
-                                    <i class="fa-solid fa-circle-check"></i> Fleet Capacity Sufficient
-                                </span>
+                        </div>
+
+                        <!-- 1. Route & Distribution Settings Accordion Panel -->
+                        <div id="panelRouteDistSettings" class="route-settings-card route-settings-accordion-panel open">
+                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelRouteDistSettings')">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-route text-cyan" style="font-size: 1.1rem;"></i>
+                                    <div>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">1. Route & Distribution Configuration (রুট ও ডিস্ট্রিবিউশন সেটিংস)</strong>
+                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Route balancing rules, shift departure schedules & auto-distribution logic</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">
+                                        <i class="fa-solid fa-circle-check"></i> Active
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
+                                </div>
+                            </div>
+                            <div class="route-settings-body accordion-body" style="display: block;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                                        <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
+                                            style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Rebalance Across Active Vans
+                                        </button>
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="openMasterFleetModal('routes')"
+                                            style="border-color: #3b82f6; color: #60a5fa; padding: 7px 12px; font-weight: 700; font-size: 0.82rem;">
+                                            <i class="fa-solid fa-map-location-dot"></i> Manage Route Master Zones
+                                        </button>
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #94a3b8;">
+                                        <i class="fa-solid fa-info-circle text-cyan"></i> Orders are automatically grouped by zone distance, vehicle volume limits and weight capacities.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Fleet & Vehicle Capacity Master Panel -->
+                        <div id="panelFleetCapacitySettings" class="route-settings-card route-settings-accordion-panel open">
+                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelFleetCapacitySettings')">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-truck-front text-amber" style="font-size: 1.1rem;"></i>
+                                    <div>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">2. Fleet Capacity & Vehicle Management (ফ্লিট ও ভেহিকল ক্যাপাসিটি)</strong>
+                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Registered fleet capacity, rental vehicles, borrow vehicles & maintenance status</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span id="barFleetAlertBadge" style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem;">
+                                        <i class="fa-solid fa-circle-check"></i> Fleet Capacity Sufficient
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
+                                </div>
+                            </div>
+                            <div class="route-settings-body accordion-body" style="display: block;">
+                                <!-- Real-time Status Bar -->
+                                <div id="depotFleetStatusBar"
+                                    style="padding: 10px 16px; background: rgba(11, 19, 41, 0.85); border: 1px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.82rem; margin-bottom: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                                        <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered Fleet: <strong id="barTotalFleet" style="color: #fff;">0 Vans</strong></span>
+                                        <span style="color: #64748b;">|</span>
+                                        <span style="color: #4ade80;"><i class="fa-solid fa-route"></i> Dispatched: <strong id="barActiveVans">0</strong></span>
+                                        <span style="color: #64748b;">|</span>
+                                        <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle: <strong id="barSpareVans">0</strong></span>
+                                        <span style="color: #64748b;">|</span>
+                                        <span style="color: #fbbf24;"><i class="fa-solid fa-key"></i> Rental / Borrowed: <strong id="barRentalVans">0</strong></span>
+                                        <span style="color: #64748b;">|</span>
+                                        <span style="color: #f97316;"><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance: <strong id="barMaintenanceVans">0</strong></span>
+                                    </div>
+                                </div>
+                                <!-- Fleet Action Buttons -->
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openRentalVanModal()"
+                                        style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 7px 14px; font-weight: 800; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
+                                        <i class="fa-solid fa-key"></i> + Add Rental Van
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openMasterFleetModal('borrow')"
+                                        style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border: none; padding: 7px 14px; font-weight: 700; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);">
+                                        <i class="fa-solid fa-handshake"></i> 🔄 Borrow Van from Neighbor
+                                    </button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="openMasterFleetModal('routes')"
+                                        style="border-color: #3b82f6; color: #60a5fa; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
+                                        <i class="fa-solid fa-sliders"></i> ⚙️ Fleet & Route Master Directory
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Data Import, Excel & Plan History Panel -->
+                        <div id="panelImportHistorySettings" class="route-settings-card route-settings-accordion-panel open">
+                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelImportHistorySettings')">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-file-excel text-green" style="font-size: 1.1rem;"></i>
+                                    <div>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">3. Data Import, Excel & Plan History (ডাটা ইমপোর্ট ও এক্সেল টুলস)</strong>
+                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">1-click Poloxy ERP import, blank Excel template, offline route upload & history</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Excel Tools
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
+                                </div>
+                            </div>
+                            <div class="route-settings-body accordion-body" style="display: block;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="downloadUniversalRouteTemplate()"
+                                            style="border-color: #38bdf8; color: #38bdf8; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
+                                            <i class="fa-solid fa-cloud-arrow-down"></i> Download Blank Template (.xlsx)
+                                        </button>
+                                        <input type="file" id="routePlanBulkFileInput" accept=".xlsx, .xls" style="display: none;"
+                                            onchange="handleRoutePlanBulkUpload(event)">
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="triggerRoutePlanBulkFileSelect()"
+                                            style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 7px 14px; font-weight: 700; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Route Plan Excel
+                                        </button>
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="openPlanHistoryModal()"
+                                            style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border-color: #6366f1; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
+                                            <i class="fa-solid fa-clock-rotate-left"></i> 📅 Plan History Archive
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="clearActiveRoutePlan()"
+                                            style="border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1); padding: 7px 12px; font-weight: 700; font-size: 0.82rem;">
+                                            <i class="fa-solid fa-trash-can"></i> 🧹 Reset / Clear Plan
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Dispatch, Printing & Reconciliation Panel -->
+                        <div id="panelDispatchPrintSettings" class="route-settings-card route-settings-accordion-panel open">
+                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelDispatchPrintSettings')">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-paper-plane text-green" style="font-size: 1.1rem;"></i>
+                                    <div>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">4. Dispatch, Print Run-Sheets & Reconciliation (ডিসপ্যাচ ও প্রিন্ট সেটিংস)</strong>
+                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Local draft saving, printable A4 run sheets & automatic Daily Entry synchronization</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">
+                                        <i class="fa-solid fa-truck-fast"></i> Dispatch Controls
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
+                                </div>
+                            </div>
+                            <div class="route-settings-body accordion-body" style="display: block;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="savePlanAsDraftLocally()"
+                                            style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 7px 14px; font-weight: 700; font-size: 0.82rem;"
+                                            title="Save current route plan without dispatching">
+                                            <i class="fa-solid fa-floppy-disk"></i> Save Draft
+                                        </button>
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="printAllVanRunSheets()"
+                                            style="border-color: #f59e0b; color: #fbbf24; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
+                                            <i class="fa-solid fa-print"></i> Print Run Sheets
+                                        </button>
+                                        <button type="button" class="btn btn-outline btn-sm" onclick="transferPlanToDailyEntryForm()"
+                                            style="border-color: #a855f7; color: #c084fc; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
+                                            <i class="fa-solid fa-clipboard-list"></i> Transfer to Daily Entry
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm" onclick="submitAndDispatchRoutePlan()"
+                                            style="background: linear-gradient(135deg, #10b981, #047857); color: #fff; padding: 8px 18px; font-weight: 800; font-size: 0.85rem; border-radius: 6px; border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                            <i class="fa-solid fa-paper-plane"></i> Final Submit & Dispatch
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2475,6 +2966,72 @@
 
                 <!-- TAB 3: INCHARGES & DEPOTS DIRECTORY (ADMIN ONLY) -->
                 <section id="settings-tab" class="tab-pane">
+
+                    <!-- CARD: APP APPEARANCE & THEME SETTINGS (LIGHT / DARK MODE) -->
+                    <div class="card" style="margin-bottom: 24px; border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card);">
+                        <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 16px 22px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #1e3a8a, #2563eb); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; box-shadow: 0 0 15px rgba(37, 99, 235, 0.35);">
+                                    <i class="fa-solid fa-palette"></i>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                        App Appearance & Theme Settings (ডার্ক ও লাইট মোড সেটিংস)
+                                    </h3>
+                                    <p style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0;">
+                                        Switch between Dark Mode and Light Mode with instant preview and browser storage persistence.
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="badge" id="currentThemeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: 700;">
+                                    <i class="fa-solid fa-moon"></i> Dark Theme Active
+                                </span>
+                            </div>
+                        </div>
+                        <div style="padding: 20px 24px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                                <!-- Dark Mode Selector Card -->
+                                <div id="themePreviewDark" onclick="setTheme('dark')" style="cursor: pointer; padding: 16px; border-radius: 10px; border: 2px solid #38bdf8; background: #0f172a; transition: all 0.2s ease; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <i class="fa-solid fa-moon text-cyan" style="font-size: 1.2rem;"></i>
+                                            <strong style="color: #fff; font-size: 1rem;">Dark Mode (ডিফল্ট ডার্ক মোড)</strong>
+                                        </div>
+                                        <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;">Standard</span>
+                                    </div>
+                                    <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; margin-bottom: 12px;">
+                                        High-contrast dark slate cockpit designed for night shifts, low eye fatigue, and high-impact logistics telemetry.
+                                    </p>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="flex: 1; height: 8px; background: #0b1329; border-radius: 4px; border: 1px solid #334155;"></span>
+                                        <span style="flex: 1; height: 8px; background: #2563eb; border-radius: 4px;"></span>
+                                        <span style="flex: 1; height: 8px; background: #22c55e; border-radius: 4px;"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Light Mode Selector Card -->
+                                <div id="themePreviewLight" onclick="setTheme('light')" style="cursor: pointer; padding: 16px; border-radius: 10px; border: 2px solid #cbd5e1; background: #f8fafc; transition: all 0.2s ease;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <i class="fa-solid fa-sun text-amber" style="font-size: 1.2rem;"></i>
+                                            <strong style="color: #0f172a; font-size: 1rem;">Light Mode (লাইট মোড)</strong>
+                                        </div>
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #d97706; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;">Daylight</span>
+                                    </div>
+                                    <p style="font-size: 0.8rem; color: #475569; line-height: 1.4; margin-bottom: 12px;">
+                                        Crisp, clean white theme optimized for bright daylight environments, outdoor audits, and office desktop monitors.
+                                    </p>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="flex: 1; height: 8px; background: #ffffff; border-radius: 4px; border: 1px solid #cbd5e1;"></span>
+                                        <span style="flex: 1; height: 8px; background: #2563eb; border-radius: 4px;"></span>
+                                        <span style="flex: 1; height: 8px; background: #16a34a; border-radius: 4px;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="card-header" style="justify-content:space-between;">
                             <div class="card-title">
@@ -3251,8 +3808,159 @@
                 return_reasons: []
             };
 
+            // ================= THEME MANAGEMENT (LIGHT / DARK) =================
+            function initTheme() {
+                try {
+                    const savedTheme = localStorage.getItem('paragon_theme') || 'dark';
+                    setTheme(savedTheme, false);
+                } catch(e) {
+                    console.error('Error initializing theme:', e);
+                }
+            }
+            window.initTheme = initTheme;
+
+            function toggleTheme() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme, true);
+            }
+            window.toggleTheme = toggleTheme;
+
+            function setTheme(theme, showToastMsg = true) {
+                document.documentElement.setAttribute('data-theme', theme);
+                if (theme === 'light') {
+                    document.documentElement.classList.add('light-theme');
+                    if (document.body) document.body.classList.add('light-theme');
+                } else {
+                    document.documentElement.classList.remove('light-theme');
+                    if (document.body) document.body.classList.remove('light-theme');
+                }
+                try {
+                    localStorage.setItem('paragon_theme', theme);
+                } catch(e) {}
+                updateThemeUI(theme);
+                if (showToastMsg && typeof showToast === 'function') {
+                    showToast(`✨ ${theme === 'light' ? 'Light Mode' : 'Dark Mode'} Activated!`);
+                }
+            }
+            window.setTheme = setTheme;
+
+            function updateThemeUI(theme) {
+                const isLight = theme === 'light';
+                const toggleBtn = document.getElementById('themeToggleBtn');
+                const toggleIcon = document.getElementById('themeToggleIcon');
+                const toggleText = document.getElementById('themeToggleText');
+                const toggleText2 = document.getElementById('themeToggleText2');
+                const currentThemeBadge = document.getElementById('currentThemeBadge');
+
+                if (toggleIcon && toggleText) {
+                    if (isLight) {
+                        toggleIcon.className = 'fa-solid fa-moon';
+                        toggleIcon.style.color = '#38bdf8';
+                        toggleText.textContent = 'Dark Mode';
+                    } else {
+                        toggleIcon.className = 'fa-solid fa-sun';
+                        toggleIcon.style.color = '#f59e0b';
+                        toggleText.textContent = 'Light Mode';
+                    }
+                }
+                if (toggleText2) {
+                    toggleText2.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+                }
+                if (currentThemeBadge) {
+                    if (isLight) {
+                        currentThemeBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+                        currentThemeBadge.style.color = '#d97706';
+                        currentThemeBadge.style.borderColor = '#f59e0b';
+                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-sun"></i> Light Theme Active';
+                    } else {
+                        currentThemeBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+                        currentThemeBadge.style.color = '#38bdf8';
+                        currentThemeBadge.style.borderColor = '#0284c7';
+                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-moon"></i> Dark Theme Active';
+                    }
+                }
+
+                // Update settings tab visual preview cards
+                const darkCard = document.getElementById('themePreviewDark');
+                const lightCard = document.getElementById('themePreviewLight');
+                if (darkCard && lightCard) {
+                    if (isLight) {
+                        lightCard.style.borderColor = '#2563eb';
+                        lightCard.style.boxShadow = '0 0 15px rgba(37, 99, 235, 0.35)';
+                        darkCard.style.borderColor = '#cbd5e1';
+                        darkCard.style.boxShadow = 'none';
+                    } else {
+                        darkCard.style.borderColor = '#38bdf8';
+                        darkCard.style.boxShadow = '0 0 15px rgba(56, 189, 248, 0.35)';
+                        lightCard.style.borderColor = '#cbd5e1';
+                        lightCard.style.boxShadow = 'none';
+                    }
+                }
+            }
+            window.updateThemeUI = updateThemeUI;
+
+            // ================= ROUTE PLANNER ACCORDION CONTROLS =================
+            function toggleRouteSettingsCenter() {
+                const acc = document.getElementById('routePlannerSettingsAccordion');
+                const icon = document.getElementById('routeSettingsMasterIcon');
+                const btnText = document.getElementById('routeSettingsBtnText');
+                if (!acc) return;
+                const isHidden = acc.style.display === 'none' || !acc.style.display;
+                if (isHidden) {
+                    acc.style.display = 'flex';
+                    if (icon) icon.style.transform = 'rotate(180deg)';
+                    if (btnText) btnText.textContent = '⚙️ Close Settings';
+                } else {
+                    acc.style.display = 'none';
+                    if (icon) icon.style.transform = 'rotate(0deg)';
+                    if (btnText) btnText.textContent = '⚙️ Settings & Options';
+                }
+            }
+            window.toggleRouteSettingsCenter = toggleRouteSettingsCenter;
+
+            function toggleRouteSettingsPanel(panelId) {
+                const panel = document.getElementById(panelId);
+                if (!panel) return;
+                const body = panel.querySelector('.accordion-body');
+                const icon = panel.querySelector('.accordion-chevron');
+                if (!body) return;
+                const isClosed = body.style.display === 'none';
+                if (isClosed) {
+                    body.style.display = 'block';
+                    if (icon) icon.style.transform = 'rotate(180deg)';
+                    panel.classList.add('open');
+                } else {
+                    body.style.display = 'none';
+                    if (icon) icon.style.transform = 'rotate(0deg)';
+                    panel.classList.remove('open');
+                }
+            }
+            window.toggleRouteSettingsPanel = toggleRouteSettingsPanel;
+
+            function toggleAllRouteSettings(expand) {
+                const panels = document.querySelectorAll('.route-settings-accordion-panel');
+                panels.forEach(panel => {
+                    const body = panel.querySelector('.accordion-body');
+                    const icon = panel.querySelector('.accordion-chevron');
+                    if (body) {
+                        body.style.display = expand ? 'block' : 'none';
+                    }
+                    if (icon) {
+                        icon.style.transform = expand ? 'rotate(180deg)' : 'rotate(0deg)';
+                    }
+                    if (expand) {
+                        panel.classList.add('open');
+                    } else {
+                        panel.classList.remove('open');
+                    }
+                });
+            }
+            window.toggleAllRouteSettings = toggleAllRouteSettings;
+
             // ================= INITIALIZATION =================
             document.addEventListener('DOMContentLoaded', async () => {
+                initTheme();
                 initDatePicker();
                 initTabs();
                 await checkCurrentUser();
