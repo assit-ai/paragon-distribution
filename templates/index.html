@@ -1411,13 +1411,177 @@
         }
 
         /* -------------------------------------------------------------
-           COMPREHENSIVE LIGHT THEME OVERRIDES (HIGH CONTRAST & CRISP UI)
+           COMPREHENSIVE LIGHT THEME (DAY MODE / ডে মুড) HIGH CONTRAST & CRISP UI
            ------------------------------------------------------------- */
-        [data-theme="light"] body,
-        html.light-theme body,
-        body.light-theme {
-            background-color: var(--bg-primary) !important;
-            color: var(--text-main) !important;
+        [data-theme="light"], html.light-theme, body.light-theme {
+            --bg-primary: #f0f4f9;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --border-color: #cbd5e1;
+            --border-subtle: #e2e8f0;
+
+            --primary-blue: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent-cyan: #0284c7;
+            --accent-green: #15803d;
+            --accent-red: #dc2626;
+            --accent-amber: #b45309;
+
+            --text-main: #0f172a;
+            --text-muted: #334155;
+            --text-dim: #475569;
+
+            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Light Mode Global Text and Headings */
+        [data-theme="light"] body, html.light-theme body, body.light-theme {
+            background-color: #f0f4f9 !important;
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3, 
+        [data-theme="light"] h4, [data-theme="light"] h5, [data-theme="light"] h6,
+        [data-theme="light"] strong, [data-theme="light"] b,
+        html.light-theme h1, html.light-theme h2, html.light-theme h3, 
+        html.light-theme h4, html.light-theme h5, html.light-theme h6,
+        html.light-theme strong, html.light-theme b,
+        body.light-theme h1, body.light-theme h2, body.light-theme h3, 
+        body.light-theme h4, body.light-theme h5, body.light-theme h6,
+        body.light-theme strong, body.light-theme b {
+            color: #0f172a !important;
+        }
+
+        /* Eliminate Low-Contrast White Text on Light Backgrounds */
+        [data-theme="light"] [style*="color: #fff"],
+        [data-theme="light"] [style*="color: #f8fafc"],
+        [data-theme="light"] [style*="color:#fff"],
+        [data-theme="light"] [style*="color:#f8fafc"],
+        [data-theme="light"] [style*="color: white"],
+        html.light-theme [style*="color: #fff"],
+        html.light-theme [style*="color: #f8fafc"],
+        html.light-theme [style*="color:#fff"],
+        html.light-theme [style*="color:#f8fafc"],
+        html.light-theme [style*="color: white"],
+        body.light-theme [style*="color: #fff"],
+        body.light-theme [style*="color: #f8fafc"],
+        body.light-theme [style*="color:#fff"],
+        body.light-theme [style*="color:#f8fafc"],
+        body.light-theme [style*="color: white"] {
+            color: #0f172a !important;
+        }
+
+        /* High-contrast secondary and muted text in Light Mode */
+        [data-theme="light"] [style*="color: #94a3b8"],
+        [data-theme="light"] [style*="color:#94a3b8"],
+        [data-theme="light"] [style*="color: #cbd5e1"],
+        [data-theme="light"] [style*="color:#cbd5e1"],
+        html.light-theme [style*="color: #94a3b8"],
+        html.light-theme [style*="color:#94a3b8"],
+        html.light-theme [style*="color: #cbd5e1"],
+        html.light-theme [style*="color:#cbd5e1"],
+        body.light-theme [style*="color: #94a3b8"],
+        body.light-theme [style*="color:#94a3b8"],
+        body.light-theme [style*="color: #cbd5e1"],
+        body.light-theme [style*="color:#cbd5e1"] {
+            color: #475569 !important;
+        }
+
+        /* High-contrast Accent Colors for Light Mode */
+        [data-theme="light"] .text-cyan,
+        [data-theme="light"] [style*="color: #38bdf8"],
+        [data-theme="light"] [style*="color:#38bdf8"],
+        html.light-theme .text-cyan,
+        html.light-theme [style*="color: #38bdf8"],
+        html.light-theme [style*="color:#38bdf8"],
+        body.light-theme .text-cyan,
+        body.light-theme [style*="color: #38bdf8"],
+        body.light-theme [style*="color:#38bdf8"] {
+            color: #0284c7 !important;
+        }
+
+        [data-theme="light"] .text-amber,
+        [data-theme="light"] [style*="color: #fbbf24"],
+        [data-theme="light"] [style*="color: #facc15"],
+        [data-theme="light"] [style*="color: #f59e0b"],
+        [data-theme="light"] [style*="color:#fbbf24"],
+        [data-theme="light"] [style*="color:#facc15"],
+        [data-theme="light"] [style*="color:#f59e0b"],
+        html.light-theme .text-amber,
+        html.light-theme [style*="color: #fbbf24"],
+        html.light-theme [style*="color: #facc15"],
+        html.light-theme [style*="color: #f59e0b"],
+        html.light-theme [style*="color:#fbbf24"],
+        html.light-theme [style*="color:#facc15"],
+        html.light-theme [style*="color:#f59e0b"],
+        body.light-theme .text-amber,
+        body.light-theme [style*="color: #fbbf24"],
+        body.light-theme [style*="color: #facc15"],
+        body.light-theme [style*="color: #f59e0b"],
+        body.light-theme [style*="color:#fbbf24"],
+        body.light-theme [style*="color:#facc15"],
+        body.light-theme [style*="color:#f59e0b"] {
+            color: #b45309 !important;
+        }
+
+        [data-theme="light"] .text-green,
+        [data-theme="light"] [style*="color: #4ade80"],
+        [data-theme="light"] [style*="color: #34d399"],
+        [data-theme="light"] [style*="color: #22c55e"],
+        [data-theme="light"] [style*="color:#4ade80"],
+        [data-theme="light"] [style*="color:#34d399"],
+        [data-theme="light"] [style*="color:#22c55e"],
+        html.light-theme .text-green,
+        html.light-theme [style*="color: #4ade80"],
+        html.light-theme [style*="color: #34d399"],
+        html.light-theme [style*="color: #22c55e"],
+        html.light-theme [style*="color:#4ade80"],
+        html.light-theme [style*="color:#34d399"],
+        html.light-theme [style*="color:#22c55e"],
+        body.light-theme .text-green,
+        body.light-theme [style*="color: #4ade80"],
+        body.light-theme [style*="color: #34d399"],
+        body.light-theme [style*="color: #22c55e"],
+        body.light-theme [style*="color:#4ade80"],
+        body.light-theme [style*="color:#34d399"],
+        body.light-theme [style*="color:#22c55e"] {
+            color: #15803d !important;
+        }
+
+        [data-theme="light"] [style*="color: #c084fc"],
+        [data-theme="light"] [style*="color: #a78bfa"],
+        [data-theme="light"] [style*="color:#c084fc"],
+        [data-theme="light"] [style*="color:#a78bfa"],
+        html.light-theme [style*="color: #c084fc"],
+        html.light-theme [style*="color: #a78bfa"],
+        html.light-theme [style*="color:#c084fc"],
+        html.light-theme [style*="color:#a78bfa"],
+        body.light-theme [style*="color: #c084fc"],
+        body.light-theme [style*="color: #a78bfa"],
+        body.light-theme [style*="color:#c084fc"],
+        body.light-theme [style*="color:#a78bfa"] {
+            color: #7c3aed !important;
+        }
+
+        [data-theme="light"] [style*="color: #f87171"],
+        [data-theme="light"] [style*="color:#f87171"],
+        html.light-theme [style*="color: #f87171"],
+        html.light-theme [style*="color:#f87171"],
+        body.light-theme [style*="color: #f87171"],
+        body.light-theme [style*="color:#f87171"] {
+            color: #dc2626 !important;
+        }
+
+        /* Light Mode Cards, Navbar and Containers */
+        [data-theme="light"] .card,
+        html.light-theme .card,
+        body.light-theme .card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
+            color: #0f172a !important;
         }
 
         [data-theme="light"] .top-navbar,
@@ -1428,16 +1592,12 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
         }
 
-        [data-theme="light"] .brand-text h1,
-        html.light-theme .brand-text h1,
-        body.light-theme .brand-text h1 {
-            color: #0f172a !important;
-        }
-
-        [data-theme="light"] .brand-text p,
-        html.light-theme .brand-text p,
-        body.light-theme .brand-text p {
-            color: #64748b !important;
+        [data-theme="light"] .user-auth-bar,
+        html.light-theme .user-auth-bar,
+        body.light-theme .user-auth-bar {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
         }
 
         [data-theme="light"] .nav-tabs,
@@ -1457,7 +1617,7 @@
         html.light-theme .nav-tab:hover,
         body.light-theme .nav-tab:hover {
             color: #0f172a !important;
-            background: rgba(0, 0, 0, 0.06) !important;
+            background: #ffffff !important;
         }
 
         [data-theme="light"] .nav-tab.active,
@@ -1465,107 +1625,90 @@
         body.light-theme .nav-tab.active {
             background: #2563eb !important;
             color: #ffffff !important;
-            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
         }
 
-        [data-theme="light"] .user-auth-bar,
-        html.light-theme .user-auth-bar,
-        body.light-theme .user-auth-bar {
+        /* Light Mode Inputs, Selects & Textareas */
+        [data-theme="light"] input,
+        [data-theme="light"] select,
+        [data-theme="light"] textarea,
+        html.light-theme input,
+        html.light-theme select,
+        html.light-theme textarea,
+        body.light-theme input,
+        body.light-theme select,
+        body.light-theme textarea {
             background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
         }
 
-        [data-theme="light"] #userDisplayName,
-        html.light-theme #userDisplayName,
-        body.light-theme #userDisplayName {
+        [data-theme="light"] input:focus,
+        [data-theme="light"] select:focus,
+        [data-theme="light"] textarea:focus,
+        html.light-theme input:focus,
+        html.light-theme select:focus,
+        html.light-theme textarea:focus,
+        body.light-theme input:focus,
+        body.light-theme select:focus,
+        body.light-theme textarea:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+        }
+
+        [data-theme="light"] input::placeholder,
+        html.light-theme input::placeholder,
+        body.light-theme input::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* Light Mode Tables */
+        [data-theme="light"] .data-table,
+        html.light-theme .data-table,
+        body.light-theme .data-table {
             color: #1e293b !important;
         }
 
-        [data-theme="light"] .auto-refresh-widget,
-        html.light-theme .auto-refresh-widget,
-        body.light-theme .auto-refresh-widget {
-            background: #ffffff !important;
+        [data-theme="light"] .data-table th,
+        html.light-theme .data-table th,
+        body.light-theme .data-table th {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+            font-weight: 700 !important;
+        }
+
+        [data-theme="light"] .data-table td,
+        html.light-theme .data-table td,
+        body.light-theme .data-table td {
+            border-color: #e2e8f0 !important;
+            color: #1e293b !important;
+        }
+
+        [data-theme="light"] .data-table tbody tr:hover,
+        html.light-theme .data-table tbody tr:hover,
+        body.light-theme .data-table tbody tr:hover {
+            background: #f8fafc !important;
+        }
+
+        [data-theme="light"] .data-table tfoot,
+        [data-theme="light"] .data-table tfoot tr,
+        html.light-theme .data-table tfoot,
+        html.light-theme .data-table tfoot tr,
+        body.light-theme .data-table tfoot,
+        body.light-theme .data-table tfoot tr {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
             border-color: #cbd5e1 !important;
         }
 
-        [data-theme="light"] .card,
-        html.light-theme .card,
-        body.light-theme .card {
-            background: #ffffff !important;
-            border-color: #e2e8f0 !important;
-            color: #0f172a !important;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
-        }
-
-        [data-theme="light"] .card-header,
-        html.light-theme .card-header,
-        body.light-theme .card-header {
-            background: #f8fafc !important;
-            border-color: #e2e8f0 !important;
-            color: #0f172a !important;
-        }
-
-        [data-theme="light"] .card-title,
-        html.light-theme .card-title,
-        body.light-theme .card-title {
-            color: #0f172a !important;
-        }
-
-        [data-theme="light"] .dashboard-filter-bar,
-        html.light-theme .dashboard-filter-bar,
-        body.light-theme .dashboard-filter-bar {
-            background: #ffffff !important;
-            border-color: #e2e8f0 !important;
-        }
-
-        [data-theme="light"] .filter-group label,
-        html.light-theme .filter-group label,
-        body.light-theme .filter-group label {
-            color: #334155 !important;
-        }
-
+        /* Light Mode KPI Cards */
         [data-theme="light"] .kpi-card,
         html.light-theme .kpi-card,
         body.light-theme .kpi-card {
             background: #ffffff !important;
-            border-color: #e2e8f0 !important;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05) !important;
-        }
-
-        [data-theme="light"] .kpi-card.card-cyan,
-        html.light-theme .kpi-card.card-cyan,
-        body.light-theme .kpi-card.card-cyan {
-            background: linear-gradient(135deg, #ffffff, #f0f9ff) !important;
-            border-color: #bae6fd !important;
-        }
-
-        [data-theme="light"] .kpi-card.card-green,
-        html.light-theme .kpi-card.card-green,
-        body.light-theme .kpi-card.card-green {
-            background: linear-gradient(135deg, #ffffff, #f0fdf4) !important;
-            border-color: #bbf7d0 !important;
-        }
-
-        [data-theme="light"] .kpi-card.card-red,
-        html.light-theme .kpi-card.card-red,
-        body.light-theme .kpi-card.card-red {
-            background: linear-gradient(135deg, #ffffff, #fef2f2) !important;
-            border-color: #fecaca !important;
-        }
-
-        [data-theme="light"] .kpi-card.card-amber,
-        html.light-theme .kpi-card.card-amber,
-        body.light-theme .kpi-card.card-amber {
-            background: linear-gradient(135deg, #ffffff, #fffbeb) !important;
-            border-color: #fde68a !important;
-        }
-
-        [data-theme="light"] .kpi-card.card-blue,
-        html.light-theme .kpi-card.card-blue,
-        body.light-theme .kpi-card.card-blue {
-            background: linear-gradient(135deg, #ffffff, #eff6ff) !important;
-            border-color: #bfdbfe !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
         }
 
         [data-theme="light"] .kpi-header,
@@ -1587,69 +1730,7 @@
             border-color: #f1f5f9 !important;
         }
 
-        [data-theme="light"] .data-table,
-        html.light-theme .data-table,
-        body.light-theme .data-table {
-            color: #1e293b !important;
-        }
-
-        [data-theme="light"] .data-table th,
-        html.light-theme .data-table th,
-        body.light-theme .data-table th {
-            background: #f1f5f9 !important;
-            color: #1e293b !important;
-            border-color: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] .data-table td,
-        html.light-theme .data-table td,
-        body.light-theme .data-table td {
-            border-color: #f1f5f9 !important;
-            color: #1e293b !important;
-        }
-
-        [data-theme="light"] .data-table tbody tr:hover,
-        html.light-theme .data-table tbody tr:hover,
-        body.light-theme .data-table tbody tr:hover {
-            background: #f8fafc !important;
-        }
-
-        [data-theme="light"] .data-table tfoot,
-        html.light-theme .data-table tfoot,
-        body.light-theme .data-table tfoot {
-            background: #f1f5f9 !important;
-            color: #0f172a !important;
-            border-color: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] input,
-        [data-theme="light"] select,
-        [data-theme="light"] textarea,
-        html.light-theme input,
-        html.light-theme select,
-        html.light-theme textarea,
-        body.light-theme input,
-        body.light-theme select,
-        body.light-theme textarea {
-            background: #ffffff !important;
-            color: #0f172a !important;
-            border-color: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] input:focus,
-        [data-theme="light"] select:focus,
-        [data-theme="light"] textarea:focus,
-        html.light-theme input:focus,
-        html.light-theme select:focus,
-        html.light-theme textarea:focus,
-        body.light-theme input:focus,
-        body.light-theme select:focus,
-        body.light-theme textarea:focus {
-            border-color: #2563eb !important;
-            background: #ffffff !important;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
-        }
-
+        /* Light Mode Modals */
         [data-theme="light"] .modal-content,
         html.light-theme .modal-content,
         body.light-theme .modal-content {
@@ -1677,6 +1758,166 @@
             filter: none !important;
         }
 
+        /* Light Mode Overrides for Route Planner & Dispatch Surfaces */
+        [data-theme="light"] #plan-tab .card,
+        html.light-theme #plan-tab .card,
+        body.light-theme #plan-tab .card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] #plan-tab .card > div:first-child[style*="linear-gradient"],
+        html.light-theme #plan-tab .card > div:first-child[style*="linear-gradient"],
+        body.light-theme #plan-tab .card > div:first-child[style*="linear-gradient"] {
+            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+        }
+
+        [data-theme="light"] #plan-tab div[style*="background: rgba(15, 23, 42, 0.8)"],
+        html.light-theme #plan-tab div[style*="background: rgba(15, 23, 42, 0.8)"],
+        body.light-theme #plan-tab div[style*="background: rgba(15, 23, 42, 0.8)"] {
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+        }
+
+        [data-theme="light"] #depotFleetStatusBar,
+        html.light-theme #depotFleetStatusBar,
+        body.light-theme #depotFleetStatusBar {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        [data-theme="light"] #activeVansToolbar,
+        html.light-theme #activeVansToolbar,
+        body.light-theme #activeVansToolbar {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        [data-theme="light"] .van-planning-card,
+        html.light-theme .van-planning-card,
+        body.light-theme .van-planning-card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        [data-theme="light"] .van-card-header,
+        html.light-theme .van-card-header,
+        body.light-theme .van-card-header {
+            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+        }
+
+        [data-theme="light"] .van-collapsed-summary,
+        html.light-theme .van-collapsed-summary,
+        body.light-theme .van-collapsed-summary {
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+            color: #334155 !important;
+        }
+
+        [data-theme="light"] #plan-tab div[style*="linear-gradient(135deg, #0f172a, #1e293b)"],
+        html.light-theme #plan-tab div[style*="linear-gradient(135deg, #0f172a, #1e293b)"],
+        body.light-theme #plan-tab div[style*="linear-gradient(135deg, #0f172a, #1e293b)"] {
+            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] #plan-tab .kpi-card[style*="background: rgba(15, 23, 42, 0.6)"],
+        html.light-theme #plan-tab .kpi-card[style*="background: rgba(15, 23, 42, 0.6)"],
+        body.light-theme #plan-tab .kpi-card[style*="background: rgba(15, 23, 42, 0.6)"] {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03) !important;
+        }
+
+        [data-theme="light"] #plan-tab div[style*="linear-gradient(135deg, #0b1329, #1e293b)"],
+        html.light-theme #plan-tab div[style*="linear-gradient(135deg, #0b1329, #1e293b)"],
+        body.light-theme #plan-tab div[style*="linear-gradient(135deg, #0b1329, #1e293b)"] {
+            background: linear-gradient(135deg, #f0fdf4, #ffffff) !important;
+            border-color: #10b981 !important;
+        }
+
+        [data-theme="light"] #plan-tab div[style*="border-top: 1px dashed rgba(100, 116, 139, 0.5)"],
+        html.light-theme #plan-tab div[style*="border-top: 1px dashed rgba(100, 116, 139, 0.5)"],
+        body.light-theme #plan-tab div[style*="border-top: 1px dashed rgba(100, 116, 139, 0.5)"] {
+            color: #334155 !important;
+            border-top: 1px dashed #cbd5e1 !important;
+        }
+
+        /* Light Mode Login View */
+        [data-theme="light"] #loginView .card,
+        html.light-theme #loginView .card,
+        body.light-theme #loginView .card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        [data-theme="light"] #loginView .card > div:first-child,
+        html.light-theme #loginView .card > div:first-child,
+        body.light-theme #loginView .card > div:first-child {
+            background: #f8fafc !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+
+        [data-theme="light"] #loginView div[style*="background: rgba(56, 189, 248, 0.08)"],
+        html.light-theme #loginView div[style*="background: rgba(56, 189, 248, 0.08)"],
+        body.light-theme #loginView div[style*="background: rgba(56, 189, 248, 0.08)"] {
+            background: #eff6ff !important;
+            border-color: #bfdbfe !important;
+        }
+
+        [data-theme="light"] #loginView label,
+        html.light-theme #loginView label,
+        body.light-theme #loginView label {
+            color: #334155 !important;
+        }
+
+        /* -------------------------------------------------------------
+           THEME SWITCH PILL & DAY/NIGHT BUTTON STYLES
+           ------------------------------------------------------------- */
+        .theme-switch-btn {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1.5px solid #38bdf8;
+            color: #38bdf8;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-weight: 700;
+            font-size: 0.84rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .theme-switch-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+            background: rgba(56, 189, 248, 0.18);
+        }
+
+        [data-theme="light"] .theme-switch-btn,
+        html.light-theme .theme-switch-btn,
+        body.light-theme .theme-switch-btn {
+            background: #f1f5f9 !important;
+            border-color: #0284c7 !important;
+            color: #0284c7 !important;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.12) !important;
+        }
+
+        [data-theme="light"] .theme-switch-btn:hover,
+        html.light-theme .theme-switch-btn:hover,
+        body.light-theme .theme-switch-btn:hover {
+            background: #e0f2fe !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
+        }
+
         /* -------------------------------------------------------------
            ROUTE PLANNER SETTINGS ACCORDION STYLES
            ------------------------------------------------------------- */
@@ -1685,6 +1926,12 @@
             flex-direction: column;
             gap: 12px;
             margin-bottom: 20px;
+            animation: fadeInAccordion 0.25s ease;
+        }
+
+        @keyframes fadeInAccordion {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .route-settings-card {
@@ -1736,9 +1983,55 @@
         }
 
         .accordion-chevron {
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--accent-cyan);
             font-size: 0.95rem;
+        }
+
+        .accordion-chevron.collapsed,
+        .route-settings-card:not(.open) .accordion-chevron {
+            transform: rotate(0deg) !important;
+        }
+
+        .accordion-chevron.expanded,
+        .route-settings-card.open .accordion-chevron {
+            transform: rotate(180deg) !important;
+        }
+
+        /* -------------------------------------------------------------
+           VAN CARD COLLAPSIBLE STYLES & CONTROLS
+           ------------------------------------------------------------- */
+        .van-planning-card {
+            background: #0f172a;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+            transition: all 0.25s ease;
+        }
+
+        .van-card-header {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            padding: 14px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .van-outlets-collapse-container {
+            transition: all 0.3s ease;
+        }
+
+        .van-collapse-toggle-btn {
+            transition: all 0.2s ease;
+        }
+
+        .van-collapse-toggle-btn:hover {
+            transform: scale(1.03);
         }
     </style>
 </head>
@@ -1753,7 +2046,19 @@
             style="min-height: 85vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
             <div class="card"
                 style="width: 100%; max-width: 520px; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius-lg); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9); overflow: hidden;">
-                <div style="background: #1e293b; padding: 24px; text-align: center; border-bottom: 1px solid #334155;">
+                <div style="background: #1e293b; padding: 18px 24px 22px; text-align: center; border-bottom: 1px solid #334155; position: relative;">
+                    <!-- Login Theme & Mode Switch Pill -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.72rem; padding: 3px 10px; border-radius: 12px; font-weight: 700; letter-spacing: 0.5px;">
+                            <i class="fa-solid fa-shield-halved"></i> SECURE ACCESS
+                        </span>
+                        <button type="button" onclick="toggleTheme()" id="loginThemeToggleBtn" class="theme-switch-btn"
+                            style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700;"
+                            title="Toggle Light (Day) / Dark (Night) Mode">
+                            <i class="fa-solid fa-sun" id="loginThemeToggleIcon" style="color: #f59e0b;"></i>
+                            <span id="loginThemeToggleText">ডে মুড (Day)</span>
+                        </button>
+                    </div>
                     <div
                         style="width: 56px; height: 56px; margin: 0 auto 12px; background: linear-gradient(135deg, #1e3a8a, #2563eb); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff; box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);">
                         <i class="fa-solid fa-truck-ramp-box"></i>
@@ -1889,12 +2194,11 @@
                         <label for="filterDate"><i class="fa-regular fa-calendar"></i> Date:</label>
                         <input type="date" id="filterDate">
                     </div>
-                    <!-- Quick Theme Toggle Button -->
-                    <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="btn btn-outline"
-                        style="border-color: #38bdf8; color: #38bdf8; padding: 7px 12px; font-weight: 700; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.1);"
-                        title="Toggle Light / Dark Mode">
-                        <i class="fa-solid fa-sun" id="themeToggleIcon" style="color: #f59e0b;"></i>
-                        <span id="themeToggleText">Light Mode</span>
+                    <!-- Quick Theme Toggle Switch (Day / Night Mode) -->
+                    <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="theme-switch-btn"
+                        title="Switch between Light (Day) and Dark (Night) Mode">
+                        <i class="fa-solid fa-sun" id="themeToggleIcon" style="color: #f59e0b; font-size: 0.95rem;"></i>
+                        <span id="themeToggleText">ডে মুড (Light)</span>
                     </button>
                     <a href="/api/export/excel" id="exportBtn" class="btn btn-export" title="Download Master Distribution Excel Report">
                         <i class="fa-solid fa-file-excel"></i> Excel Report
@@ -2312,11 +2616,12 @@
                                 <input type="file" id="topPoloxyFileInput" accept=".xlsx, .xls" style="display: none;"
                                     onchange="handleTopPoloxyFileSelect(event)">
 
-                                <!-- Toggle Route Settings Accordion Button -->
+                                <!-- Toggle Route Settings Accordion Button (Expand / Collapse) -->
                                 <button type="button" class="btn" id="btnToggleRouteSettings" onclick="toggleRouteSettingsCenter()"
-                                    style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: #fff; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+                                    style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: #fff; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
                                     title="Click to Expand or Collapse Route Planner & Distribution Settings Options">
-                                    <i class="fa-solid fa-sliders"></i> <span id="routeSettingsBtnText">⚙️ Settings & Options</span>
+                                    <i class="fa-solid fa-sliders"></i> <span id="routeSettingsBtnText">⚙️ রুট ও ডিসপ্যাচ অপশনস</span>
+                                    <span id="routeSettingsBadge" style="background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 10px; font-size: 0.74rem;">৪টি অপশন ▾</span>
                                     <i class="fa-solid fa-chevron-down" id="routeSettingsMasterIcon" style="transition: transform 0.3s ease;"></i>
                                 </button>
 
@@ -2398,16 +2703,16 @@
 
                     <!-- EXPANDABLE ROUTE PLANNER SETTINGS & CONTROLS ACCORDION -->
                     <div id="routePlannerSettingsAccordion" class="route-settings-accordion" style="display: none; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding: 0 4px;">
-                            <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-sliders"></i> ROUTE & DISTRIBUTION SETTINGS CONTROLS (ক্লিক করে ওপেন বা বন্ধ করুন)
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 0 4px;">
+                            <span style="font-size: 0.88rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-sliders"></i> রুট ও ডিসপ্যাচ সেটিংস অপশনস (ক্লিক করে ওপেন বা বন্ধ করুন)
                             </span>
                             <div style="display: flex; gap: 8px;">
-                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(true)" style="padding: 3px 8px; font-size: 0.75rem; border-color: #38bdf8; color: #38bdf8;">
-                                    <i class="fa-solid fa-angles-down"></i> Expand All
+                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(true)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8; font-weight: 700;">
+                                    <i class="fa-solid fa-angles-down"></i> সব অপশন খুলুন (Expand All)
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(false)" style="padding: 3px 8px; font-size: 0.75rem; border-color: #94a3b8; color: #94a3b8;">
-                                    <i class="fa-solid fa-angles-up"></i> Collapse All
+                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(false)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #94a3b8; color: #94a3b8; font-weight: 700;">
+                                    <i class="fa-solid fa-angles-up"></i> সব অপশন বন্ধ করুন (Collapse All)
                                 </button>
                             </div>
                         </div>
@@ -2616,6 +2921,25 @@
                         </div>
                     </div>
 
+                    <!-- ACTIVE VANS EXPAND / COLLAPSE CONTROL TOOLBAR -->
+                    <div id="activeVansToolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 10px 18px; background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fa-solid fa-truck-moving text-cyan" style="font-size: 1.1rem;"></i>
+                            <strong style="font-size: 0.92rem; color: #f8fafc;">একটিভ ডেলিভারি ভ্যানসমূহ (Active Dispatch Vans)</strong>
+                            <span id="activeVansCountBadge" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.76rem; padding: 2px 8px; border-radius: 10px; font-weight: 700;">
+                                0 Vans
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllVans(true)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8; font-weight: 700;" title="Expand all vans to see outlet lists">
+                                <i class="fa-solid fa-angles-down"></i> সবগুলো ভ্যান খুলুন (Expand All)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllVans(false)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #94a3b8; color: #94a3b8; font-weight: 700;" title="Collapse all vans to compact executive view">
+                                <i class="fa-solid fa-angles-up"></i> সবগুলো ভ্যান সংক্ষেপ করুন (Collapse All)
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Active Vehicles / Vans Grid Container -->
                     <div id="activeVansContainer">
                         <!-- Populated dynamically: Van 1, Van 2, Van 3 cards -->
@@ -2625,16 +2949,23 @@
                     <div class="card"
                         style="margin-top: 24px; background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius-lg); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
                         <div
-                            style="padding: 18px 24px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between;">
+                            style="padding: 16px 24px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <i class="fa-solid fa-calculator text-cyan" style="font-size: 1.2rem;"></i>
                                 <h4 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0;">DEPOT DAY
                                     GRAND DISPATCH TOTALS</h4>
                             </div>
-                            <span class="badge-verified"><i class="fa-solid fa-shield-halved"></i> 100% Pre-Dispatch
-                                Audit Ready</span>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="badge-verified"><i class="fa-solid fa-shield-halved"></i> 100% Pre-Dispatch Audit Ready</span>
+                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleGrandTotalsCockpit()" id="btnToggleGrandTotals"
+                                    style="border-color: #38bdf8; color: #38bdf8; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"
+                                    title="Click to Expand or Collapse Grand Totals">
+                                    <span id="grandTotalsToggleLabel">সংক্ষেপ / কলাপ্স</span>
+                                    <i class="fa-solid fa-chevron-up" id="grandTotalsChevron"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div
+                        <div id="grandTotalsGridWrap"
                             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; padding: 20px 24px;">
                             <div class="kpi-card"
                                 style="background: rgba(15, 23, 42, 0.6); padding: 14px; border-radius: 8px; border: 1px solid #334155;">
@@ -2687,27 +3018,35 @@
 
                     <!-- FINAL DISPATCH & SUBMISSION ACTION COCKPIT -->
                     <div class="card"
-                        style="margin-top: 20px; background: linear-gradient(135deg, #0b1329, #1e293b); border: 2px solid #10b981; border-radius: var(--radius-lg); padding: 22px 26px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                            <div style="display: flex; align-items: center; gap: 16px;">
+                        style="margin-top: 20px; background: linear-gradient(135deg, #0b1329, #1e293b); border: 2px solid #10b981; border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
                                 <div
-                                    style="width: 52px; height: 52px; background: rgba(16, 185, 129, 0.2); border: 1.5px solid #10b981; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #10b981;">
+                                    style="width: 46px; height: 46px; background: rgba(16, 185, 129, 0.2); border: 1.5px solid #10b981; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #10b981;">
                                     <i class="fa-solid fa-truck-fast"></i>
                                 </div>
                                 <div>
-                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0;">FINAL PLAN DISPATCH & SUBMISSION</h3>
-                                        <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-size: 0.78rem; font-weight: 800; padding: 2px 10px; border-radius: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 2px;">
+                                        <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0;">FINAL PLAN DISPATCH & SUBMISSION</h3>
+                                        <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-size: 0.76rem; font-weight: 800; padding: 2px 9px; border-radius: 12px;">
                                             <i class="fa-solid fa-circle-check"></i> READY FOR DISPATCH
                                         </span>
                                     </div>
-                                    <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">
+                                    <p style="font-size: 0.82rem; color: #94a3b8; margin: 0;">
                                         Plan your vehicle deliveries with confidence. Save draft anytime or submit for official dispatch.
                                     </p>
                                 </div>
                             </div>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleFinalDispatchCockpit()" id="btnToggleFinalDispatch"
+                                style="border-color: #10b981; color: #34d399; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"
+                                title="Click to Expand or Collapse Final Dispatch Controls">
+                                <span id="finalDispatchToggleLabel">সংক্ষেপ / কলাপ্স</span>
+                                <i class="fa-solid fa-chevron-up" id="finalDispatchChevron"></i>
+                            </button>
+                        </div>
 
-                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div id="finalDispatchBodyWrap">
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
                                 <div style="display: flex; flex-direction: column; align-items: center;">
                                     <button type="button" class="btn btn-outline" onclick="savePlanAsDraftLocally()"
                                         style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 11px 18px; font-weight: 700; font-size: 0.88rem; border-radius: 8px;"
@@ -2759,6 +3098,7 @@
                                 </div>
                             </div>
                         </div>
+                        </div> <!-- end finalDispatchBodyWrap -->
                     </div>
                 </section>
 
@@ -3808,7 +4148,7 @@
                 return_reasons: []
             };
 
-            // ================= THEME MANAGEMENT (LIGHT / DARK) =================
+            // ================= THEME MANAGEMENT (LIGHT / DARK / DAY MODE) =================
             function initTheme() {
                 try {
                     const savedTheme = localStorage.getItem('paragon_theme') || 'dark';
@@ -3840,13 +4180,31 @@
                 } catch(e) {}
                 updateThemeUI(theme);
                 if (showToastMsg && typeof showToast === 'function') {
-                    showToast(`✨ ${theme === 'light' ? 'Light Mode' : 'Dark Mode'} Activated!`);
+                    showToast(`✨ ${theme === 'light' ? '☀️ ডে মুড (Light Mode)' : '🌙 ডার্ক মুড (Dark Mode)'} সক্রিয় করা হয়েছে!`);
                 }
             }
             window.setTheme = setTheme;
 
             function updateThemeUI(theme) {
                 const isLight = theme === 'light';
+                
+                // Login View theme toggle
+                const loginToggleBtn = document.getElementById('loginThemeToggleBtn');
+                const loginToggleIcon = document.getElementById('loginThemeToggleIcon');
+                const loginToggleText = document.getElementById('loginThemeToggleText');
+                if (loginToggleIcon && loginToggleText) {
+                    if (isLight) {
+                        loginToggleIcon.className = 'fa-solid fa-moon';
+                        loginToggleIcon.style.color = '#0284c7';
+                        loginToggleText.textContent = 'ডার্ক মুড (Night)';
+                    } else {
+                        loginToggleIcon.className = 'fa-solid fa-sun';
+                        loginToggleIcon.style.color = '#f59e0b';
+                        loginToggleText.textContent = 'ডে মুড (Day)';
+                    }
+                }
+
+                // Top Navbar theme toggle
                 const toggleBtn = document.getElementById('themeToggleBtn');
                 const toggleIcon = document.getElementById('themeToggleIcon');
                 const toggleText = document.getElementById('themeToggleText');
@@ -3856,12 +4214,18 @@
                 if (toggleIcon && toggleText) {
                     if (isLight) {
                         toggleIcon.className = 'fa-solid fa-moon';
-                        toggleIcon.style.color = '#38bdf8';
-                        toggleText.textContent = 'Dark Mode';
+                        toggleIcon.style.color = '#0284c7';
+                        toggleText.textContent = 'ডার্ক মুড (Dark)';
+                        if (toggleBtn) {
+                            toggleBtn.title = 'Switch to Dark (Night) Mode';
+                        }
                     } else {
                         toggleIcon.className = 'fa-solid fa-sun';
                         toggleIcon.style.color = '#f59e0b';
-                        toggleText.textContent = 'Light Mode';
+                        toggleText.textContent = 'ডে মুড (Light)';
+                        if (toggleBtn) {
+                            toggleBtn.title = 'Switch to Light (Day) Mode';
+                        }
                     }
                 }
                 if (toggleText2) {
@@ -3869,15 +4233,15 @@
                 }
                 if (currentThemeBadge) {
                     if (isLight) {
-                        currentThemeBadge.style.background = 'rgba(245, 158, 11, 0.15)';
-                        currentThemeBadge.style.color = '#d97706';
-                        currentThemeBadge.style.borderColor = '#f59e0b';
-                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-sun"></i> Light Theme Active';
+                        currentThemeBadge.style.background = 'rgba(2, 132, 199, 0.12)';
+                        currentThemeBadge.style.color = '#0284c7';
+                        currentThemeBadge.style.borderColor = '#0284c7';
+                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-sun"></i> ডে মুড (Light Theme Active)';
                     } else {
                         currentThemeBadge.style.background = 'rgba(56, 189, 248, 0.15)';
                         currentThemeBadge.style.color = '#38bdf8';
                         currentThemeBadge.style.borderColor = '#0284c7';
-                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-moon"></i> Dark Theme Active';
+                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-moon"></i> ডার্ক মুড (Dark Theme Active)';
                     }
                 }
 
@@ -3905,16 +4269,19 @@
                 const acc = document.getElementById('routePlannerSettingsAccordion');
                 const icon = document.getElementById('routeSettingsMasterIcon');
                 const btnText = document.getElementById('routeSettingsBtnText');
+                const badge = document.getElementById('routeSettingsBadge');
                 if (!acc) return;
                 const isHidden = acc.style.display === 'none' || !acc.style.display;
                 if (isHidden) {
                     acc.style.display = 'flex';
                     if (icon) icon.style.transform = 'rotate(180deg)';
-                    if (btnText) btnText.textContent = '⚙️ Close Settings';
+                    if (btnText) btnText.textContent = '⚙️ রুট অপশনস বন্ধ করুন';
+                    if (badge) badge.textContent = '৪টি অপশন খোলা ▴';
                 } else {
                     acc.style.display = 'none';
                     if (icon) icon.style.transform = 'rotate(0deg)';
-                    if (btnText) btnText.textContent = '⚙️ Settings & Options';
+                    if (btnText) btnText.textContent = '⚙️ রুট ও ডিসপ্যাচ অপশনস';
+                    if (badge) badge.textContent = '৪টি অপশন ▾';
                 }
             }
             window.toggleRouteSettingsCenter = toggleRouteSettingsCenter;
@@ -3955,8 +4322,101 @@
                         panel.classList.remove('open');
                     }
                 });
+                showToast(expand ? '📂 সবগুলো সেটিংস অপশন খোলা হয়েছে' : '📁 সবগুলো সেটিংস অপশন বন্ধ করা হয়েছে');
             }
             window.toggleAllRouteSettings = toggleAllRouteSettings;
+
+            // ================= DELIVERY VANS EXPAND / COLLAPSE TRACKING =================
+            const collapsedVanIds = new Set();
+            window.collapsedVanIds = collapsedVanIds;
+
+            function toggleVanCollapse(vanId) {
+                const wrap = document.getElementById(`vanOutletsWrap_${vanId}`);
+                const summary = document.getElementById(`vanCollapsedSummary_${vanId}`);
+                const chevron = document.getElementById(`vanCollapseChevron_${vanId}`);
+                const label = document.getElementById(`vanCollapseLabel_${vanId}`);
+                if (!wrap) return;
+
+                const isCollapsed = collapsedVanIds.has(vanId);
+                if (isCollapsed) {
+                    collapsedVanIds.delete(vanId);
+                    wrap.style.display = 'block';
+                    if (summary) summary.style.display = 'none';
+                    if (chevron) chevron.className = 'fa-solid fa-chevron-up';
+                    if (label) label.textContent = '▴ সংক্ষেপ করুন';
+                } else {
+                    collapsedVanIds.add(vanId);
+                    wrap.style.display = 'none';
+                    if (summary) summary.style.display = 'flex';
+                    if (chevron) chevron.className = 'fa-solid fa-chevron-down';
+                    if (label) {
+                        const van = (currentPlanData && currentPlanData.vans) ? currentPlanData.vans.find(v => v.id === vanId) : null;
+                        const dropCount = van && van.outlets ? van.outlets.length : 0;
+                        label.textContent = `▾ আউটলেট দেখুন (${dropCount} ড্রপ)`;
+                    }
+                }
+            }
+            window.toggleVanCollapse = toggleVanCollapse;
+
+            function toggleAllVans(expand) {
+                if (!currentPlanData || !currentPlanData.vans) return;
+                currentPlanData.vans.forEach(van => {
+                    if (expand) {
+                        collapsedVanIds.delete(van.id);
+                    } else {
+                        collapsedVanIds.add(van.id);
+                    }
+                    const wrap = document.getElementById(`vanOutletsWrap_${van.id}`);
+                    const summary = document.getElementById(`vanCollapsedSummary_${van.id}`);
+                    const chevron = document.getElementById(`vanCollapseChevron_${van.id}`);
+                    const label = document.getElementById(`vanCollapseLabel_${van.id}`);
+                    if (wrap) wrap.style.display = expand ? 'block' : 'none';
+                    if (summary) summary.style.display = expand ? 'none' : 'flex';
+                    if (chevron) chevron.className = expand ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+                    if (label) {
+                        const dropCount = van.outlets ? van.outlets.length : 0;
+                        label.textContent = expand ? '▴ সংক্ষেপ করুন' : `▾ আউটলেট দেখুন (${dropCount} ড্রপ)`;
+                    }
+                });
+                showToast(expand ? '📂 সবগুলো ভ্যানের ড্রপ তালিকা প্রসারিত করা হয়েছে' : '📁 সবগুলো ভ্যান সংক্ষেপ/মিনিমাইজ করা হয়েছে');
+            }
+            window.toggleAllVans = toggleAllVans;
+
+            function toggleGrandTotalsCockpit() {
+                const wrap = document.getElementById('grandTotalsGridWrap');
+                const chevron = document.getElementById('grandTotalsChevron');
+                const label = document.getElementById('grandTotalsToggleLabel');
+                if (!wrap) return;
+                const isHidden = wrap.style.display === 'none';
+                if (isHidden) {
+                    wrap.style.display = 'grid';
+                    if (chevron) chevron.className = 'fa-solid fa-chevron-up';
+                    if (label) label.textContent = 'সংক্ষেপ / কলাপ্স';
+                } else {
+                    wrap.style.display = 'none';
+                    if (chevron) chevron.className = 'fa-solid fa-chevron-down';
+                    if (label) label.textContent = 'টোটাল দেখুন (Show)';
+                }
+            }
+            window.toggleGrandTotalsCockpit = toggleGrandTotalsCockpit;
+
+            function toggleFinalDispatchCockpit() {
+                const wrap = document.getElementById('finalDispatchBodyWrap');
+                const chevron = document.getElementById('finalDispatchChevron');
+                const label = document.getElementById('finalDispatchToggleLabel');
+                if (!wrap) return;
+                const isHidden = wrap.style.display === 'none';
+                if (isHidden) {
+                    wrap.style.display = 'block';
+                    if (chevron) chevron.className = 'fa-solid fa-chevron-up';
+                    if (label) label.textContent = 'সংক্ষেপ / কলাপ্স';
+                } else {
+                    wrap.style.display = 'none';
+                    if (chevron) chevron.className = 'fa-solid fa-chevron-down';
+                    if (label) label.textContent = 'ডিসপ্যাচ অপশন খুলুন (Show)';
+                }
+            }
+            window.toggleFinalDispatchCockpit = toggleFinalDispatchCockpit;
 
             // ================= INITIALIZATION =================
             document.addEventListener('DOMContentLoaded', async () => {
@@ -12128,6 +12588,11 @@
                 const container = document.getElementById('activeVansContainer');
                 if (!container) return;
 
+                const vansBadge = document.getElementById('activeVansCountBadge');
+                if (vansBadge) {
+                    vansBadge.textContent = `${currentPlanData.vans.length} Vans`;
+                }
+
                 if (currentPlanData.vans.length === 0) {
                     container.innerHTML = `
                         <div class="card" style="padding: 40px; text-align: center; background: rgba(15, 23, 42, 0.6); border: 1px dashed #334155;">
@@ -12154,6 +12619,7 @@
                     const vanCapKg = parseFloat(van.capacity_kg) || 1500;
                     const loadPct = vanCapKg > 0 ? Math.round((totKg / vanCapKg) * 100) : 0;
                     const isOverloaded = loadPct > 100 || van.outlets.length > 20;
+                    const isCollapsed = collapsedVanIds.has(van.id);
 
                     const otherVans = currentPlanData.vans.filter(v => v.id !== van.id);
                     const moveOptions = otherVans.map(v => {
@@ -12166,14 +12632,14 @@
                     }).join('');
 
                     return `
-            <div class="card" style="margin-bottom: 20px; background: #0f172a; border: 1px solid ${isOverloaded ? '#f59e0b' : 'rgba(56, 189, 248, 0.35)'}; border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);">
-                <!-- Van Card Header -->
-                <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 14px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div class="card van-planning-card" id="vanCard_${van.id}" style="margin-bottom: 20px; border: 1px solid ${isOverloaded ? '#f59e0b' : 'rgba(56, 189, 248, 0.35)'}; border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);">
+                <!-- Van Card Header with Integrated Expand / Collapse Button -->
+                <div class="van-card-header" style="padding: 14px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                         <span style="background: ${van.is_rental ? '#d97706' : '#0284c7'}; color: #fff; font-weight: 800; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem;">
                             ${van.is_rental ? 'RENTAL VAN ' + (vIdx + 1) : 'VAN ' + (vIdx + 1)}
                         </span>
-                        <input type="text" value="${escapeHtml(van.vehicle_no)}" onchange="updateVanField('${van.id}', 'vehicle_no', this.value)" placeholder="Vehicle / Reg No" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.85rem; width: 145px;">
+                        <input type="text" class="van-header-input" value="${escapeHtml(van.vehicle_no)}" onchange="updateVanField('${van.id}', 'vehicle_no', this.value)" placeholder="Vehicle / Reg No" style="padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.85rem; width: 145px;">
                         
                         <!-- Route / Zone Display & Capacity Badge -->
                         <span style="background: ${isOverloaded ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.15)'}; border: 1px solid ${isOverloaded ? '#f59e0b' : '#10b981'}; color: ${isOverloaded ? '#fbbf24' : '#34d399'}; font-size: 0.76rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
@@ -12187,31 +12653,52 @@
                         <!-- Driver Selection with Phone Auto-Fill -->
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <i class="fa-solid fa-id-card text-cyan" style="font-size: 0.8rem;"></i>
-                            <input type="text" value="${escapeHtml(van.driver_name)}" onchange="onDriverNameChange('${van.id}', this.value)" placeholder="Driver Name" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 120px;">
-                            <input type="text" value="${escapeHtml(van.driver_mobile)}" onchange="updateVanField('${van.id}', 'driver_mobile', this.value)" placeholder="Driver Mobile" style="background: #0b1329; border: 1px solid #334155; color: #94a3b8; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 115px;">
+                            <input type="text" class="van-header-input" value="${escapeHtml(van.driver_name)}" onchange="onDriverNameChange('${van.id}', this.value)" placeholder="Driver Name" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 120px;">
+                            <input type="text" class="van-header-input" value="${escapeHtml(van.driver_mobile)}" onchange="updateVanField('${van.id}', 'driver_mobile', this.value)" placeholder="Driver Mobile" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 115px;">
                         </div>
                         <span style="color: #64748b;">|</span>
                         
                         <!-- Delivery Man Selection with Phone Auto-Fill -->
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <i class="fa-solid fa-person-walking-luggage text-green" style="font-size: 0.8rem;"></i>
-                            <input type="text" value="${escapeHtml(van.delivery_man)}" onchange="updateVanField('${van.id}', 'delivery_man', this.value)" placeholder="Delivery Man" style="background: #0b1329; border: 1px solid #334155; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 120px;">
-                            <input type="text" value="${escapeHtml(van.delivery_man_mobile)}" onchange="updateVanField('${van.id}', 'delivery_man_mobile', this.value)" placeholder="D.Man Mobile" style="background: #0b1329; border: 1px solid #334155; color: #94a3b8; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 115px;">
+                            <input type="text" class="van-header-input" value="${escapeHtml(van.delivery_man)}" onchange="updateVanField('${van.id}', 'delivery_man', this.value)" placeholder="Delivery Man" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 120px;">
+                            <input type="text" class="van-header-input" value="${escapeHtml(van.delivery_man_mobile)}" onchange="updateVanField('${van.id}', 'delivery_man_mobile', this.value)" placeholder="D.Man Mobile" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 115px;">
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="text" value="${escapeHtml(van.route_zone)}" onchange="updateVanField('${van.id}', 'route_zone', this.value)" placeholder="Route / Zone" style="background: #0b1329; border: 1px solid #334155; color: #38bdf8; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 160px;">
+                        <input type="text" class="van-header-input van-zone-input" value="${escapeHtml(van.route_zone)}" onchange="updateVanField('${van.id}', 'route_zone', this.value)" placeholder="Route / Zone" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 155px; color: #38bdf8; font-weight: 700;">
+                        
+                        <!-- Expand / Collapse Toggle Button for this Van -->
+                        <button type="button" class="btn btn-sm btn-outline van-collapse-toggle-btn" onclick="toggleVanCollapse('${van.id}')"
+                            id="vanCollapseBtn_${van.id}"
+                            style="border-color: #38bdf8; color: #38bdf8; font-weight: 700; padding: 4px 10px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;"
+                            title="Click to Expand or Collapse Outlets Table">
+                            <span id="vanCollapseLabel_${van.id}">${isCollapsed ? '▾ আউটলেট দেখুন (' + van.outlets.length + ' ড্রপ)' : '▴ সংক্ষেপ করুন'}</span>
+                            <i class="fa-solid fa-chevron-${isCollapsed ? 'down' : 'up'}" id="vanCollapseChevron_${van.id}"></i>
+                        </button>
+
                         <button type="button" class="btn btn-sm btn-outline" onclick="printVanRunSheet(${vIdx})" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700; padding: 4px 10px;" title="Print Delivery Run Sheet for this Van">
-                            <i class="fa-solid fa-print"></i> Print Run Sheet
+                            <i class="fa-solid fa-print"></i> Print
                         </button>
                         <button type="button" class="btn btn-sm btn-outline" onclick="deleteVan('${van.id}')" style="border-color: #ef4444; color: #f87171; font-weight: 700; padding: 4px 10px;" title="Delete this Van and return orders to Unassigned Pool">
-                            <i class="fa-solid fa-trash-can"></i> Delete Van
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Van Outlets Table -->
-                <div style="padding: 12px 16px; overflow-x: auto;">
+                <!-- Van Compact Executive Summary Strip (Shown when Collapsed) -->
+                <div id="vanCollapsedSummary_${van.id}" class="van-collapsed-summary" style="display: ${isCollapsed ? 'flex' : 'none'}; padding: 10px 20px; background: rgba(15, 23, 42, 0.45); border-top: 1px solid #334155; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 0.82rem;">
+                    <div>
+                        <i class="fa-solid fa-boxes-stacked text-cyan"></i> <strong class="text-cyan">${van.outlets.length} Outlets</strong> &bull; Total: <strong>${totPkt.toLocaleString()} ${uom.primaryUnit}</strong> | <strong class="text-green">${uom.isEgg ? '-' : totKg.toFixed(2) + ' ' + uom.secondaryUnit}</strong> (${loadPct}% Load)
+                    </div>
+                    <div style="display: flex; gap: 16px;">
+                        <span>Gross Value: <strong class="text-cyan">৳ ${totAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
+                        <span>Expected Cash: <strong class="text-amber">৳ ${totCash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
+                    </div>
+                </div>
+
+                <!-- Van Outlets Table Container (Expandable / Collapsible) -->
+                <div id="vanOutletsWrap_${van.id}" class="van-outlets-collapse-container" style="display: ${isCollapsed ? 'none' : 'block'}; padding: 12px 16px; overflow-x: auto;">
                     <table class="data-table" style="font-size: 0.82rem; width: 100%;">
                         <thead>
                             <tr>
@@ -12232,26 +12719,26 @@
                             ${van.outlets.map((ot, oIdx) => `
                                 <tr>
                                     <td>${oIdx + 1}</td>
-                                    <td><input type="text" value="${escapeHtml(ot.consignee_name)}" onchange="onOutletNameChange('${van.id}', ${oIdx}, this.value)" style="width: 100%; background: transparent; border: none; color: #fff; font-weight: 600;"></td>
+                                    <td><input type="text" class="van-outlet-name-input" value="${escapeHtml(ot.consignee_name)}" onchange="onOutletNameChange('${van.id}', ${oIdx}, this.value)" style="width: 100%;"></td>
                                     <td>
-                                        <input type="text" value="${escapeHtml(ot.order_no || '')}" onchange="updateOutletField('${van.id}', ${oIdx}, 'order_no', this.value)" placeholder="SO No" style="width: 105px; background: #0b1329; border: 1px solid #334155; color: #38bdf8; border-radius: 4px; padding: 3px 6px; font-family: monospace; font-size: 0.8rem; font-weight: 700;">
+                                        <input type="text" class="van-table-input van-order-input" value="${escapeHtml(ot.order_no || '')}" onchange="updateOutletField('${van.id}', ${oIdx}, 'order_no', this.value)" placeholder="SO No" style="width: 105px; padding: 3px 6px; font-family: monospace; font-size: 0.8rem; font-weight: 700;">
                                     </td>
                                     <td>
-                                        <input type="text" value="${escapeHtml(ot.delivery_note_id || '')}" onchange="updateOutletField('${van.id}', ${oIdx}, 'delivery_note_id', this.value)" placeholder="DN No" style="width: 105px; background: #0b1329; border: 1px solid #334155; color: #c084fc; border-radius: 4px; padding: 3px 6px; font-family: monospace; font-size: 0.8rem; font-weight: 700;">
+                                        <input type="text" class="van-table-input van-dn-input" value="${escapeHtml(ot.delivery_note_id || '')}" onchange="updateOutletField('${van.id}', ${oIdx}, 'delivery_note_id', this.value)" placeholder="DN No" style="width: 105px; padding: 3px 6px; font-family: monospace; font-size: 0.8rem; font-weight: 700;">
                                     </td>
-                                    <td style="text-align: right;"><input type="number" value="${ot.total_pkt}" onchange="updateOutletField('${van.id}', ${oIdx}, 'total_pkt', this.value)" style="width: 75px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 4px; padding: 2px 4px;"></td>
-                                    <td style="text-align: right;"><input type="number" step="0.01" value="${ot.total_kg}" onchange="updateOutletField('${van.id}', ${oIdx}, 'total_kg', this.value)" style="width: 70px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #34d399; border-radius: 4px; padding: 2px 4px;"></td>
-                                    <td style="text-align: right;"><input type="number" step="0.01" value="${ot.total_amount}" onchange="updateOutletField('${van.id}', ${oIdx}, 'total_amount', this.value)" style="width: 90px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #38bdf8; border-radius: 4px; padding: 2px 4px;"></td>
+                                    <td style="text-align: right;"><input type="number" class="van-table-input van-pkt-input" value="${ot.total_pkt}" onchange="updateOutletField('${van.id}', ${oIdx}, 'total_pkt', this.value)" style="width: 75px; text-align: right; padding: 2px 4px;"></td>
+                                    <td style="text-align: right;"><input type="number" step="0.01" class="van-table-input van-kg-input" value="${ot.total_kg}" onchange="updateOutletField('${van.id}', ${oIdx}, 'total_kg', this.value)" style="width: 70px; text-align: right; padding: 2px 4px;"></td>
+                                    <td style="text-align: right;"><input type="number" step="0.01" class="van-table-input van-amt-input" value="${ot.total_amount}" onchange="updateOutletField('${van.id}', ${oIdx}, 'total_amount', this.value)" style="width: 90px; text-align: right; padding: 2px 4px;"></td>
                                     <td style="text-align: center;">
-                                        <select onchange="updateOutletField('${van.id}', ${oIdx}, 'payment_mode', this.value)" style="padding: 2px 4px; background: #0b1329; border: 1px solid #334155; color: #fff; border-radius: 4px; font-size: 0.78rem;">
+                                        <select class="van-table-select van-pay-select" onchange="updateOutletField('${van.id}', ${oIdx}, 'payment_mode', this.value)" style="padding: 2px 4px; font-size: 0.78rem;">
                                             <option value="Credit" ${ot.payment_mode === 'Credit' ? 'selected' : ''}>Credit</option>
                                             <option value="Cash" ${ot.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
                                             <option value="Cheque" ${ot.payment_mode === 'Cheque' ? 'selected' : ''}>Cheque</option>
                                         </select>
                                     </td>
-                                    <td style="text-align: right;"><input type="number" step="0.01" value="${ot.expected_cash}" onchange="updateOutletField('${van.id}', ${oIdx}, 'expected_cash', this.value)" style="width: 80px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #fbbf24; border-radius: 4px; padding: 2px 4px;"></td>
+                                    <td style="text-align: right;"><input type="number" step="0.01" class="van-table-input van-cash-input" value="${ot.expected_cash}" onchange="updateOutletField('${van.id}', ${oIdx}, 'expected_cash', this.value)" style="width: 80px; text-align: right; padding: 2px 4px;"></td>
                                     <td>
-                                        <select onchange="moveOutletToAnotherVan('${van.id}', ${oIdx}, this.value)" style="padding: 3px 6px; background: #0b1329; border: 1px solid #334155; color: #38bdf8; border-radius: 4px; font-size: 0.75rem; width: 165px; font-weight: 600;">
+                                        <select class="van-table-select van-move-select" onchange="moveOutletToAnotherVan('${van.id}', ${oIdx}, this.value)" style="padding: 3px 6px; font-size: 0.75rem; width: 165px; font-weight: 600;">
                                             <option value="">⇄ Reassign Van...</option>
                                             ${moveOptions}
                                         </select>
@@ -12263,12 +12750,12 @@
                         </tbody>
                         <tfoot>
                             <tr style="background: rgba(30, 41, 59, 0.9); font-weight: 700; border-top: 1px solid #475569;">
-                                <td colspan="4" style="color: #38bdf8;">Van Subtotal (${van.outlets.length} Outlets):</td>
-                                <td style="text-align: right; color: #fff;">${totPkt.toLocaleString()} ${uom.primaryUnit}</td>
-                                <td style="text-align: right; color: #34d399;">${uom.isEgg ? '-' : totKg.toFixed(2) + ' ' + uom.secondaryUnit}</td>
-                                <td style="text-align: right; color: #38bdf8;">৳ ${totAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td colspan="4" class="text-cyan">Van Subtotal (${van.outlets.length} Outlets):</td>
+                                <td style="text-align: right; color: inherit;">${totPkt.toLocaleString()} ${uom.primaryUnit}</td>
+                                <td style="text-align: right;" class="text-green">${uom.isEgg ? '-' : totKg.toFixed(2) + ' ' + uom.secondaryUnit}</td>
+                                <td style="text-align: right;" class="text-cyan">৳ ${totAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                 <td></td>
-                                <td style="text-align: right; color: #fbbf24;">৳ ${totCash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td style="text-align: right;" class="text-amber">৳ ${totCash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                 <td colspan="2" style="text-align: right;">
                                     <button type="button" class="btn btn-sm" onclick="addManualOutletToVan('${van.id}')" style="background: #0284c7; color: #fff; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; border-radius: 4px;">
                                         <i class="fa-solid fa-plus"></i> Add Outlet
