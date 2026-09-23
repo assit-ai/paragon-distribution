@@ -1410,14 +1410,16 @@
             filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
 
-        /* -------------------------------------------------------------
-           COMPREHENSIVE LIGHT THEME (DAY MODE / ডে মুড) HIGH CONTRAST & CRISP UI
-           ------------------------------------------------------------- */
+                /* =============================================================
+           COMPREHENSIVE LIGHT THEME (DAYLIGHT HIGH-CONTRAST MODE)
+           100% Elimination of dark shadings, unreadable fonts, & inline dark backgrounds
+           ============================================================= */
         [data-theme="light"], html.light-theme, body.light-theme {
             --bg-primary: #f0f4f9;
             --bg-secondary: #ffffff;
             --bg-card: #ffffff;
             --bg-card-hover: #f8fafc;
+            --bg-surface-2: #f1f5f9;
             --border-color: #cbd5e1;
             --border-subtle: #e2e8f0;
 
@@ -1429,14 +1431,14 @@
             --accent-amber: #b45309;
 
             --text-main: #0f172a;
-            --text-muted: #334155;
-            --text-dim: #475569;
+            --text-muted: #475569;
+            --text-dim: #64748b;
 
-            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
-            --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.15);
+            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.12);
         }
 
-        /* Light Mode Global Text and Headings */
+        /* 1. Global Shell and Typography */
         [data-theme="light"] body, html.light-theme body, body.light-theme {
             background-color: #f0f4f9 !important;
             color: #0f172a !important;
@@ -1454,142 +1456,13 @@
             color: #0f172a !important;
         }
 
-        /* Eliminate Low-Contrast White Text on Light Backgrounds */
-        [data-theme="light"] [style*="color: #fff"],
-        [data-theme="light"] [style*="color: #f8fafc"],
-        [data-theme="light"] [style*="color:#fff"],
-        [data-theme="light"] [style*="color:#f8fafc"],
-        [data-theme="light"] [style*="color: white"],
-        html.light-theme [style*="color: #fff"],
-        html.light-theme [style*="color: #f8fafc"],
-        html.light-theme [style*="color:#fff"],
-        html.light-theme [style*="color:#f8fafc"],
-        html.light-theme [style*="color: white"],
-        body.light-theme [style*="color: #fff"],
-        body.light-theme [style*="color: #f8fafc"],
-        body.light-theme [style*="color:#fff"],
-        body.light-theme [style*="color:#f8fafc"],
-        body.light-theme [style*="color: white"] {
-            color: #0f172a !important;
-        }
-
-        /* High-contrast secondary and muted text in Light Mode */
-        [data-theme="light"] [style*="color: #94a3b8"],
-        [data-theme="light"] [style*="color:#94a3b8"],
-        [data-theme="light"] [style*="color: #cbd5e1"],
-        [data-theme="light"] [style*="color:#cbd5e1"],
-        html.light-theme [style*="color: #94a3b8"],
-        html.light-theme [style*="color:#94a3b8"],
-        html.light-theme [style*="color: #cbd5e1"],
-        html.light-theme [style*="color:#cbd5e1"],
-        body.light-theme [style*="color: #94a3b8"],
-        body.light-theme [style*="color:#94a3b8"],
-        body.light-theme [style*="color: #cbd5e1"],
-        body.light-theme [style*="color:#cbd5e1"] {
-            color: #475569 !important;
-        }
-
-        /* High-contrast Accent Colors for Light Mode */
-        [data-theme="light"] .text-cyan,
-        [data-theme="light"] [style*="color: #38bdf8"],
-        [data-theme="light"] [style*="color:#38bdf8"],
-        html.light-theme .text-cyan,
-        html.light-theme [style*="color: #38bdf8"],
-        html.light-theme [style*="color:#38bdf8"],
-        body.light-theme .text-cyan,
-        body.light-theme [style*="color: #38bdf8"],
-        body.light-theme [style*="color:#38bdf8"] {
-            color: #0284c7 !important;
-        }
-
-        [data-theme="light"] .text-amber,
-        [data-theme="light"] [style*="color: #fbbf24"],
-        [data-theme="light"] [style*="color: #facc15"],
-        [data-theme="light"] [style*="color: #f59e0b"],
-        [data-theme="light"] [style*="color:#fbbf24"],
-        [data-theme="light"] [style*="color:#facc15"],
-        [data-theme="light"] [style*="color:#f59e0b"],
-        html.light-theme .text-amber,
-        html.light-theme [style*="color: #fbbf24"],
-        html.light-theme [style*="color: #facc15"],
-        html.light-theme [style*="color: #f59e0b"],
-        html.light-theme [style*="color:#fbbf24"],
-        html.light-theme [style*="color:#facc15"],
-        html.light-theme [style*="color:#f59e0b"],
-        body.light-theme .text-amber,
-        body.light-theme [style*="color: #fbbf24"],
-        body.light-theme [style*="color: #facc15"],
-        body.light-theme [style*="color: #f59e0b"],
-        body.light-theme [style*="color:#fbbf24"],
-        body.light-theme [style*="color:#facc15"],
-        body.light-theme [style*="color:#f59e0b"] {
-            color: #b45309 !important;
-        }
-
-        [data-theme="light"] .text-green,
-        [data-theme="light"] [style*="color: #4ade80"],
-        [data-theme="light"] [style*="color: #34d399"],
-        [data-theme="light"] [style*="color: #22c55e"],
-        [data-theme="light"] [style*="color:#4ade80"],
-        [data-theme="light"] [style*="color:#34d399"],
-        [data-theme="light"] [style*="color:#22c55e"],
-        html.light-theme .text-green,
-        html.light-theme [style*="color: #4ade80"],
-        html.light-theme [style*="color: #34d399"],
-        html.light-theme [style*="color: #22c55e"],
-        html.light-theme [style*="color:#4ade80"],
-        html.light-theme [style*="color:#34d399"],
-        html.light-theme [style*="color:#22c55e"],
-        body.light-theme .text-green,
-        body.light-theme [style*="color: #4ade80"],
-        body.light-theme [style*="color: #34d399"],
-        body.light-theme [style*="color: #22c55e"],
-        body.light-theme [style*="color:#4ade80"],
-        body.light-theme [style*="color:#34d399"],
-        body.light-theme [style*="color:#22c55e"] {
-            color: #15803d !important;
-        }
-
-        [data-theme="light"] [style*="color: #c084fc"],
-        [data-theme="light"] [style*="color: #a78bfa"],
-        [data-theme="light"] [style*="color:#c084fc"],
-        [data-theme="light"] [style*="color:#a78bfa"],
-        html.light-theme [style*="color: #c084fc"],
-        html.light-theme [style*="color: #a78bfa"],
-        html.light-theme [style*="color:#c084fc"],
-        html.light-theme [style*="color:#a78bfa"],
-        body.light-theme [style*="color: #c084fc"],
-        body.light-theme [style*="color: #a78bfa"],
-        body.light-theme [style*="color:#c084fc"],
-        body.light-theme [style*="color:#a78bfa"] {
-            color: #7c3aed !important;
-        }
-
-        [data-theme="light"] [style*="color: #f87171"],
-        [data-theme="light"] [style*="color:#f87171"],
-        html.light-theme [style*="color: #f87171"],
-        html.light-theme [style*="color:#f87171"],
-        body.light-theme [style*="color: #f87171"],
-        body.light-theme [style*="color:#f87171"] {
-            color: #dc2626 !important;
-        }
-
-        /* Light Mode Cards, Navbar and Containers */
-        [data-theme="light"] .card,
-        html.light-theme .card,
-        body.light-theme .card {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
-            color: #0f172a !important;
-        }
-
+        /* 2. Top Navbar, User Auth Bar, & Tabs */
         [data-theme="light"] .top-navbar,
         html.light-theme .top-navbar,
         body.light-theme .top-navbar {
-            background: rgba(255, 255, 255, 0.96) !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+            background: #ffffff !important;
+            border-bottom: 1.5px solid #cbd5e1 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
         }
 
         [data-theme="light"] .user-auth-bar,
@@ -1600,45 +1473,102 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
         }
 
-        [data-theme="light"] .nav-tabs,
-        html.light-theme .nav-tabs,
-        body.light-theme .nav-tabs {
+        [data-theme="light"] .nav-tabs {
             background: #e2e8f0 !important;
             border-color: #cbd5e1 !important;
         }
 
-        [data-theme="light"] .nav-tab,
-        html.light-theme .nav-tab,
-        body.light-theme .nav-tab {
+        [data-theme="light"] .nav-tab {
             color: #475569 !important;
         }
 
-        [data-theme="light"] .nav-tab:hover,
-        html.light-theme .nav-tab:hover,
-        body.light-theme .nav-tab:hover {
+        [data-theme="light"] .nav-tab:hover {
             color: #0f172a !important;
             background: #ffffff !important;
         }
 
-        [data-theme="light"] .nav-tab.active,
-        html.light-theme .nav-tab.active,
-        body.light-theme .nav-tab.active {
+        [data-theme="light"] .nav-tab.active {
             background: #2563eb !important;
             color: #ffffff !important;
             box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
         }
 
-        /* Light Mode Inputs, Selects & Textareas */
-        [data-theme="light"] input,
+        /* 3. Cards, Panels, & Section Containers */
+        [data-theme="light"] .card,
+        [data-theme="light"] .van-planning-card,
+        [data-theme="light"] .route-settings-card,
+        [data-theme="light"] #plan-tab .card,
+        [data-theme="light"] .command-bar,
+        [data-theme="light"] .filter-bar,
+        [data-theme="light"] #activeVansToolbar,
+        [data-theme="light"] .reconciliation-box,
+        [data-theme="light"] .recon-banner {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* 4. Complete Overwrite for ANY inline dark background or shading */
+        [data-theme="light"] [style*="background: #0f172a"],
+        [data-theme="light"] [style*="background:#0f172a"],
+        [data-theme="light"] [style*="background: #0b1329"],
+        [data-theme="light"] [style*="background:#0b1329"],
+        [data-theme="light"] [style*="background: #070d1e"],
+        [data-theme="light"] [style*="background:#070d1e"],
+        [data-theme="light"] [style*="background: #1e293b"],
+        [data-theme="light"] [style*="background:#1e293b"],
+        [data-theme="light"] [style*="background: #111827"],
+        [data-theme="light"] [style*="background:#111827"],
+        [data-theme="light"] [style*="background:rgba(15, 23, 42"],
+        [data-theme="light"] [style*="background: rgba(15, 23, 42"],
+        [data-theme="light"] [style*="background:rgba(11, 19, 41"],
+        [data-theme="light"] [style*="background: rgba(11, 19, 41"],
+        [data-theme="light"] [style*="background:rgba(30, 41, 59"],
+        [data-theme="light"] [style*="background: rgba(30, 41, 59"],
+        [data-theme="light"] [style*="background:rgba(11, 17, 32"],
+        [data-theme="light"] [style*="background: rgba(11, 17, 32"],
+        [data-theme="light"] [style*="background-color: #0f172a"],
+        [data-theme="light"] [style*="background-color:#0f172a"],
+        [data-theme="light"] [style*="background-color: #0b1329"],
+        [data-theme="light"] [style*="background-color:#0b1329"],
+        [data-theme="light"] [style*="background-color: #1e293b"],
+        [data-theme="light"] [style*="background-color:#1e293b"] {
+            background-color: #ffffff !important;
+            background-image: none !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* Overwrite dark linear gradients to clean daylight surfaces */
+        [data-theme="light"] [style*="linear-gradient"][style*="#0f172a"],
+        [data-theme="light"] [style*="linear-gradient"][style*="#0b1329"],
+        [data-theme="light"] [style*="linear-gradient"][style*="#1e293b"] {
+            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* 5. Headers, Toolbars, & Sub-containers */
+        [data-theme="light"] .card-header,
+        [data-theme="light"] .route-settings-header,
+        [data-theme="light"] .van-card-header,
+        [data-theme="light"] .modal-header,
+        [data-theme="light"] .modal-footer,
+        [data-theme="light"] .van-collapsed-summary,
+        [data-theme="light"] #depotFleetStatusBar,
+        [data-theme="light"] #plan-tab .card > div:first-child[style*="linear-gradient"] {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* 6. Form Inputs, Selects, & Textareas in Light Mode */
+        [data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
         [data-theme="light"] select,
         [data-theme="light"] textarea,
-        html.light-theme input,
-        html.light-theme select,
-        html.light-theme textarea,
-        body.light-theme input,
-        body.light-theme select,
-        body.light-theme textarea {
-            background: #ffffff !important;
+        [data-theme="light"] .form-control {
+            background-color: #ffffff !important;
             color: #0f172a !important;
             border: 1.5px solid #cbd5e1 !important;
         }
@@ -1646,235 +1576,254 @@
         [data-theme="light"] input:focus,
         [data-theme="light"] select:focus,
         [data-theme="light"] textarea:focus,
-        html.light-theme input:focus,
-        html.light-theme select:focus,
-        html.light-theme textarea:focus,
-        body.light-theme input:focus,
-        body.light-theme select:focus,
-        body.light-theme textarea:focus {
+        [data-theme="light"] .form-control:focus {
             border-color: #2563eb !important;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
         }
 
+        [data-theme="light"] option {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+
         [data-theme="light"] input::placeholder,
-        html.light-theme input::placeholder,
-        body.light-theme input::placeholder {
+        [data-theme="light"] textarea::placeholder {
             color: #94a3b8 !important;
         }
 
-        /* Light Mode Tables */
-        [data-theme="light"] .data-table,
-        html.light-theme .data-table,
-        body.light-theme .data-table {
+        /* 7. High-Contrast Text Rules */
+        [data-theme="light"] label,
+        [data-theme="light"] .label,
+        [data-theme="light"] .text-muted,
+        [data-theme="light"] [style*="color: #94a3b8"],
+        [data-theme="light"] [style*="color:#94a3b8"],
+        [data-theme="light"] [style*="color: #64748b"],
+        [data-theme="light"] [style*="color:#64748b"],
+        [data-theme="light"] [style*="color: #475569"],
+        [data-theme="light"] [style*="color:#475569"] {
+            color: #475569 !important;
+        }
+
+        [data-theme="light"] [style*="color: #cbd5e1"],
+        [data-theme="light"] [style*="color:#cbd5e1"],
+        [data-theme="light"] [style*="color: #e2e8f0"],
+        [data-theme="light"] [style*="color:#e2e8f0"] {
+            color: #334155 !important;
+        }
+
+        /* Eliminate unreadable white text inside light containers */
+        [data-theme="light"] span[style*="color: #fff"]:not([class*="btn"]):not([class*="badge"]),
+        [data-theme="light"] span[style*="color:#fff"]:not([class*="btn"]):not([class*="badge"]),
+        [data-theme="light"] div[style*="color: #fff"]:not([class*="btn"]):not([class*="badge"]),
+        [data-theme="light"] div[style*="color:#fff"]:not([class*="btn"]):not([class*="badge"]),
+        [data-theme="light"] p[style*="color: #fff"],
+        [data-theme="light"] p[style*="color:#fff"],
+        [data-theme="light"] td[style*="color: #fff"],
+        [data-theme="light"] td[style*="color:#fff"],
+        [data-theme="light"] [style*="color: #f8fafc"]:not([class*="btn"]):not([class*="badge"]),
+        [data-theme="light"] [style*="color:#f8fafc"]:not([class*="btn"]):not([class*="badge"]),
+        [data-theme="light"] [style*="color: white"]:not([class*="btn"]):not([class*="badge"]) {
+            color: #0f172a !important;
+        }
+
+        /* High-contrast vivid accents in light mode */
+        [data-theme="light"] .text-cyan,
+        [data-theme="light"] [style*="color: #38bdf8"],
+        [data-theme="light"] [style*="color:#38bdf8"] {
+            color: #0284c7 !important;
+        }
+
+        [data-theme="light"] .text-amber,
+        [data-theme="light"] [style*="color: #fbbf24"],
+        [data-theme="light"] [style*="color: #f59e0b"],
+        [data-theme="light"] [style*="color:#fbbf24"],
+        [data-theme="light"] [style*="color:#f59e0b"] {
+            color: #b45309 !important;
+        }
+
+        [data-theme="light"] .text-green,
+        [data-theme="light"] [style*="color: #4ade80"],
+        [data-theme="light"] [style*="color: #34d399"],
+        [data-theme="light"] [style*="color: #22c55e"],
+        [data-theme="light"] [style*="color:#4ade80"],
+        [data-theme="light"] [style*="color:#34d399"],
+        [data-theme="light"] [style*="color:#22c55e"] {
+            color: #15803d !important;
+        }
+
+        [data-theme="light"] [style*="color: #f87171"],
+        [data-theme="light"] [style*="color:#f87171"],
+        [data-theme="light"] [style*="color: #ef4444"],
+        [data-theme="light"] [style*="color:#ef4444"] {
+            color: #dc2626 !important;
+        }
+
+        [data-theme="light"] [style*="color: #c084fc"],
+        [data-theme="light"] [style*="color:#c084fc"] {
+            color: #7c3aed !important;
+        }
+
+        /* 8. Solid Colored Action Buttons ALWAYS maintain 100% Crisp White Font */
+        [data-theme="light"] .btn-primary,
+        [data-theme="light"] .btn-success,
+        [data-theme="light"] .btn-danger,
+        [data-theme="light"] [class*="btn-primary"],
+        [data-theme="light"] [class*="btn-success"],
+        [data-theme="light"] [class*="btn-danger"],
+        [data-theme="light"] button[style*="background: #2563eb"],
+        [data-theme="light"] button[style*="background:#2563eb"],
+        [data-theme="light"] button[style*="background: #1d4ed8"],
+        [data-theme="light"] button[style*="background:#1d4ed8"],
+        [data-theme="light"] button[style*="background: #1e3a8a"],
+        [data-theme="light"] button[style*="background:#1e3a8a"],
+        [data-theme="light"] button[style*="background: #16a34a"],
+        [data-theme="light"] button[style*="background:#16a34a"],
+        [data-theme="light"] button[style*="background: #22c55e"],
+        [data-theme="light"] button[style*="background:#22c55e"],
+        [data-theme="light"] button[style*="background: #dc2626"],
+        [data-theme="light"] button[style*="background:#dc2626"],
+        [data-theme="light"] button[style*="background: #ef4444"],
+        [data-theme="light"] button[style*="background:#ef4444"],
+        [data-theme="light"] button[style*="background: #0284c7"],
+        [data-theme="light"] button[style*="background:#0284c7"],
+        [data-theme="light"] .badge-primary,
+        [data-theme="light"] .badge-success,
+        [data-theme="light"] .badge-danger {
+            color: #ffffff !important;
+        }
+
+        [data-theme="light"] .btn-primary *,
+        [data-theme="light"] .btn-success *,
+        [data-theme="light"] .btn-danger *,
+        [data-theme="light"] button[style*="background: #2563eb"] *,
+        [data-theme="light"] button[style*="background: #1d4ed8"] *,
+        [data-theme="light"] button[style*="background: #1e3a8a"] *,
+        [data-theme="light"] button[style*="background: #16a34a"] *,
+        [data-theme="light"] button[style*="background: #22c55e"] *,
+        [data-theme="light"] button[style*="background: #dc2626"] *,
+        [data-theme="light"] button[style*="background: #ef4444"] *,
+        [data-theme="light"] button[style*="background: #0284c7"] * {
+            color: #ffffff !important;
+        }
+
+        /* Secondary and Outline Buttons in Light Mode */
+        [data-theme="light"] .btn-secondary,
+        [data-theme="light"] .btn-outline {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
             color: #1e293b !important;
         }
 
+        [data-theme="light"] .btn-secondary:hover,
+        [data-theme="light"] .btn-outline:hover {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* 9. Tables in Light Mode */
+        [data-theme="light"] table,
+        [data-theme="light"] .data-table,
+        [data-theme="light"] .entry-table {
+            color: #1e293b !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] table th,
         [data-theme="light"] .data-table th,
-        html.light-theme .data-table th,
-        body.light-theme .data-table th {
-            background: #f1f5f9 !important;
+        [data-theme="light"] .entry-table th {
+            background-color: #f1f5f9 !important;
             color: #0f172a !important;
             border-color: #cbd5e1 !important;
             font-weight: 700 !important;
         }
 
+        [data-theme="light"] table td,
         [data-theme="light"] .data-table td,
-        html.light-theme .data-table td,
-        body.light-theme .data-table td {
+        [data-theme="light"] .entry-table td {
+            background-color: #ffffff !important;
             border-color: #e2e8f0 !important;
             color: #1e293b !important;
         }
 
-        [data-theme="light"] .data-table tbody tr:hover,
-        html.light-theme .data-table tbody tr:hover,
-        body.light-theme .data-table tbody tr:hover {
-            background: #f8fafc !important;
+        [data-theme="light"] table tr:nth-child(even) td,
+        [data-theme="light"] .data-table tbody tr:nth-child(even) td {
+            background-color: #f8fafc !important;
         }
 
-        [data-theme="light"] .data-table tfoot,
-        [data-theme="light"] .data-table tfoot tr,
-        html.light-theme .data-table tfoot,
-        html.light-theme .data-table tfoot tr,
-        body.light-theme .data-table tfoot,
-        body.light-theme .data-table tfoot tr {
-            background: #f1f5f9 !important;
+        [data-theme="light"] table tbody tr:hover td,
+        [data-theme="light"] .data-table tbody tr:hover td {
+            background-color: #f1f5f9 !important;
+        }
+
+        [data-theme="light"] table tfoot td,
+        [data-theme="light"] .data-table tfoot td {
+            background-color: #f1f5f9 !important;
             color: #0f172a !important;
+            font-weight: 700 !important;
             border-color: #cbd5e1 !important;
         }
 
-        /* Light Mode KPI Cards */
+        /* 10. KPI Cards & Stat Cockpit */
         [data-theme="light"] .kpi-card,
-        html.light-theme .kpi-card,
-        body.light-theme .kpi-card {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
+        [data-theme="light"] .stat-card,
+        [data-theme="light"] #plan-tab .kpi-card {
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
         }
 
-        [data-theme="light"] .kpi-header,
-        html.light-theme .kpi-header,
-        body.light-theme .kpi-header {
+        [data-theme="light"] .kpi-header {
             color: #475569 !important;
         }
 
-        [data-theme="light"] .kpi-val,
-        html.light-theme .kpi-val,
-        body.light-theme .kpi-val {
+        [data-theme="light"] .kpi-val {
             color: #0f172a !important;
         }
 
-        [data-theme="light"] .kpi-footer,
-        html.light-theme .kpi-footer,
-        body.light-theme .kpi-footer {
-            color: #64748b !important;
-            border-color: #f1f5f9 !important;
-        }
-
-        /* Light Mode Modals */
-        [data-theme="light"] .modal-content,
-        html.light-theme .modal-content,
-        body.light-theme .modal-content {
+        /* Grand Totals Section in Light Mode */
+        [data-theme="light"] #grandTotalsCard {
             background: #ffffff !important;
-            color: #0f172a !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
-        }
-
-        [data-theme="light"] .modal-header,
-        [data-theme="light"] .modal-footer,
-        html.light-theme .modal-header,
-        html.light-theme .modal-footer,
-        body.light-theme .modal-header,
-        body.light-theme .modal-footer {
-            background: #f8fafc !important;
-            border-color: #e2e8f0 !important;
-            color: #0f172a !important;
-        }
-
-        /* Leaflet Tiles Inversion filter disabled in Light mode */
-        [data-theme="light"] .dark-map-tiles .leaflet-tile-pane,
-        html.light-theme .dark-map-tiles .leaflet-tile-pane,
-        body.light-theme .dark-map-tiles .leaflet-tile-pane {
-            filter: none !important;
-        }
-
-        /* Light Mode Overrides for Route Planner & Dispatch Surfaces */
-        [data-theme="light"] #plan-tab .card,
-        html.light-theme #plan-tab .card,
-        body.light-theme #plan-tab .card {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] #plan-tab .card > div:first-child[style*="linear-gradient"],
-        html.light-theme #plan-tab .card > div:first-child[style*="linear-gradient"],
-        body.light-theme #plan-tab .card > div:first-child[style*="linear-gradient"] {
-            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
-            border-bottom: 1px solid #cbd5e1 !important;
-        }
-
-        [data-theme="light"] #plan-tab div[style*="background: rgba(15, 23, 42, 0.8)"],
-        html.light-theme #plan-tab div[style*="background: rgba(15, 23, 42, 0.8)"],
-        body.light-theme #plan-tab div[style*="background: rgba(15, 23, 42, 0.8)"] {
-            background: #f8fafc !important;
-            border-top: 1px solid #e2e8f0 !important;
-        }
-
-        [data-theme="light"] #depotFleetStatusBar,
-        html.light-theme #depotFleetStatusBar,
-        body.light-theme #depotFleetStatusBar {
-            background: #f8fafc !important;
-            border-color: #e2e8f0 !important;
-        }
-
-        [data-theme="light"] #activeVansToolbar,
-        html.light-theme #activeVansToolbar,
-        body.light-theme #activeVansToolbar {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-        }
-
-        [data-theme="light"] .van-planning-card,
-        html.light-theme .van-planning-card,
-        body.light-theme .van-planning-card {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
+            border: 1px solid #cbd5e1 !important;
             box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
         }
 
-        [data-theme="light"] .van-card-header,
-        html.light-theme .van-card-header,
-        body.light-theme .van-card-header {
-            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
-            border-bottom: 1px solid #cbd5e1 !important;
-        }
-
-        [data-theme="light"] .van-collapsed-summary,
-        html.light-theme .van-collapsed-summary,
-        body.light-theme .van-collapsed-summary {
+        [data-theme="light"] #grandTotalsCard .kpi-card {
             background: #f8fafc !important;
-            border-top: 1px solid #e2e8f0 !important;
-            color: #334155 !important;
-        }
-
-        [data-theme="light"] #plan-tab div[style*="linear-gradient(135deg, #0f172a, #1e293b)"],
-        html.light-theme #plan-tab div[style*="linear-gradient(135deg, #0f172a, #1e293b)"],
-        body.light-theme #plan-tab div[style*="linear-gradient(135deg, #0f172a, #1e293b)"] {
-            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
-            border-color: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] #plan-tab .kpi-card[style*="background: rgba(15, 23, 42, 0.6)"],
-        html.light-theme #plan-tab .kpi-card[style*="background: rgba(15, 23, 42, 0.6)"],
-        body.light-theme #plan-tab .kpi-card[style*="background: rgba(15, 23, 42, 0.6)"] {
-            background: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03) !important;
         }
 
-        [data-theme="light"] #plan-tab div[style*="linear-gradient(135deg, #0b1329, #1e293b)"],
-        html.light-theme #plan-tab div[style*="linear-gradient(135deg, #0b1329, #1e293b)"],
-        body.light-theme #plan-tab div[style*="linear-gradient(135deg, #0b1329, #1e293b)"] {
+        /* Final Dispatch Confirmation Card in Light Mode */
+        [data-theme="light"] #finalDispatchCard {
             background: linear-gradient(135deg, #f0fdf4, #ffffff) !important;
-            border-color: #10b981 !important;
+            border: 1.5px solid #16a34a !important;
+            box-shadow: 0 4px 20px rgba(22, 163, 74, 0.12) !important;
         }
 
-        [data-theme="light"] #plan-tab div[style*="border-top: 1px dashed rgba(100, 116, 139, 0.5)"],
-        html.light-theme #plan-tab div[style*="border-top: 1px dashed rgba(100, 116, 139, 0.5)"],
-        body.light-theme #plan-tab div[style*="border-top: 1px dashed rgba(100, 116, 139, 0.5)"] {
-            color: #334155 !important;
-            border-top: 1px dashed #cbd5e1 !important;
-        }
-
-        /* Light Mode Login View */
-        [data-theme="light"] #loginView .card,
-        html.light-theme #loginView .card,
-        body.light-theme #loginView .card {
+        [data-theme="light"] #finalDispatchCard div[style*="background: rgba(15, 23, 42, 0.6)"] {
             background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+            border: 1px solid #bbf7d0 !important;
         }
 
-        [data-theme="light"] #loginView .card > div:first-child,
-        html.light-theme #loginView .card > div:first-child,
-        body.light-theme #loginView .card > div:first-child {
-            background: #f8fafc !important;
-            border-bottom: 1px solid #e2e8f0 !important;
+        /* 11. Modals in Light Mode */
+        [data-theme="light"] .modal-overlay,
+        [data-theme="light"] [style*="position: fixed"][style*="inset: 0"][style*="background: rgba(11,"] {
+            background: rgba(15, 23, 42, 0.5) !important;
+            backdrop-filter: blur(6px) !important;
         }
 
-        [data-theme="light"] #loginView div[style*="background: rgba(56, 189, 248, 0.08)"],
-        html.light-theme #loginView div[style*="background: rgba(56, 189, 248, 0.08)"],
-        body.light-theme #loginView div[style*="background: rgba(56, 189, 248, 0.08)"] {
-            background: #eff6ff !important;
-            border-color: #bfdbfe !important;
+        [data-theme="light"] .modal-container,
+        [data-theme="light"] .modal-content {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18) !important;
         }
 
-        [data-theme="light"] #loginView label,
-        html.light-theme #loginView label,
-        body.light-theme #loginView label {
-            color: #334155 !important;
+        /* 12. Leaflet Tiles Filter in Light Mode */
+        [data-theme="light"] .dark-map-tiles .leaflet-tile-pane {
+            filter: none !important;
         }
+
 
         /* -------------------------------------------------------------
            THEME SWITCH PILL & DAY/NIGHT BUTTON STYLES
@@ -2056,7 +2005,7 @@
                             style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700;"
                             title="Toggle Light (Day) / Dark (Night) Mode">
                             <i class="fa-solid fa-sun" id="loginThemeToggleIcon" style="color: #f59e0b;"></i>
-                            <span id="loginThemeToggleText">ডে মুড (Day)</span>
+                            <span id="loginThemeToggleText">Light Mode</span>
                         </button>
                     </div>
                     <div
@@ -2198,7 +2147,7 @@
                     <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="theme-switch-btn"
                         title="Switch between Light (Day) and Dark (Night) Mode">
                         <i class="fa-solid fa-sun" id="themeToggleIcon" style="color: #f59e0b; font-size: 0.95rem;"></i>
-                        <span id="themeToggleText">ডে মুড (Light)</span>
+                        <span id="themeToggleText">Light Mode</span>
                     </button>
                     <a href="/api/export/excel" id="exportBtn" class="btn btn-export" title="Download Master Distribution Excel Report">
                         <i class="fa-solid fa-file-excel"></i> Excel Report
@@ -2620,8 +2569,8 @@
                                 <button type="button" class="btn" id="btnToggleRouteSettings" onclick="toggleRouteSettingsCenter()"
                                     style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: #fff; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
                                     title="Click to Expand or Collapse Route Planner & Distribution Settings Options">
-                                    <i class="fa-solid fa-sliders"></i> <span id="routeSettingsBtnText">⚙️ রুট ও ডিসপ্যাচ অপশনস</span>
-                                    <span id="routeSettingsBadge" style="background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 10px; font-size: 0.74rem;">৪টি অপশন ▾</span>
+                                    <i class="fa-solid fa-sliders"></i> <span id="routeSettingsBtnText">Route & Dispatch Options</span>
+                                    <span id="routeSettingsBadge" style="background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 10px; font-size: 0.74rem;">4 Options ▾</span>
                                     <i class="fa-solid fa-chevron-down" id="routeSettingsMasterIcon" style="transition: transform 0.3s ease;"></i>
                                 </button>
 
@@ -2705,14 +2654,14 @@
                     <div id="routePlannerSettingsAccordion" class="route-settings-accordion" style="display: none; margin-bottom: 20px;">
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 0 4px;">
                             <span style="font-size: 0.88rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-sliders"></i> রুট ও ডিসপ্যাচ সেটিংস অপশনস (ক্লিক করে ওপেন বা বন্ধ করুন)
+                                <i class="fa-solid fa-sliders"></i> Route & Dispatch Settings Options (Click to Expand / Collapse)
                             </span>
                             <div style="display: flex; gap: 8px;">
                                 <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(true)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8; font-weight: 700;">
-                                    <i class="fa-solid fa-angles-down"></i> সব অপশন খুলুন (Expand All)
+                                    <i class="fa-solid fa-angles-down"></i> Expand All
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(false)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #94a3b8; color: #94a3b8; font-weight: 700;">
-                                    <i class="fa-solid fa-angles-up"></i> সব অপশন বন্ধ করুন (Collapse All)
+                                    <i class="fa-solid fa-angles-up"></i> Collapse All
                                 </button>
                             </div>
                         </div>
@@ -2723,7 +2672,7 @@
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-route text-cyan" style="font-size: 1.1rem;"></i>
                                     <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">1. Route & Distribution Configuration (রুট ও ডিস্ট্রিবিউশন সেটিংস)</strong>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">1. Route & Distribution Configuration</strong>
                                         <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Route balancing rules, shift departure schedules & auto-distribution logic</span>
                                     </div>
                                 </div>
@@ -2925,17 +2874,17 @@
                     <div id="activeVansToolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 10px 18px; background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <i class="fa-solid fa-truck-moving text-cyan" style="font-size: 1.1rem;"></i>
-                            <strong style="font-size: 0.92rem; color: #f8fafc;">একটিভ ডেলিভারি ভ্যানসমূহ (Active Dispatch Vans)</strong>
+                            <strong style="font-size: 0.92rem;">Active Dispatch Delivery Vans</strong>
                             <span id="activeVansCountBadge" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.76rem; padding: 2px 8px; border-radius: 10px; font-weight: 700;">
                                 0 Vans
                             </span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllVans(true)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8; font-weight: 700;" title="Expand all vans to see outlet lists">
-                                <i class="fa-solid fa-angles-down"></i> সবগুলো ভ্যান খুলুন (Expand All)
+                                <i class="fa-solid fa-angles-down"></i> Expand All Vans
                             </button>
                             <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllVans(false)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #94a3b8; color: #94a3b8; font-weight: 700;" title="Collapse all vans to compact executive view">
-                                <i class="fa-solid fa-angles-up"></i> সবগুলো ভ্যান সংক্ষেপ করুন (Collapse All)
+                                <i class="fa-solid fa-angles-up"></i> Collapse All Vans
                             </button>
                         </div>
                     </div>
@@ -2960,7 +2909,7 @@
                                 <button type="button" class="btn btn-sm btn-outline" onclick="toggleGrandTotalsCockpit()" id="btnToggleGrandTotals"
                                     style="border-color: #38bdf8; color: #38bdf8; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"
                                     title="Click to Expand or Collapse Grand Totals">
-                                    <span id="grandTotalsToggleLabel">সংক্ষেপ / কলাপ্স</span>
+                                    <span id="grandTotalsToggleLabel">Collapse</span>
                                     <i class="fa-solid fa-chevron-up" id="grandTotalsChevron"></i>
                                 </button>
                             </div>
@@ -3040,7 +2989,7 @@
                             <button type="button" class="btn btn-sm btn-outline" onclick="toggleFinalDispatchCockpit()" id="btnToggleFinalDispatch"
                                 style="border-color: #10b981; color: #34d399; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"
                                 title="Click to Expand or Collapse Final Dispatch Controls">
-                                <span id="finalDispatchToggleLabel">সংক্ষেপ / কলাপ্স</span>
+                                <span id="finalDispatchToggleLabel">Collapse</span>
                                 <i class="fa-solid fa-chevron-up" id="finalDispatchChevron"></i>
                             </button>
                         </div>
@@ -3307,70 +3256,33 @@
                 <!-- TAB 3: INCHARGES & DEPOTS DIRECTORY (ADMIN ONLY) -->
                 <section id="settings-tab" class="tab-pane">
 
-                    <!-- CARD: APP APPEARANCE & THEME SETTINGS (LIGHT / DARK MODE) -->
-                    <div class="card" style="margin-bottom: 24px; border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card);">
-                        <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 16px 22px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #1e3a8a, #2563eb); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; box-shadow: 0 0 15px rgba(37, 99, 235, 0.35);">
-                                    <i class="fa-solid fa-palette"></i>
-                                </div>
-                                <div>
-                                    <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-                                        App Appearance & Theme Settings (ডার্ক ও লাইট মোড সেটিংস)
-                                    </h3>
-                                    <p style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0;">
-                                        Switch between Dark Mode and Light Mode with instant preview and browser storage persistence.
-                                    </p>
-                                </div>
+                    <!-- COMPACT APP APPEARANCE & THEME SWITCHER (ENGLISH & SLEEK) -->
+                    <div class="card" style="margin-bottom: 18px; padding: 10px 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1e3a8a, #2563eb); display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff;">
+                                <i class="fa-solid fa-palette"></i>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span class="badge" id="currentThemeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: 700;">
-                                    <i class="fa-solid fa-moon"></i> Dark Theme Active
-                                </span>
+                            <div>
+                                <strong style="font-size: 0.88rem; color: var(--text-main); display: block;">Display Theme</strong>
+                                <span style="font-size: 0.74rem; color: var(--text-muted);">Standard Dark Cockpit & Light Day Mode</span>
                             </div>
                         </div>
-                        <div style="padding: 20px 24px;">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
-                                <!-- Dark Mode Selector Card -->
-                                <div id="themePreviewDark" onclick="setTheme('dark')" style="cursor: pointer; padding: 16px; border-radius: 10px; border: 2px solid #38bdf8; background: #0f172a; transition: all 0.2s ease; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);">
-                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <i class="fa-solid fa-moon text-cyan" style="font-size: 1.2rem;"></i>
-                                            <strong style="color: #fff; font-size: 1rem;">Dark Mode (ডিফল্ট ডার্ক মোড)</strong>
-                                        </div>
-                                        <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;">Standard</span>
-                                    </div>
-                                    <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; margin-bottom: 12px;">
-                                        High-contrast dark slate cockpit designed for night shifts, low eye fatigue, and high-impact logistics telemetry.
-                                    </p>
-                                    <div style="display: flex; gap: 6px;">
-                                        <span style="flex: 1; height: 8px; background: #0b1329; border-radius: 4px; border: 1px solid #334155;"></span>
-                                        <span style="flex: 1; height: 8px; background: #2563eb; border-radius: 4px;"></span>
-                                        <span style="flex: 1; height: 8px; background: #22c55e; border-radius: 4px;"></span>
-                                    </div>
-                                </div>
-
-                                <!-- Light Mode Selector Card -->
-                                <div id="themePreviewLight" onclick="setTheme('light')" style="cursor: pointer; padding: 16px; border-radius: 10px; border: 2px solid #cbd5e1; background: #f8fafc; transition: all 0.2s ease;">
-                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <i class="fa-solid fa-sun text-amber" style="font-size: 1.2rem;"></i>
-                                            <strong style="color: #0f172a; font-size: 1rem;">Light Mode (লাইট মোড)</strong>
-                                        </div>
-                                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #d97706; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;">Daylight</span>
-                                    </div>
-                                    <p style="font-size: 0.8rem; color: #475569; line-height: 1.4; margin-bottom: 12px;">
-                                        Crisp, clean white theme optimized for bright daylight environments, outdoor audits, and office desktop monitors.
-                                    </p>
-                                    <div style="display: flex; gap: 6px;">
-                                        <span style="flex: 1; height: 8px; background: #ffffff; border-radius: 4px; border: 1px solid #cbd5e1;"></span>
-                                        <span style="flex: 1; height: 8px; background: #2563eb; border-radius: 4px;"></span>
-                                        <span style="flex: 1; height: 8px; background: #16a34a; border-radius: 4px;"></span>
-                                    </div>
-                                </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: inline-flex; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 3px; gap: 4px;">
+                                <button type="button" id="themePreviewDark" onclick="setTheme('dark')" style="padding: 5px 14px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-moon"></i> Dark Mode
+                                </button>
+                                <button type="button" id="themePreviewLight" onclick="setTheme('light')" style="padding: 5px 14px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-sun"></i> Light Mode
+                                </button>
                             </div>
+                            <span class="badge" id="currentThemeBadge" style="font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 700;">
+                                <i class="fa-solid fa-moon"></i> Dark Theme Active
+                            </span>
                         </div>
                     </div>
+
+                    
 
                     <div class="card">
                         <div class="card-header" style="justify-content:space-between;">
@@ -4196,11 +4108,11 @@
                     if (isLight) {
                         loginToggleIcon.className = 'fa-solid fa-moon';
                         loginToggleIcon.style.color = '#0284c7';
-                        loginToggleText.textContent = 'ডার্ক মুড (Night)';
+                        loginToggleText.textContent = 'Dark Mode';
                     } else {
                         loginToggleIcon.className = 'fa-solid fa-sun';
                         loginToggleIcon.style.color = '#f59e0b';
-                        loginToggleText.textContent = 'ডে মুড (Day)';
+                        loginToggleText.textContent = 'Light Mode';
                     }
                 }
 
@@ -4215,14 +4127,14 @@
                     if (isLight) {
                         toggleIcon.className = 'fa-solid fa-moon';
                         toggleIcon.style.color = '#0284c7';
-                        toggleText.textContent = 'ডার্ক মুড (Dark)';
+                        toggleText.textContent = 'Dark Mode';
                         if (toggleBtn) {
                             toggleBtn.title = 'Switch to Dark (Night) Mode';
                         }
                     } else {
                         toggleIcon.className = 'fa-solid fa-sun';
                         toggleIcon.style.color = '#f59e0b';
-                        toggleText.textContent = 'ডে মুড (Light)';
+                        toggleText.textContent = 'Light Mode';
                         if (toggleBtn) {
                             toggleBtn.title = 'Switch to Light (Day) Mode';
                         }
@@ -4236,28 +4148,32 @@
                         currentThemeBadge.style.background = 'rgba(2, 132, 199, 0.12)';
                         currentThemeBadge.style.color = '#0284c7';
                         currentThemeBadge.style.borderColor = '#0284c7';
-                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-sun"></i> ডে মুড (Light Theme Active)';
+                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-sun"></i> Light Theme Active';
                     } else {
                         currentThemeBadge.style.background = 'rgba(56, 189, 248, 0.15)';
                         currentThemeBadge.style.color = '#38bdf8';
                         currentThemeBadge.style.borderColor = '#0284c7';
-                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-moon"></i> ডার্ক মুড (Dark Theme Active)';
+                        currentThemeBadge.innerHTML = '<i class="fa-solid fa-moon"></i> Dark Theme Active';
                     }
                 }
 
-                // Update settings tab visual preview cards
+                // Update settings tab visual theme buttons (compact segmented switch)
                 const darkCard = document.getElementById('themePreviewDark');
                 const lightCard = document.getElementById('themePreviewLight');
                 if (darkCard && lightCard) {
                     if (isLight) {
-                        lightCard.style.borderColor = '#2563eb';
-                        lightCard.style.boxShadow = '0 0 15px rgba(37, 99, 235, 0.35)';
-                        darkCard.style.borderColor = '#cbd5e1';
+                        lightCard.style.background = '#2563eb';
+                        lightCard.style.color = '#ffffff';
+                        lightCard.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.35)';
+                        darkCard.style.background = 'transparent';
+                        darkCard.style.color = '#475569';
                         darkCard.style.boxShadow = 'none';
                     } else {
-                        darkCard.style.borderColor = '#38bdf8';
-                        darkCard.style.boxShadow = '0 0 15px rgba(56, 189, 248, 0.35)';
-                        lightCard.style.borderColor = '#cbd5e1';
+                        darkCard.style.background = '#2563eb';
+                        darkCard.style.color = '#ffffff';
+                        darkCard.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.35)';
+                        lightCard.style.background = 'transparent';
+                        lightCard.style.color = '#94a3b8';
                         lightCard.style.boxShadow = 'none';
                     }
                 }
@@ -4275,13 +4191,13 @@
                 if (isHidden) {
                     acc.style.display = 'flex';
                     if (icon) icon.style.transform = 'rotate(180deg)';
-                    if (btnText) btnText.textContent = '⚙️ রুট অপশনস বন্ধ করুন';
-                    if (badge) badge.textContent = '৪টি অপশন খোলা ▴';
+                    if (btnText) btnText.textContent = '⚙️ Close Options';
+                    if (badge) badge.textContent = '4 Options Open ▴';
                 } else {
                     acc.style.display = 'none';
                     if (icon) icon.style.transform = 'rotate(0deg)';
-                    if (btnText) btnText.textContent = '⚙️ রুট ও ডিসপ্যাচ অপশনস';
-                    if (badge) badge.textContent = '৪টি অপশন ▾';
+                    if (btnText) btnText.textContent = '⚙️ Route & Dispatch Options';
+                    if (badge) badge.textContent = '4 Options ▾';
                 }
             }
             window.toggleRouteSettingsCenter = toggleRouteSettingsCenter;
@@ -4322,7 +4238,7 @@
                         panel.classList.remove('open');
                     }
                 });
-                showToast(expand ? '📂 সবগুলো সেটিংস অপশন খোলা হয়েছে' : '📁 সবগুলো সেটিংস অপশন বন্ধ করা হয়েছে');
+                showToast(expand ? '📂 All settings options expanded' : '📁 All settings options collapsed');
             }
             window.toggleAllRouteSettings = toggleAllRouteSettings;
 
@@ -4343,7 +4259,7 @@
                     wrap.style.display = 'block';
                     if (summary) summary.style.display = 'none';
                     if (chevron) chevron.className = 'fa-solid fa-chevron-up';
-                    if (label) label.textContent = '▴ সংক্ষেপ করুন';
+                    if (label) label.textContent = '▴ Collapse Outlets';
                 } else {
                     collapsedVanIds.add(vanId);
                     wrap.style.display = 'none';
@@ -4352,7 +4268,7 @@
                     if (label) {
                         const van = (currentPlanData && currentPlanData.vans) ? currentPlanData.vans.find(v => v.id === vanId) : null;
                         const dropCount = van && van.outlets ? van.outlets.length : 0;
-                        label.textContent = `▾ আউটলেট দেখুন (${dropCount} ড্রপ)`;
+                        label.textContent = `▾ View Outlets (${dropCount} Drops)`;
                     }
                 }
             }
@@ -4375,10 +4291,10 @@
                     if (chevron) chevron.className = expand ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
                     if (label) {
                         const dropCount = van.outlets ? van.outlets.length : 0;
-                        label.textContent = expand ? '▴ সংক্ষেপ করুন' : `▾ আউটলেট দেখুন (${dropCount} ড্রপ)`;
+                        label.textContent = expand ? '▴ Collapse Outlets' : `▾ View Outlets (${dropCount} Drops)`;
                     }
                 });
-                showToast(expand ? '📂 সবগুলো ভ্যানের ড্রপ তালিকা প্রসারিত করা হয়েছে' : '📁 সবগুলো ভ্যান সংক্ষেপ/মিনিমাইজ করা হয়েছে');
+                showToast(expand ? '🚚 All delivery vans expanded' : '📦 All delivery vans collapsed');
             }
             window.toggleAllVans = toggleAllVans;
 
@@ -4395,7 +4311,7 @@
                 } else {
                     wrap.style.display = 'none';
                     if (chevron) chevron.className = 'fa-solid fa-chevron-down';
-                    if (label) label.textContent = 'টোটাল দেখুন (Show)';
+                    if (label) label.textContent = 'Show Totals';
                 }
             }
             window.toggleGrandTotalsCockpit = toggleGrandTotalsCockpit;
@@ -12673,7 +12589,7 @@
                             id="vanCollapseBtn_${van.id}"
                             style="border-color: #38bdf8; color: #38bdf8; font-weight: 700; padding: 4px 10px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;"
                             title="Click to Expand or Collapse Outlets Table">
-                            <span id="vanCollapseLabel_${van.id}">${isCollapsed ? '▾ আউটলেট দেখুন (' + van.outlets.length + ' ড্রপ)' : '▴ সংক্ষেপ করুন'}</span>
+                            <span id="vanCollapseLabel_${van.id}">${isCollapsed ? '▾ View Outlets (' + van.outlets.length + ' Drops)' : '▴ Collapse Outlets'}</span>
                             <i class="fa-solid fa-chevron-${isCollapsed ? 'down' : 'up'}" id="vanCollapseChevron_${van.id}"></i>
                         </button>
 
