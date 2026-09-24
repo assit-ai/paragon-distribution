@@ -1527,6 +1527,480 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
         }
 
+        /* ──── 15. PILFERAGE AUDIT BANNER ──── */
+        [data-theme="light"] .pilferage-banner {
+            border-color: #86efac !important;
+        }
+        [data-theme="light"] .pilferage-banner.verified {
+            background: rgba(22, 163, 74, 0.08) !important;
+            border-color: rgba(34, 197, 94, 0.5) !important;
+            color: #15803d !important;
+        }
+        [data-theme="light"] .pilferage-banner.verified .banner-icon { color: #16a34a !important; }
+        [data-theme="light"] .pilferage-banner.verified .banner-badge {
+            background: #dcfce7 !important;
+            color: #15803d !important;
+            border: 1px solid #86efac !important;
+        }
+        [data-theme="light"] .pilferage-banner.verified .banner-content strong,
+        [data-theme="light"] .pilferage-banner.verified .banner-content span,
+        [data-theme="light"] .pilferage-banner.verified strong,
+        [data-theme="light"] .pilferage-banner.verified span,
+        [data-theme="light"] #bannerTitle, [data-theme="light"] #bannerDesc {
+            color: #15803d !important;
+        }
+        [data-theme="light"] .pilferage-banner.alert {
+            background: rgba(220, 38, 38, 0.06) !important;
+            border-color: rgba(239, 68, 68, 0.5) !important;
+            color: #991b1b !important;
+        }
+        [data-theme="light"] .pilferage-banner.alert .banner-icon { color: #dc2626 !important; }
+        [data-theme="light"] .pilferage-banner.alert .banner-badge {
+            background: #fef2f2 !important;
+            color: #991b1b !important;
+            border: 1px solid #fca5a5 !important;
+        }
+        [data-theme="light"] .pilferage-banner.alert strong,
+        [data-theme="light"] .pilferage-banner.alert span { color: #991b1b !important; }
+
+        /* ──── 16. DASHBOARD FILTER BAR ──── */
+        [data-theme="light"] .dashboard-filter-bar {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .dashboard-filter-bar label {
+            color: #334155 !important;
+        }
+        [data-theme="light"] .dashboard-filter-bar .filter-select {
+            background: #ffffff !important;
+            border: 1.5px solid #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .filter-group label { color: #334155 !important; }
+
+        /* ──── 17. ROUTE PLANNER HERO / COMMAND BAR ────
+           The Route Planner card uses inline linear-gradient backgrounds
+           with dark RGBA colors. These need specific overrides. */
+
+        /* Main gradient container */
+        [data-theme="light"] [style*="linear-gradient(135deg, rgba(30, 41, 59"],
+        [data-theme="light"] [style*="linear-gradient(135deg, rgba(15, 23, 42"] {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* Route Planner heading/subtitle/labels */
+        [data-theme="light"] [style*="linear-gradient"] h3,
+        [data-theme="light"] [style*="linear-gradient"] h3[style*="color: #fff"],
+        [data-theme="light"] [style*="rgba(30, 41, 59"] h3,
+        [data-theme="light"] [style*="rgba(15, 23, 42"] h3 {
+            color: #0f172a !important;
+        }
+        [data-theme="light"] [style*="linear-gradient"] p[style*="color: #94a3b8"],
+        [data-theme="light"] [style*="rgba(30, 41, 59"] p,
+        [data-theme="light"] [style*="rgba(15, 23, 42"] p {
+            color: #475569 !important;
+        }
+
+        /* Quick Filter bar row (rgba background) */
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.8)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.95)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.98)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.9)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.85)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.6)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.4)"],
+        [data-theme="light"] [style*="rgba(15, 23, 42, 0.7)"] {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        [data-theme="light"] [style*="rgba(11, 19, 41"],
+        [data-theme="light"] [style*="rgba(11, 17, 32"] {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        [data-theme="light"] [style*="rgba(30, 41, 59"],
+        [data-theme="light"] [style*="rgba(30, 41, 59, 0.95)"],
+        [data-theme="light"] [style*="rgba(30, 41, 59, 0.9)"],
+        [data-theme="light"] [style*="rgba(30, 41, 59, 0.8)"],
+        [data-theme="light"] [style*="rgba(30, 41, 59, 0.7)"] {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* ──── 18. INLINE CYAN LABELS (color: #38bdf8) ──── */
+        [data-theme="light"] label[style*="color: #38bdf8"],
+        [data-theme="light"] label[style*="color:#38bdf8"],
+        [data-theme="light"] span[style*="color: #38bdf8"],
+        [data-theme="light"] span[style*="color:#38bdf8"],
+        [data-theme="light"] div[style*="color: #38bdf8"],
+        [data-theme="light"] div[style*="color:#38bdf8"] {
+            color: #2563eb !important;
+        }
+
+        /* ──── 19. INLINE WHITE TEXT ON NON-BUTTON ELEMENTS ──── */
+        [data-theme="light"] h3[style*="color: #fff"],
+        [data-theme="light"] h3[style*="color:#fff"],
+        [data-theme="light"] h2[style*="color: #fff"],
+        [data-theme="light"] h2[style*="color:#fff"],
+        [data-theme="light"] h4[style*="color: #fff"],
+        [data-theme="light"] h4[style*="color:#fff"],
+        [data-theme="light"] strong[style*="color: #f8fafc"],
+        [data-theme="light"] strong[style*="color:#f8fafc"],
+        [data-theme="light"] strong[style*="color: #fff"],
+        [data-theme="light"] strong[style*="color:#fff"],
+        [data-theme="light"] span[style*="color: #f8fafc"],
+        [data-theme="light"] span[style*="color:#f8fafc"],
+        [data-theme="light"] p[style*="color: #fff"],
+        [data-theme="light"] p[style*="color:#fff"],
+        [data-theme="light"] div[style*="color: #fff"],
+        [data-theme="light"] div[style*="color:#fff"],
+        [data-theme="light"] div[style*="color: #f8fafc"],
+        [data-theme="light"] div[style*="color:#f8fafc"] {
+            color: #0f172a !important;
+        }
+
+        /* ──── 20. MUTED/DIM TEXT ON NON-BUTTON ELEMENTS ──── */
+        [data-theme="light"] p[style*="color: #94a3b8"],
+        [data-theme="light"] p[style*="color:#94a3b8"],
+        [data-theme="light"] span[style*="color: #94a3b8"],
+        [data-theme="light"] span[style*="color:#94a3b8"],
+        [data-theme="light"] div[style*="color: #94a3b8"],
+        [data-theme="light"] div[style*="color:#94a3b8"],
+        [data-theme="light"] label[style*="color: #94a3b8"],
+        [data-theme="light"] label[style*="color:#94a3b8"],
+        [data-theme="light"] span[style*="color: #cbd5e1"],
+        [data-theme="light"] span[style*="color:#cbd5e1"],
+        [data-theme="light"] div[style*="color: #cbd5e1"],
+        [data-theme="light"] div[style*="color:#cbd5e1"] {
+            color: #475569 !important;
+        }
+
+        /* ──── 21. GREEN STAT TEXT ──── */
+        [data-theme="light"] div[style*="color: #34d399"],
+        [data-theme="light"] div[style*="color:#34d399"],
+        [data-theme="light"] span[style*="color: #34d399"],
+        [data-theme="light"] span[style*="color:#34d399"],
+        [data-theme="light"] div[style*="color: #4ade80"],
+        [data-theme="light"] div[style*="color:#4ade80"],
+        [data-theme="light"] span[style*="color: #4ade80"],
+        [data-theme="light"] span[style*="color:#4ade80"],
+        [data-theme="light"] label[style*="color: #4ade80"],
+        [data-theme="light"] label[style*="color:#4ade80"] {
+            color: #15803d !important;
+        }
+
+        /* ──── 22. AMBER/YELLOW TEXT ──── */
+        [data-theme="light"] div[style*="color: #fbbf24"],
+        [data-theme="light"] div[style*="color:#fbbf24"],
+        [data-theme="light"] span[style*="color: #fbbf24"],
+        [data-theme="light"] span[style*="color:#fbbf24"],
+        [data-theme="light"] div[style*="color: #eab308"],
+        [data-theme="light"] div[style*="color:#eab308"] {
+            color: #b45309 !important;
+        }
+
+        /* ──── 23. RED/ERROR TEXT ──── */
+        [data-theme="light"] span[style*="color: #fca5a5"],
+        [data-theme="light"] span[style*="color:#fca5a5"],
+        [data-theme="light"] p[style*="color: #fca5a5"],
+        [data-theme="light"] p[style*="color:#fca5a5"] {
+            color: #dc2626 !important;
+        }
+
+        /* ──── 24. RECONCILIATION SECTION ──── */
+        [data-theme="light"] .recon-banner { background: #f8fafc !important; color: #0f172a !important; }
+        [data-theme="light"] .recon-val { color: #0f172a !important; }
+        [data-theme="light"] .recon-status { color: #15803d !important; }
+        [data-theme="light"] .reconciliation-box { background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+
+        /* ──── 25. SOP, PROTOCOL, AUDIT MODALS ──── */
+        [data-theme="light"] .sop-block { background: #f8fafc !important; border-color: #e2e8f0 !important; color: #0f172a !important; }
+        [data-theme="light"] .protocol-step { background: #ffffff !important; color: #0f172a !important; }
+        [data-theme="light"] .card-title { color: #0f172a !important; }
+
+        /* ──── 26. MODAL INNER CARDS/PANELS ──── */
+        [data-theme="light"] [style*="position: fixed"][style*="inset: 0"] {
+            background: rgba(15, 23, 42, 0.35) !important;
+            backdrop-filter: blur(6px) !important;
+        }
+        [data-theme="light"] [style*="position: fixed"][style*="inset: 0"] > div:first-child,
+        [data-theme="light"] [style*="position: fixed"][style*="inset: 0"] > div {
+            color: #0f172a !important;
+        }
+
+        /* Inner modal cards, drawers */
+        [data-theme="light"] #addFleetVehicleDrawer,
+        [data-theme="light"] #adminClearSpecificPanel,
+        [data-theme="light"] #adminClearRangePanel,
+        [data-theme="light"] #adminClearAllPanel,
+        [data-theme="light"] #adminClearSummaryBanner {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* ──── 27. ACCORDION PANELS (Route Settings) ──── */
+        [data-theme="light"] .route-settings-accordion-panel .route-settings-header {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+        [data-theme="light"] .route-settings-accordion-panel .route-settings-header strong {
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .route-settings-accordion-panel .route-settings-header span {
+            color: #475569 !important;
+        }
+        [data-theme="light"] .route-settings-accordion-panel .route-settings-body {
+            background: #ffffff !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .route-settings-accordion-panel .badge {
+            background: rgba(37, 99, 235, 0.1) !important;
+            color: #2563eb !important;
+            border-color: #2563eb !important;
+        }
+
+        /* ──── 28. KPI STATS: force deep colors ──── */
+        [data-theme="light"] .kpi-val.text-green,
+        [data-theme="light"] .kpi-val.text-cyan,
+        [data-theme="light"] .kpi-val.text-amber { font-weight: 800 !important; }
+        [data-theme="light"] .kpi-val.text-green { color: #15803d !important; }
+        [data-theme="light"] .kpi-val.text-red { color: #dc2626 !important; }
+
+        /* ──── 29. ROUTE FEED / TRACKING CARDS ──── */
+        [data-theme="light"] .route-feed-card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* ──── 30. DEEP DESCENDANT COLOR RESET ────
+           Catches ALL remaining elements inside light-mode containers.
+           Text defaults to dark, borders to light gray. */
+        [data-theme="light"] [style*="background: #0"] *:not(button):not(.btn):not(.btn-primary):not(.btn-success):not(.btn-danger):not(.badge),
+        [data-theme="light"] [style*="background:#0"] *:not(button):not(.btn):not(.btn-primary):not(.btn-success):not(.btn-danger):not(.badge) {
+            color: inherit !important;
+        }
+        [data-theme="light"] [style*="background: #1e"] *:not(button):not(.btn),
+        [data-theme="light"] [style*="background:#1e"] *:not(button):not(.btn) {
+            color: inherit !important;
+        }
+
+        /* ──── 31. BORDER COLOR OVERRIDES FOR DARK BORDERS ──── */
+        [data-theme="light"] [style*="border: 1px solid #334155"],
+        [data-theme="light"] [style*="border:1px solid #334155"],
+        [data-theme="light"] [style*="border: 1.5px solid #334155"],
+        [data-theme="light"] [style*="border: 1px solid #1e293b"],
+        [data-theme="light"] [style*="border:1px solid #1e293b"],
+        [data-theme="light"] [style*="border: 2px solid #1e293b"],
+        [data-theme="light"] [style*="border: 1px solid #475569"],
+        [data-theme="light"] [style*="border:1px solid #475569"],
+        [data-theme="light"] [style*="border-bottom: 1px solid #334155"],
+        [data-theme="light"] [style*="border-bottom: 1px solid #1e293b"],
+        [data-theme="light"] [style*="border-top: 1px solid #334155"],
+        [data-theme="light"] [style*="border-top: 1px solid #1e293b"],
+        [data-theme="light"] [style*="border: 1px dashed #334155"] {
+            border-color: #cbd5e1 !important;
+        }
+
+        /* ──── 32. NO-PRINT BAR (dispatch print headers) ──── */
+        [data-theme="light"] .no-print-bar {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+        }
+
+        /* ──── 33. TAB PANE SECTIONS ──── */
+        [data-theme="light"] .tab-pane {
+            color: #0f172a !important;
+        }
+
+        /* ──── 34. GRADIENT ACTION BUTTONS: KEEP their color scheme ──── */
+        [data-theme="light"] button[style*="linear-gradient(135deg, #0284c7"],
+        [data-theme="light"] button[style*="linear-gradient(135deg, #2563eb"],
+        [data-theme="light"] button[style*="linear-gradient(135deg, #4f46e5"],
+        [data-theme="light"] button[style*="linear-gradient(135deg, #eab308"],
+        [data-theme="light"] button[style*="linear-gradient(135deg, #10b981"],
+        [data-theme="light"] button[style*="linear-gradient(135deg, #059669"] {
+            color: inherit !important;
+            background: inherit !important;
+        }
+
+        /* ──── 35. QUICK FIX: `.text-cyan`, `.text-blue`, etc. utility classes ──── */
+        [data-theme="light"] .text-cyan { color: #0284c7 !important; }
+        [data-theme="light"] .text-blue { color: #2563eb !important; }
+        [data-theme="light"] .text-green { color: #15803d !important; }
+        [data-theme="light"] .text-red { color: #dc2626 !important; }
+        [data-theme="light"] .text-amber { color: #b45309 !important; }
+
+        /* ──── 36. GENERAL FONT WEIGHT BOOST FOR READABILITY ──── */
+        [data-theme="light"] .recon-banner strong,
+        [data-theme="light"] .command-bar strong,
+        [data-theme="light"] .filter-bar strong,
+        [data-theme="light"] #activeFilterBadge strong { color: #0f172a !important; }
+
+        /* ──── 37. LINE 2245 SPECIFIC: route planner top bar gradient ──── */
+        [data-theme="light"] #plan-tab > .card > div[style*="linear-gradient"] {
+            background: #f0f4f9 !important;
+            color: #0f172a !important;
+        }
+
+        /* ──── 38. MAP PLACEHOLDER ──── */
+        [data-theme="light"] #liveTrackingMap,
+        [data-theme="light"] [id*="Map"][style*="background: #0b1120"] {
+            background: #e2e8f0 !important;
+        }
+
+        /* ──── 39. SETTINGS TAB CARDS ──── */
+        [data-theme="light"] #settings-tab .card,
+        [data-theme="light"] #settings-tab .card-header { background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+        [data-theme="light"] #settings-tab .card-header strong { color: #0f172a !important; }
+        [data-theme="light"] #settings-tab .card-header span { color: #475569 !important; }
+
+        /* ──── 40. MASTER MODAL (Fleet, Routes, Crew, Consignees) ──── */
+        [data-theme="light"] #masterFleetModal > div,
+        [data-theme="light"] #editVehicleCapacitiesModal > div,
+        [data-theme="light"] #addRentalVanModal > div,
+        [data-theme="light"] #duplicateAlertModal > div,
+        [data-theme="light"] #updateDropStatusModal > div,
+        [data-theme="light"] #adminClearConfirmModal > div {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* ──── 41. ACTIVE FILTER BADGE / STATUS ──── */
+        [data-theme="light"] #activeFilterBadge { color: #475569 !important; }
+        [data-theme="light"] #planImportStatusBadge {
+            background: rgba(22, 163, 74, 0.08) !important;
+            color: #15803d !important;
+            border-color: #22c55e !important;
+        }
+
+        /* ──── 42. ICON BOX GRADIENT (Route Planner icon) ──── */
+        [data-theme="light"] div[style*="background: linear-gradient(135deg, #0284c7, #2563eb)"] {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+            color: #ffffff !important;
+        }
+        [data-theme="light"] div[style*="background: linear-gradient(135deg, #0284c7, #2563eb)"] * {
+            color: #ffffff !important;
+        }
+
+        /* ──── 43. EXISTING LIGHT MODE TEXT OVERRIDES EXTENSION ──── */
+        [data-theme="light"] [style*="color: #e2e8f0"],
+        [data-theme="light"] [style*="color:#e2e8f0"] { color: #334155 !important; }
+
+        /* ──── 44. COLLAPSE/EXPAND BUTTON OUTLINE ──── */
+        [data-theme="light"] .btn-outline[style*="border-color: #38bdf8"],
+        [data-theme="light"] .btn-outline[style*="border-color:#38bdf8"],
+        [data-theme="light"] button[style*="border-color: #38bdf8"],
+        [data-theme="light"] button[style*="border-color:#38bdf8"] {
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+        }
+        [data-theme="light"] button[style*="border-color: #94a3b8"],
+        [data-theme="light"] button[style*="border-color:#94a3b8"] {
+            border-color: #64748b !important;
+            color: #64748b !important;
+        }
+        [data-theme="light"] button[style*="border-color: #f59e0b"],
+        [data-theme="light"] button[style*="border-color:#f59e0b"] {
+            border-color: #b45309 !important;
+            color: #b45309 !important;
+        }
+        [data-theme="light"] button[style*="border-color: #3b82f6"],
+        [data-theme="light"] button[style*="border-color:#3b82f6"] {
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+        }
+        [data-theme="light"] button[style*="color: #60a5fa"],
+        [data-theme="light"] button[style*="color:#60a5fa"] {
+            color: #2563eb !important;
+        }
+
+        /* ──── 45. DAILY ENTRY TAB ──── */
+        [data-theme="light"] #daily-tab .card { background: #ffffff !important; color: #0f172a !important; }
+        [data-theme="light"] #daily-tab .card-header { background: #f8fafc !important; color: #0f172a !important; }
+
+        /* ──── 46. TRACKING TAB ──── */
+        [data-theme="light"] #tracking-tab .card { background: #ffffff !important; color: #0f172a !important; }
+        [data-theme="light"] #tracking-tab .card-header { background: #f8fafc !important; }
+
+        /* ──── 47. INCHARGE & DEPOT SETTINGS TAB ──── */
+        [data-theme="light"] #depot-tab .card { background: #ffffff !important; color: #0f172a !important; }
+        [data-theme="light"] #depot-tab .card-header { background: #f8fafc !important; color: #0f172a !important; }
+
+        /* ──── 48. RUN SHEETS / PRINT BAR ──── */
+        [data-theme="light"] .no-print-bar[style*="background: #0f172a"] {
+            background: #ffffff !important;
+            color: #0f172a !important;
+        }
+
+        /* ──── 49. ACCORDION CHEVRON / ICON COLORS ──── */
+        [data-theme="light"] .accordion-chevron { color: #475569 !important; }
+
+        /* ──── 50. CARD TITLE ICONS ──── */
+        [data-theme="light"] .card-title i.text-cyan { color: #0284c7 !important; }
+        [data-theme="light"] .card-title i.text-green { color: #15803d !important; }
+
+        /* ──── 51. TABLE STRIPE & ROWS with inline dark backgrounds ──── */
+        [data-theme="light"] tr[style*="background: #1e293b"],
+        [data-theme="light"] tr[style*="background:#1e293b"],
+        [data-theme="light"] tr[style*="background: rgba(30, 41, 59"] {
+            background: #f1f5f9 !important;
+        }
+        [data-theme="light"] tr[style*="background: rgba(30, 41, 59"] td,
+        [data-theme="light"] tr[style*="background: #1e293b"] td,
+        [data-theme="light"] tr[style*="background:#1e293b"] td {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        /* ──── 52. BADGE on dark bg ──── */
+        [data-theme="light"] .badge[style*="background:#1e293b"],
+        [data-theme="light"] .badge[style*="background: #1e293b"],
+        [data-theme="light"] span.badge[style*="background: #1e293b"] {
+            background: #e2e8f0 !important;
+            color: #475569 !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* ──── 53. INPUT TYPE COLOR SCHEME ──── */
+        [data-theme="light"] input[type="date"],
+        [data-theme="light"] input[type="time"] {
+            color-scheme: light !important;
+        }
+
+        /* ──── 54. ROUTE PLANNER: Bottom border of filter bar ──── */
+        [data-theme="light"] [style*="border-top: 1px solid #334155"] {
+            border-top-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] [style*="border-bottom: 1px solid #334155"],
+        [data-theme="light"] [style*="border-bottom: 1px solid #1e293b"] {
+            border-bottom-color: #e2e8f0 !important;
+        }
+
+        /* ──── 55. MISC ──── */
+        [data-theme="light"] [style*="box-shadow: 0 0 15px rgba(37, 99, 235"] {
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.18) !important;
+        }
+        [data-theme="light"] [style*="background: rgba(34, 197, 94, 0.15)"] {
+            background: rgba(22, 163, 74, 0.08) !important;
+            color: #15803d !important;
+        }
+        [data-theme="light"] [style*="background: rgba(56, 189, 248, 0.12)"] {
+            background: rgba(37, 99, 235, 0.08) !important;
+            color: #2563eb !important;
+        }
+
         /* -------------------------------------------------------------
            THEME SWITCH PILL & DAY/NIGHT BUTTON STYLES
            ------------------------------------------------------------- */
