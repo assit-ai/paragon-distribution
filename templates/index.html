@@ -1320,16 +1320,31 @@
         }
 
         [data-theme="light"] #userRoleBadge {
-            background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
-            border: 1.5px solid #3b82f6 !important;
-            color: #1e40af !important;
+            background: #ffffff !important;
+            border: 1.5px solid #2563eb !important;
+            color: #0f172a !important;
             font-weight: 800 !important;
+            font-size: 0.85rem !important;
+            padding: 4px 12px !important;
             box-shadow: 0 1px 4px rgba(37, 99, 235, 0.12) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+
+        [data-theme="light"] #userRoleBadge,
+        [data-theme="light"] #userRoleBadge span,
+        [data-theme="light"] #userRoleBadge strong,
+        [data-theme="light"] #userRoleBadge * {
+            color: #0f172a !important;
+            font-weight: 800 !important;
         }
 
         [data-theme="light"] #userRoleBadge i.fa-crown,
         [data-theme="light"] #userRoleBadge [style*="color:#fbbf24"],
-        [data-theme="light"] #userRoleBadge [style*="color: #fbbf24"] {
+        [data-theme="light"] #userRoleBadge [style*="color: #fbbf24"],
+        [data-theme="light"] #userRoleBadge [style*="color:#d97706"],
+        [data-theme="light"] #userRoleBadge [style*="color: #d97706"] {
             color: #d97706 !important;
         }
 
@@ -2665,10 +2680,8 @@
             <div class="user-auth-bar"
                 style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); padding: 10px 18px; border-radius: var(--radius-md); margin-bottom: 20px;">
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <span id="userRoleBadge" class="badge-verified"><i class="fa-solid fa-crown"></i> Executive
-                        Admin</span>
-                    <span id="userDisplayName" style="color:#e2e8f0; font-weight:600;">Administrator (Full Central
-                        Access)</span>
+                    <span id="userRoleBadge" class="badge-verified"><i class="fa-solid fa-crown" style="color:#d97706; margin-right: 6px;"></i><span style="font-weight: 800;">Executive Admin Console</span></span>
+                    <span id="userDisplayName" style="font-weight:700;">Administrator (Full Central Access)</span>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 14px; margin-left: auto;">
@@ -4897,28 +4910,28 @@
                 if (badge && userDisplay) {
                     if (currentUser.role === 'admin') {
                         badge.className = 'badge-verified';
-                        badge.style.background = isLight ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(30, 58, 138, 0.4))';
-                        badge.style.borderColor = isLight ? '#3b82f6' : '#3b82f6';
-                        badge.style.color = isLight ? '#1e40af' : '#93c5fd';
-                        badge.innerHTML = `<i class="fa-solid fa-crown" style="color:${isLight ? '#d97706' : '#fbbf24'};"></i> Executive Admin Console`;
+                        badge.style.background = isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(30, 58, 138, 0.4))';
+                        badge.style.borderColor = isLight ? '#2563eb' : '#3b82f6';
+                        badge.style.color = isLight ? '#0f172a' : '#93c5fd';
+                        badge.innerHTML = `<i class="fa-solid fa-crown" style="color:${isLight ? '#d97706' : '#fbbf24'}; margin-right:6px; font-size:0.9rem;"></i><span style="color:${isLight ? '#0f172a' : '#93c5fd'} !important; font-weight:800; font-size:0.86rem; letter-spacing:0.3px;">Executive Admin Console</span>`;
                         userDisplay.innerHTML = `<span style="color:${isLight ? '#0f172a' : '#e2e8f0'}; font-weight:700;">Administrator (Full Central Visibility &amp; Governance)</span>`;
                     } else if (currentUser.role === 'incharge') {
                         badge.className = 'badge-verified';
-                        badge.style.background = isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.2)';
+                        badge.style.background = isLight ? '#ffffff' : 'rgba(2, 132, 199, 0.2)';
                         badge.style.borderColor = '#0284c7';
-                        badge.style.color = isLight ? '#0369a1' : '#38bdf8';
-                        badge.innerHTML = '<i class="fa-solid fa-building"></i> Depot Operational Console';
+                        badge.style.color = isLight ? '#0f172a' : '#38bdf8';
+                        badge.innerHTML = `<i class="fa-solid fa-building" style="color:${isLight ? '#0284c7' : '#38bdf8'}; margin-right:6px; font-size:0.9rem;"></i><span style="color:${isLight ? '#0f172a' : '#38bdf8'} !important; font-weight:800; font-size:0.86rem;">Depot Operational Console</span>`;
                         userDisplay.innerHTML = `Scoped Depot: <strong style="color:${isLight ? '#0284c7' : '#38bdf8'};">${currentUser.depot_name || currentUser.display_name}</strong> <span style="color:${isLight ? '#475569' : '#94a3b8'};">(Local Operational Access)</span>`;
                     } else if (currentUser.role === 'delivery_man') {
                         badge.className = 'badge-verified';
-                        badge.style.background = isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.2)';
+                        badge.style.background = isLight ? '#ffffff' : 'rgba(16, 185, 129, 0.2)';
                         badge.style.borderColor = '#10b981';
-                        badge.style.color = isLight ? '#15803d' : '#34d399';
-                        badge.innerHTML = '<i class="fa-solid fa-motorcycle"></i> Delivery Courier Console';
+                        badge.style.color = isLight ? '#0f172a' : '#34d399';
+                        badge.innerHTML = `<i class="fa-solid fa-motorcycle" style="color:${isLight ? '#059669' : '#34d399'}; margin-right:6px; font-size:0.9rem;"></i><span style="color:${isLight ? '#0f172a' : '#34d399'} !important; font-weight:800; font-size:0.86rem;">Delivery Courier Console</span>`;
                         userDisplay.innerHTML = `Rider: <strong style="color:${isLight ? '#15803d' : '#34d399'};">${currentUser.display_name || 'Delivery Assistant'}</strong> — <span style="color:${isLight ? '#475569' : '#94a3b8'};">${currentUser.depot_name || 'Depot'}</span>`;
                     } else {
                         badge.className = 'badge-alert';
-                        badge.innerHTML = '<i class="fa-solid fa-lock"></i> Not Logged In';
+                        badge.innerHTML = '<i class="fa-solid fa-lock" style="margin-right:6px;"></i> Not Logged In';
                         userDisplay.innerHTML = `<span style="color:${isLight ? '#475569' : '#94a3b8'};">Please log in with your credentials</span>`;
                     }
                 }

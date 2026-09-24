@@ -1351,10 +1351,53 @@ body {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
         }
 
-        /* User Auth Bar */
+        /* ──── USER AUTH BAR / EXECUTIVE ADMIN CONSOLE LIGHT MODE ──── */
         [data-theme="light"] .user-auth-bar {
             background: #ffffff !important;
-            border-color: #cbd5e1 !important;
+            border: 1.5px solid #cbd5e1 !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        [data-theme="light"] #userRoleBadge {
+            background: #ffffff !important;
+            border: 1.5px solid #2563eb !important;
+            color: #0f172a !important;
+            font-weight: 800 !important;
+            font-size: 0.85rem !important;
+            padding: 4px 12px !important;
+            box-shadow: 0 1px 4px rgba(37, 99, 235, 0.12) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+
+        [data-theme="light"] #userRoleBadge,
+        [data-theme="light"] #userRoleBadge span,
+        [data-theme="light"] #userRoleBadge strong,
+        [data-theme="light"] #userRoleBadge * {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+
+        [data-theme="light"] #userRoleBadge i.fa-crown,
+        [data-theme="light"] #userRoleBadge [style*="color:#fbbf24"],
+        [data-theme="light"] #userRoleBadge [style*="color: #fbbf24"],
+        [data-theme="light"] #userRoleBadge [style*="color:#d97706"],
+        [data-theme="light"] #userRoleBadge [style*="color: #d97706"] {
+            color: #d97706 !important;
+        }
+
+        [data-theme="light"] #userRoleBadge i.fa-building {
+            color: #0284c7 !important;
+        }
+
+        [data-theme="light"] #userRoleBadge i.fa-motorcycle {
+            color: #059669 !important;
+        }
+
+        [data-theme="light"] #userDisplayName {
+            color: #0f172a !important;
+            font-weight: 700 !important;
         }
 
         /* Nav Tabs */
