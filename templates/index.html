@@ -1065,355 +1065,13 @@
             }
         }
 
-        /* ==========================================================================
-   CLEAN & BULLETPROOF MODAL DIALOGS (HIDDEN BY DEFAULT, VISIBLE ON .active)
-   ========================================================================== */
-        .modal-overlay {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background: rgba(11, 19, 41, 0.92) !important;
-            backdrop-filter: blur(10px) !important;
-            align-items: center !important;
-            justify-content: center !important;
-            z-index: 999999 !important;
-            padding: 20px !important;
-            display: none !important;
-        }
-
-        .modal-overlay.active {
-            display: flex !important;
-        }
-
-        .modal-container {
-            background: #0f172a !important;
-            border: 1px solid rgba(56, 189, 248, 0.4) !important;
-            border-radius: var(--radius-lg) !important;
-            width: 100% !important;
-            max-width: 1280px !important;
-            max-height: 92vh !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9) !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-            animation: modalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        }
-
-        @keyframes modalScale {
-            from {
-                transform: scale(0.95);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .modal-header {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            padding: 16px 24px !important;
-            background: #1e293b !important;
-            border-bottom: 1px solid var(--border-color) !important;
-            flex-shrink: 0 !important;
-        }
-
-        .modal-title {
-            font-size: 1.15rem !important;
-            font-weight: 700 !important;
-            color: #ffffff !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 12px !important;
-        }
-
-        .modal-body {
-            padding: 24px !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            max-height: calc(92vh - 75px) !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 24px !important;
-            scroll-behavior: smooth !important;
-        }
-
-        .modal-body::-webkit-scrollbar,
-        .table-responsive::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        .modal-body::-webkit-scrollbar-track,
-        .table-responsive::-webkit-scrollbar-track {
-            background: #0b1329;
-            border-radius: 4px;
-        }
-
-        .modal-body::-webkit-scrollbar-thumb,
-        .table-responsive::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-            border: 1px solid rgba(56, 189, 248, 0.2);
-        }
-
-        .modal-body::-webkit-scrollbar-thumb:hover,
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-            background: #38bdf8;
-        }
-
-        .modal-body .card {
-            overflow: visible !important;
-            margin-bottom: 0 !important;
-        }
-
-        .modal-body .table-responsive {
-            overflow-x: auto !important;
-            max-height: none !important;
-        }
-
-        /* DASHBOARD DYNAMIC FILTER BAR STYLES */
-        .dashboard-filter-bar {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: var(--radius-md);
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
-        }
-
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .filter-group label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #e2e8f0;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .filter-select {
-            padding: 7px 12px;
-            background: #0b1329;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            color: #38bdf8;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .filter-select:hover,
-        .filter-select:focus {
-            border-color: #38bdf8;
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
-        }
-
-        .filter-select option {
-            background: #0f172a;
-            color: #ffffff;
-            font-weight: 500;
-        }
-
-        /* ENFORCE NATIVE HAND CURSOR ON ALL INTERACTIVE ELEMENTS */
-        a,
-        button,
-        .kpi-card,
-        .clickable-kpi,
-        .btn-drill,
-        .nav-tab,
-        .btn,
-        .btn-close,
-        tr.clickable-row {
-            cursor: pointer !important;
-        }
-
-        .kpi-card {
-            cursor: pointer !important;
-            text-decoration: none !important;
-            color: inherit !important;
-        }
-
-        .user-auth-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: var(--radius-md);
-            padding: 8px 16px;
-            margin-bottom: 16px;
-            font-size: 0.85rem;
-        }
-
-        /* DEDICATED HIGH-CONTRAST PRINT STYLING */
-        @media print {
-            body {
-                background: #ffffff !important;
-                color: #000000 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            .app-container,
-            .navbar,
-            .top-bar,
-            .sidebar,
-            .no-print,
-            button,
-            .btn {
-                display: none !important;
-            }
-
-            #vanRunSheetPrintModal {
-                position: static !important;
-                inset: auto !important;
-                background: transparent !important;
-                backdrop-filter: none !important;
-                padding: 0 !important;
-                display: block !important;
-                max-height: none !important;
-                overflow: visible !important;
-                z-index: auto !important;
-            }
-
-            #vanRunSheetPrintModal>div {
-                max-width: 100% !important;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-                color: #000000 !important;
-            }
-
-            .page-break {
-                page-break-after: always;
-                break-after: page;
-            }
-        }
-    
-        /* ==========================================================================
-           LIVE FLEET TRACKING LEAFLET & RADAR CUSTOM STYLES
-           ========================================================================== */
-        .leaflet-container {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-            background: var(--bg-primary, #0b1120) !important;
-        }
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background: var(--bg-card, #0f172a) !important;
-            color: var(--text-primary, #f8fafc) !important;
-            border: 1px solid var(--border-color, #334155) !important;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7) !important;
-            border-radius: 8px !important;
-        }
-        .leaflet-popup-content {
-            margin: 12px 14px !important;
-            line-height: 1.5 !important;
-            font-size: 0.85rem !important;
-        }
-        .custom-depot-pin {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            background: linear-gradient(135deg, #0284c7, #0369a1);
-            color: #ffffff;
-            border-radius: 50%;
-            border: 3px solid #38bdf8;
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.85);
-            font-size: 16px;
-        }
-        .custom-van-pin {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            border-radius: 50%;
-            border: 2px solid #ffffff;
-            box-shadow: 0 0 14px rgba(16, 185, 129, 0.9);
-            font-size: 15px;
-            transition: transform 0.4s ease;
-        }
-        .custom-drop-pin {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            font-weight: 800;
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-            color: #ffffff;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .custom-drop-pin-num {
-            transform: rotate(45deg);
-            display: inline-block;
-            font-weight: 800;
-            font-size: 13px;
-            line-height: 1;
-        }
-        .custom-drop-pin:hover {
-            transform: rotate(-45deg) scale(1.18);
-            box-shadow: 0 0 18px rgba(56, 189, 248, 0.95);
-            z-index: 999;
-        }
-        .drop-pin-completed {
-            background: linear-gradient(135deg, #22c55e, #15803d);
-            box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
-        }
-        .drop-pin-intransit {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
-            box-shadow: 0 0 14px rgba(56, 189, 248, 0.9);
-            animation: pulse 1.5s infinite;
-        }
-        .drop-pin-pending {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
-        }
-        .drop-pin-failed {
-            background: linear-gradient(135deg, #ef4444, #b91c1c);
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
-        }
-
-        /* Darken plain OpenStreetMap tiles with CSS only (no paid dark-tile API/key needed)
-           so the free basemap still matches this dashboard's dark theme. Only the base
-           tile image is filtered - markers, icons and popups sit in other Leaflet panes
-           and are left untouched. */
-        .dark-map-tiles .leaflet-tile-pane {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-        }
-
-                /* =============================================================
-           COMPREHENSIVE LIGHT THEME (DAYLIGHT HIGH-CONTRAST MODE)
-           100% Elimination of dark shadings, unreadable fonts, & inline dark backgrounds
+        /* =============================================================
+           COMPREHENSIVE LIGHT THEME — NUCLEAR-LEVEL OVERRIDE
+           Guarantees 100% white surfaces, high-contrast text, and
+           zero dark remnants across ALL inline-styled elements.
            ============================================================= */
+
+        /* ──── CSS Custom Properties for Light Mode ──── */
         [data-theme="light"], html.light-theme, body.light-theme {
             --bg-primary: #f0f4f9;
             --bg-secondary: #ffffff;
@@ -1422,235 +1080,163 @@
             --bg-surface-2: #f1f5f9;
             --border-color: #cbd5e1;
             --border-subtle: #e2e8f0;
-
             --primary-blue: #2563eb;
             --primary-dark: #1d4ed8;
             --accent-cyan: #0284c7;
             --accent-green: #15803d;
             --accent-red: #dc2626;
             --accent-amber: #b45309;
-
             --text-main: #0f172a;
             --text-muted: #475569;
             --text-dim: #64748b;
-
             --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
             --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.12);
         }
 
-        /* 1. Global Shell and Typography */
-        [data-theme="light"] body, html.light-theme body, body.light-theme {
-            background-color: #f0f4f9 !important;
-            color: #0f172a !important;
-        }
-
-        [data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3, 
+        /* ──── 1. GLOBAL BODY & TYPOGRAPHY ──── */
+        [data-theme="light"] body { background-color: #f0f4f9 !important; color: #0f172a !important; }
+        [data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3,
         [data-theme="light"] h4, [data-theme="light"] h5, [data-theme="light"] h6,
         [data-theme="light"] strong, [data-theme="light"] b,
-        html.light-theme h1, html.light-theme h2, html.light-theme h3, 
-        html.light-theme h4, html.light-theme h5, html.light-theme h6,
-        html.light-theme strong, html.light-theme b,
-        body.light-theme h1, body.light-theme h2, body.light-theme h3, 
-        body.light-theme h4, body.light-theme h5, body.light-theme h6,
-        body.light-theme strong, body.light-theme b {
-            color: #0f172a !important;
+        [data-theme="light"] label, [data-theme="light"] legend,
+        [data-theme="light"] p, [data-theme="light"] span, [data-theme="light"] div,
+        [data-theme="light"] li, [data-theme="light"] dt, [data-theme="light"] dd {
+            color: inherit;
         }
 
-        /* 2. Top Navbar, User Auth Bar, & Tabs */
-        [data-theme="light"] .top-navbar,
-        html.light-theme .top-navbar,
-        body.light-theme .top-navbar {
-            background: #ffffff !important;
-            border-bottom: 1.5px solid #cbd5e1 !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
-        }
+        /* ──── 2. NUCLEAR INLINE DARK BACKGROUND OVERRIDE ────
+           These selectors use CSS attribute matching to override
+           ANY element with a dark inline style background.
+           Each pattern covers with-space and without-space variants. */
 
-        [data-theme="light"] .user-auth-bar,
-        html.light-theme .user-auth-bar,
-        body.light-theme .user-auth-bar {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
-        }
-
-        [data-theme="light"] .nav-tabs {
-            background: #e2e8f0 !important;
-            border-color: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] .nav-tab {
-            color: #475569 !important;
-        }
-
-        [data-theme="light"] .nav-tab:hover {
-            color: #0f172a !important;
-            background: #ffffff !important;
-        }
-
-        [data-theme="light"] .nav-tab.active {
-            background: #2563eb !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
-        }
-
-        /* 3. Cards, Panels, & Section Containers */
-        [data-theme="light"] .card,
-        [data-theme="light"] .van-planning-card,
-        [data-theme="light"] .route-settings-card,
-        [data-theme="light"] #plan-tab .card,
-        [data-theme="light"] .command-bar,
-        [data-theme="light"] .filter-bar,
-        [data-theme="light"] #activeVansToolbar,
-        [data-theme="light"] .reconciliation-box,
-        [data-theme="light"] .recon-banner {
-            background-color: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            color: #0f172a !important;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
-        }
-
-        /* 4. Complete Overwrite for ANY inline dark background or shading */
-        [data-theme="light"] [style*="background: #0f172a"],
-        [data-theme="light"] [style*="background:#0f172a"],
-        [data-theme="light"] [style*="background: #0b1329"],
-        [data-theme="light"] [style*="background:#0b1329"],
-        [data-theme="light"] [style*="background: #070d1e"],
-        [data-theme="light"] [style*="background:#070d1e"],
-        [data-theme="light"] [style*="background: #1e293b"],
-        [data-theme="light"] [style*="background:#1e293b"],
-        [data-theme="light"] [style*="background: #111827"],
-        [data-theme="light"] [style*="background:#111827"],
-        [data-theme="light"] [style*="background:rgba(15, 23, 42"],
-        [data-theme="light"] [style*="background: rgba(15, 23, 42"],
-        [data-theme="light"] [style*="background:rgba(11, 19, 41"],
-        [data-theme="light"] [style*="background: rgba(11, 19, 41"],
-        [data-theme="light"] [style*="background:rgba(30, 41, 59"],
-        [data-theme="light"] [style*="background: rgba(30, 41, 59"],
-        [data-theme="light"] [style*="background:rgba(11, 17, 32"],
-        [data-theme="light"] [style*="background: rgba(11, 17, 32"],
-        [data-theme="light"] [style*="background-color: #0f172a"],
-        [data-theme="light"] [style*="background-color:#0f172a"],
-        [data-theme="light"] [style*="background-color: #0b1329"],
-        [data-theme="light"] [style*="background-color:#0b1329"],
-        [data-theme="light"] [style*="background-color: #1e293b"],
-        [data-theme="light"] [style*="background-color:#1e293b"] {
+        [data-theme="light"] [style*="background: #0"],
+        [data-theme="light"] [style*="background:#0"],
+        [data-theme="light"] [style*="background: #1e"],
+        [data-theme="light"] [style*="background:#1e"],
+        [data-theme="light"] [style*="background: #11"],
+        [data-theme="light"] [style*="background:#11"],
+        [data-theme="light"] [style*="background: #07"],
+        [data-theme="light"] [style*="background:#07"],
+        [data-theme="light"] [style*="background-color: #0"],
+        [data-theme="light"] [style*="background-color:#0"],
+        [data-theme="light"] [style*="background-color: #1e"],
+        [data-theme="light"] [style*="background-color:#1e"],
+        [data-theme="light"] [style*="background:rgba(15"],
+        [data-theme="light"] [style*="background: rgba(15"],
+        [data-theme="light"] [style*="background:rgba(11"],
+        [data-theme="light"] [style*="background: rgba(11"],
+        [data-theme="light"] [style*="background:rgba(30"],
+        [data-theme="light"] [style*="background: rgba(30"],
+        [data-theme="light"] [style*="background:rgba(17"],
+        [data-theme="light"] [style*="background: rgba(17"] {
             background-color: #ffffff !important;
             background-image: none !important;
             border-color: #cbd5e1 !important;
             color: #0f172a !important;
         }
 
-        /* Overwrite dark linear gradients to clean daylight surfaces */
+        /* Special: Override for gradients with dark colors */
         [data-theme="light"] [style*="linear-gradient"][style*="#0f172a"],
         [data-theme="light"] [style*="linear-gradient"][style*="#0b1329"],
-        [data-theme="light"] [style*="linear-gradient"][style*="#1e293b"] {
-            background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+        [data-theme="light"] [style*="linear-gradient"][style*="#1e293b"],
+        [data-theme="light"] [style*="linear-gradient"][style*="#111827"],
+        [data-theme="light"] [style*="linear-gradient"][style*="#1e3a8a"] {
+            background: linear-gradient(135deg, #f8fafc, #ffffff) !important;
             border-color: #cbd5e1 !important;
             color: #0f172a !important;
         }
 
-        /* 5. Headers, Toolbars, & Sub-containers */
-        [data-theme="light"] .card-header,
-        [data-theme="light"] .route-settings-header,
-        [data-theme="light"] .van-card-header,
-        [data-theme="light"] .modal-header,
-        [data-theme="light"] .modal-footer,
-        [data-theme="light"] .van-collapsed-summary,
-        [data-theme="light"] #depotFleetStatusBar,
-        [data-theme="light"] #plan-tab .card > div:first-child[style*="linear-gradient"] {
-            background: #f8fafc !important;
-            border-color: #e2e8f0 !important;
+        /* Keep action button backgrounds (NOT overridden) */
+        [data-theme="light"] [style*="background: #0284c7"],
+        [data-theme="light"] [style*="background:#0284c7"],
+        [data-theme="light"] [style*="background: #2563eb"],
+        [data-theme="light"] [style*="background:#2563eb"],
+        [data-theme="light"] [style*="background: #1d4ed8"],
+        [data-theme="light"] [style*="background:#1d4ed8"],
+        [data-theme="light"] [style*="background: #16a34a"],
+        [data-theme="light"] [style*="background:#16a34a"],
+        [data-theme="light"] [style*="background: #10b981"],
+        [data-theme="light"] [style*="background:#10b981"],
+        [data-theme="light"] [style*="background: #0891b2"],
+        [data-theme="light"] [style*="background:#0891b2"],
+        [data-theme="light"] [style*="background: #dc2626"],
+        [data-theme="light"] [style*="background:#dc2626"],
+        [data-theme="light"] [style*="background: #ef4444"],
+        [data-theme="light"] [style*="background:#ef4444"],
+        [data-theme="light"] [style*="background: #eab308"],
+        [data-theme="light"] [style*="background:#eab308"],
+        [data-theme="light"] [style*="background: #ca8a04"],
+        [data-theme="light"] [style*="background:#ca8a04"] {
+            background-color: inherit !important;
+            color: inherit !important;
+            border-color: inherit !important;
+        }
+
+        /* ──── 3. FONT COLOR HARMONY FOR LIGHT MODE ──── */
+
+        /* White/near-white text → dark for readability */
+        [data-theme="light"] [style*="color: #fff"],
+        [data-theme="light"] [style*="color:#fff"],
+        [data-theme="light"] [style*="color: #f8fafc"],
+        [data-theme="light"] [style*="color:#f8fafc"],
+        [data-theme="light"] [style*="color: #e2e8f0"],
+        [data-theme="light"] [style*="color:#e2e8f0"],
+        [data-theme="light"] [style*="color: white"],
+        [data-theme="light"] [style*="color:#ffffff"],
+        [data-theme="light"] [style*="color: #ffffff"] {
             color: #0f172a !important;
         }
 
-        /* 6. Form Inputs, Selects, & Textareas in Light Mode */
-        [data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
-        [data-theme="light"] select,
-        [data-theme="light"] textarea,
-        [data-theme="light"] .form-control {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            border: 1.5px solid #cbd5e1 !important;
-        }
-
-        [data-theme="light"] input:focus,
-        [data-theme="light"] select:focus,
-        [data-theme="light"] textarea:focus,
-        [data-theme="light"] .form-control:focus {
-            border-color: #2563eb !important;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
-        }
-
-        [data-theme="light"] option {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-        }
-
-        [data-theme="light"] input::placeholder,
-        [data-theme="light"] textarea::placeholder {
-            color: #94a3b8 !important;
-        }
-
-        /* 7. High-Contrast Text Rules */
-        [data-theme="light"] label,
-        [data-theme="light"] .label,
-        [data-theme="light"] .text-muted,
+        /* Muted/dim text → medium dark for readability */
         [data-theme="light"] [style*="color: #94a3b8"],
         [data-theme="light"] [style*="color:#94a3b8"],
+        [data-theme="light"] [style*="color: #cbd5e1"],
+        [data-theme="light"] [style*="color:#cbd5e1"],
         [data-theme="light"] [style*="color: #64748b"],
         [data-theme="light"] [style*="color:#64748b"],
         [data-theme="light"] [style*="color: #475569"],
-        [data-theme="light"] [style*="color:#475569"] {
+        [data-theme="light"] [style*="color:#475569"],
+        [data-theme="light"] [style*="color: #334155"],
+        [data-theme="light"] [style*="color:#334155"] {
             color: #475569 !important;
         }
 
-        [data-theme="light"] [style*="color: #cbd5e1"],
-        [data-theme="light"] [style*="color:#cbd5e1"],
-        [data-theme="light"] [style*="color: #e2e8f0"],
-        [data-theme="light"] [style*="color:#e2e8f0"] {
-            color: #334155 !important;
-        }
-
-        /* Eliminate unreadable white text inside light containers */
-        [data-theme="light"] span[style*="color: #fff"]:not([class*="btn"]):not([class*="badge"]),
-        [data-theme="light"] span[style*="color:#fff"]:not([class*="btn"]):not([class*="badge"]),
-        [data-theme="light"] div[style*="color: #fff"]:not([class*="btn"]):not([class*="badge"]),
-        [data-theme="light"] div[style*="color:#fff"]:not([class*="btn"]):not([class*="badge"]),
-        [data-theme="light"] p[style*="color: #fff"],
-        [data-theme="light"] p[style*="color:#fff"],
-        [data-theme="light"] td[style*="color: #fff"],
-        [data-theme="light"] td[style*="color:#fff"],
-        [data-theme="light"] [style*="color: #f8fafc"]:not([class*="btn"]):not([class*="badge"]),
-        [data-theme="light"] [style*="color:#f8fafc"]:not([class*="btn"]):not([class*="badge"]),
-        [data-theme="light"] [style*="color: white"]:not([class*="btn"]):not([class*="badge"]) {
-            color: #0f172a !important;
-        }
-
-        /* High-contrast vivid accents in light mode */
+        /* Cyan accent → deeper cyan */
         [data-theme="light"] .text-cyan,
         [data-theme="light"] [style*="color: #38bdf8"],
-        [data-theme="light"] [style*="color:#38bdf8"] {
+        [data-theme="light"] [style*="color:#38bdf8"],
+        [data-theme="light"] [style*="color: #22d3ee"],
+        [data-theme="light"] [style*="color:#22d3ee"] {
             color: #0284c7 !important;
         }
 
+        /* Amber/yellow accent → deep amber */
         [data-theme="light"] .text-amber,
         [data-theme="light"] [style*="color: #fbbf24"],
-        [data-theme="light"] [style*="color: #f59e0b"],
         [data-theme="light"] [style*="color:#fbbf24"],
-        [data-theme="light"] [style*="color:#f59e0b"] {
+        [data-theme="light"] [style*="color: #facc15"],
+        [data-theme="light"] [style*="color:#facc15"],
+        [data-theme="light"] [style*="color: #f59e0b"],
+        [data-theme="light"] [style*="color:#f59e0b"],
+        [data-theme="light"] [style*="color: #eab308"],
+        [data-theme="light"] [style*="color:#eab308"] {
             color: #b45309 !important;
         }
 
+        /* Green accent → forest green */
         [data-theme="light"] .text-green,
         [data-theme="light"] [style*="color: #4ade80"],
-        [data-theme="light"] [style*="color: #34d399"],
-        [data-theme="light"] [style*="color: #22c55e"],
         [data-theme="light"] [style*="color:#4ade80"],
+        [data-theme="light"] [style*="color: #34d399"],
         [data-theme="light"] [style*="color:#34d399"],
-        [data-theme="light"] [style*="color:#22c55e"] {
+        [data-theme="light"] [style*="color: #22c55e"],
+        [data-theme="light"] [style*="color:#22c55e"],
+        [data-theme="light"] [style*="color: #86efac"],
+        [data-theme="light"] [style*="color:#86efac"] {
             color: #15803d !important;
         }
 
+        /* Red accent → stronger red */
         [data-theme="light"] [style*="color: #f87171"],
         [data-theme="light"] [style*="color:#f87171"],
         [data-theme="light"] [style*="color: #ef4444"],
@@ -1658,18 +1244,17 @@
             color: #dc2626 !important;
         }
 
+        /* Purple accent → deeper purple */
         [data-theme="light"] [style*="color: #c084fc"],
-        [data-theme="light"] [style*="color:#c084fc"] {
+        [data-theme="light"] [style*="color:#c084fc"],
+        [data-theme="light"] [style*="color: #a78bfa"],
+        [data-theme="light"] [style*="color:#a78bfa"] {
             color: #7c3aed !important;
         }
 
-        /* 8. Solid Colored Action Buttons ALWAYS maintain 100% Crisp White Font */
-        [data-theme="light"] .btn-primary,
-        [data-theme="light"] .btn-success,
-        [data-theme="light"] .btn-danger,
-        [data-theme="light"] [class*="btn-primary"],
-        [data-theme="light"] [class*="btn-success"],
-        [data-theme="light"] [class*="btn-danger"],
+        /* EXCEPTION: Preserve white text on colored action buttons */
+        [data-theme="light"] button[style*="background: #0284c7"],
+        [data-theme="light"] button[style*="background:#0284c7"],
         [data-theme="light"] button[style*="background: #2563eb"],
         [data-theme="light"] button[style*="background:#2563eb"],
         [data-theme="light"] button[style*="background: #1d4ed8"],
@@ -1678,152 +1263,269 @@
         [data-theme="light"] button[style*="background:#1e3a8a"],
         [data-theme="light"] button[style*="background: #16a34a"],
         [data-theme="light"] button[style*="background:#16a34a"],
-        [data-theme="light"] button[style*="background: #22c55e"],
-        [data-theme="light"] button[style*="background:#22c55e"],
+        [data-theme="light"] button[style*="background: #10b981"],
+        [data-theme="light"] button[style*="background:#10b981"],
+        [data-theme="light"] button[style*="background: #0891b2"],
+        [data-theme="light"] button[style*="background:#0891b2"],
         [data-theme="light"] button[style*="background: #dc2626"],
         [data-theme="light"] button[style*="background:#dc2626"],
         [data-theme="light"] button[style*="background: #ef4444"],
         [data-theme="light"] button[style*="background:#ef4444"],
-        [data-theme="light"] button[style*="background: #0284c7"],
-        [data-theme="light"] button[style*="background:#0284c7"],
-        [data-theme="light"] .badge-primary,
-        [data-theme="light"] .badge-success,
-        [data-theme="light"] .badge-danger {
+        [data-theme="light"] button[style*="background: #eab308"],
+        [data-theme="light"] button[style*="background:#eab308"],
+        [data-theme="light"] button[style*="background: #ca8a04"],
+        [data-theme="light"] button[style*="background:#ca8a04"],
+        [data-theme="light"] .btn-primary,
+        [data-theme="light"] .btn-success,
+        [data-theme="light"] .btn-danger {
             color: #ffffff !important;
         }
-
-        [data-theme="light"] .btn-primary *,
-        [data-theme="light"] .btn-success *,
-        [data-theme="light"] .btn-danger *,
+        [data-theme="light"] button[style*="background: #0284c7"] *,
+        [data-theme="light"] button[style*="background:#0284c7"] *,
         [data-theme="light"] button[style*="background: #2563eb"] *,
+        [data-theme="light"] button[style*="background:#2563eb"] *,
         [data-theme="light"] button[style*="background: #1d4ed8"] *,
+        [data-theme="light"] button[style*="background:#1d4ed8"] *,
         [data-theme="light"] button[style*="background: #1e3a8a"] *,
+        [data-theme="light"] button[style*="background:#1e3a8a"] *,
         [data-theme="light"] button[style*="background: #16a34a"] *,
-        [data-theme="light"] button[style*="background: #22c55e"] *,
+        [data-theme="light"] button[style*="background:#16a34a"] *,
+        [data-theme="light"] button[style*="background: #10b981"] *,
+        [data-theme="light"] button[style*="background:#10b981"] *,
+        [data-theme="light"] button[style*="background: #0891b2"] *,
+        [data-theme="light"] button[style*="background:#0891b2"] *,
         [data-theme="light"] button[style*="background: #dc2626"] *,
-        [data-theme="light"] button[style*="background: #ef4444"] *,
-        [data-theme="light"] button[style*="background: #0284c7"] * {
+        [data-theme="light"] button[style*="background:#dc2626"] *,
+        [data-theme="light"] button[style*="background: #eab308"] *,
+        [data-theme="light"] button[style*="background:#eab308"] *,
+        [data-theme="light"] .btn-primary *, [data-theme="light"] .btn-success *,
+        [data-theme="light"] .btn-danger * {
             color: #ffffff !important;
         }
 
-        /* Secondary and Outline Buttons in Light Mode */
-        [data-theme="light"] .btn-secondary,
-        [data-theme="light"] .btn-outline {
-            background-color: #f1f5f9 !important;
-            border-color: #cbd5e1 !important;
-            color: #1e293b !important;
+        /* ──── 4. STRUCTURAL COMPONENTS ──── */
+
+        /* Navbar */
+        [data-theme="light"] .top-navbar {
+            background: #ffffff !important;
+            border-bottom: 1.5px solid #cbd5e1 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
         }
 
-        [data-theme="light"] .btn-secondary:hover,
-        [data-theme="light"] .btn-outline:hover {
-            background-color: #e2e8f0 !important;
+        /* User Auth Bar */
+        [data-theme="light"] .user-auth-bar {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* Nav Tabs */
+        [data-theme="light"] .nav-tabs { background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+        [data-theme="light"] .nav-tab { color: #475569 !important; }
+        [data-theme="light"] .nav-tab:hover { color: #0f172a !important; background: #ffffff !important; }
+        [data-theme="light"] .nav-tab.active { background: #2563eb !important; color: #ffffff !important; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important; }
+
+        /* Cards */
+        [data-theme="light"] .card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
             color: #0f172a !important;
         }
 
-        /* 9. Tables in Light Mode */
-        [data-theme="light"] table,
-        [data-theme="light"] .data-table,
-        [data-theme="light"] .entry-table {
-            color: #1e293b !important;
+        /* Card Headers */
+        [data-theme="light"] .card-header,
+        [data-theme="light"] .route-settings-header,
+        [data-theme="light"] .van-card-header {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* Command Bar & Filter Bar */
+        [data-theme="light"] .command-bar,
+        [data-theme="light"] .filter-bar,
+        [data-theme="light"] #activeVansToolbar,
+        [data-theme="light"] #depotFleetStatusBar,
+        [data-theme="light"] .reconciliation-box,
+        [data-theme="light"] .recon-banner {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* Btn-group (MISSING before) */
+        [data-theme="light"] .btn-group {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] .btn-group .btn,
+        [data-theme="light"] .btn-group button {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] .btn-group .btn.active,
+        [data-theme="light"] .btn-group button.active,
+        [data-theme="light"] .btn-group .btn:hover,
+        [data-theme="light"] .btn-group button:hover {
+            background: #2563eb !important;
+            color: #ffffff !important;
+        }
+
+        /* SOP Block code (MISSING before) */
+        [data-theme="light"] .sop-block code {
+            background: #f1f5f9 !important;
+            color: #0284c7 !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        /* Protocol Badge (MISSING before) */
+        [data-theme="light"] .protocol-badge {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
             border-color: #cbd5e1 !important;
         }
 
-        [data-theme="light"] table th,
-        [data-theme="light"] .data-table th,
-        [data-theme="light"] .entry-table th {
+        /* ──── 5. FORMS, INPUTS, SELECTS ──── */
+        [data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="color"]):not([type="range"]),
+        [data-theme="light"] select,
+        [data-theme="light"] textarea,
+        [data-theme="light"] .form-control {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+        }
+        [data-theme="light"] input:focus, [data-theme="light"] select:focus, [data-theme="light"] textarea:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+        }
+        [data-theme="light"] option {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] input::placeholder, [data-theme="light"] textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* Secondary / Outline buttons */
+        [data-theme="light"] .btn-secondary,
+        [data-theme="light"] .btn-outline {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #1e293b !important;
+        }
+        [data-theme="light"] .btn-secondary:hover, [data-theme="light"] .btn-outline:hover {
+            background: #e2e8f0 !important;
+        }
+
+        /* ──── 6. TABLES ──── */
+        [data-theme="light"] table, [data-theme="light"] .data-table, [data-theme="light"] .entry-table {
+            color: #1e293b !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] table th, [data-theme="light"] .data-table th, [data-theme="light"] .entry-table th {
             background-color: #f1f5f9 !important;
             color: #0f172a !important;
             border-color: #cbd5e1 !important;
             font-weight: 700 !important;
         }
-
-        [data-theme="light"] table td,
-        [data-theme="light"] .data-table td,
-        [data-theme="light"] .entry-table td {
+        [data-theme="light"] table td, [data-theme="light"] .data-table td, [data-theme="light"] .entry-table td {
             background-color: #ffffff !important;
             border-color: #e2e8f0 !important;
             color: #1e293b !important;
         }
-
-        [data-theme="light"] table tr:nth-child(even) td,
-        [data-theme="light"] .data-table tbody tr:nth-child(even) td {
-            background-color: #f8fafc !important;
-        }
-
-        [data-theme="light"] table tbody tr:hover td,
-        [data-theme="light"] .data-table tbody tr:hover td {
-            background-color: #f1f5f9 !important;
-        }
-
-        [data-theme="light"] table tfoot td,
-        [data-theme="light"] .data-table tfoot td {
+        [data-theme="light"] table tr:nth-child(even) td { background-color: #f8fafc !important; }
+        [data-theme="light"] table tbody tr:hover td { background-color: #f1f5f9 !important; }
+        [data-theme="light"] table tfoot td, [data-theme="light"] .data-table tfoot td {
             background-color: #f1f5f9 !important;
             color: #0f172a !important;
             font-weight: 700 !important;
-            border-color: #cbd5e1 !important;
         }
 
-        /* 10. KPI Cards & Stat Cockpit */
-        [data-theme="light"] .kpi-card,
-        [data-theme="light"] .stat-card,
-        [data-theme="light"] #plan-tab .kpi-card {
-            background-color: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
-        }
-
-        [data-theme="light"] .kpi-header {
-            color: #475569 !important;
-        }
-
-        [data-theme="light"] .kpi-val {
-            color: #0f172a !important;
-        }
-
-        /* Grand Totals Section in Light Mode */
-        [data-theme="light"] #grandTotalsCard {
+        /* ──── 7. KPI & STAT CARDS ──── */
+        [data-theme="light"] .kpi-card, [data-theme="light"] .stat-card {
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
         }
+        [data-theme="light"] .kpi-header { color: #475569 !important; }
+        [data-theme="light"] .kpi-val { color: #0f172a !important; }
+        [data-theme="light"] .kpi-footer { color: #64748b !important; border-color: #f1f5f9 !important; }
 
-        [data-theme="light"] #grandTotalsCard .kpi-card {
-            background: #f8fafc !important;
-            border: 1px solid #e2e8f0 !important;
-        }
-
-        /* Final Dispatch Confirmation Card in Light Mode */
-        [data-theme="light"] #finalDispatchCard {
-            background: linear-gradient(135deg, #f0fdf4, #ffffff) !important;
-            border: 1.5px solid #16a34a !important;
-            box-shadow: 0 4px 20px rgba(22, 163, 74, 0.12) !important;
-        }
-
-        [data-theme="light"] #finalDispatchCard div[style*="background: rgba(15, 23, 42, 0.6)"] {
-            background: #ffffff !important;
-            border: 1px solid #bbf7d0 !important;
-        }
-
-        /* 11. Modals in Light Mode */
+        /* ──── 8. MODALS ──── */
         [data-theme="light"] .modal-overlay,
-        [data-theme="light"] [style*="position: fixed"][style*="inset: 0"][style*="background: rgba(11,"] {
-            background: rgba(15, 23, 42, 0.5) !important;
+        [data-theme="light"] [style*="position: fixed"][style*="inset: 0"] {
+            background: rgba(15, 23, 42, 0.45) !important;
             backdrop-filter: blur(6px) !important;
         }
-
-        [data-theme="light"] .modal-container,
-        [data-theme="light"] .modal-content {
+        [data-theme="light"] .modal-container, [data-theme="light"] .modal-content {
             background: #ffffff !important;
             color: #0f172a !important;
             border: 1px solid #cbd5e1 !important;
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18) !important;
         }
-
-        /* 12. Leaflet Tiles Filter in Light Mode */
-        [data-theme="light"] .dark-map-tiles .leaflet-tile-pane {
-            filter: none !important;
+        [data-theme="light"] .modal-header, [data-theme="light"] .modal-footer {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
         }
 
+        /* ──── 9. LOGIN VIEW (MISSING before) ──── */
+        [data-theme="light"] #loginView .card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12) !important;
+        }
+        [data-theme="light"] #loginView .card > div:first-child {
+            background: #f8fafc !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        [data-theme="light"] #loginView label { color: #334155 !important; }
+
+        /* ──── 10. VAN CARDS & DISPATCH ──── */
+        [data-theme="light"] .van-planning-card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] .van-collapsed-summary {
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+            color: #334155 !important;
+        }
+        [data-theme="light"] .route-settings-card {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] .route-settings-body {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* ──── 11. SCROLLBAR (MISSING before) ──── */
+        [data-theme="light"] ::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+        }
+        [data-theme="light"] ::-webkit-scrollbar-thumb {
+            background: #94a3b8 !important;
+        }
+
+        /* ──── 12. BADGES & PILLS ──── */
+        [data-theme="light"] .badge[style*="background: rgba(56, 189, 248"],
+        [data-theme="light"] .badge[style*="background:rgba(56, 189, 248"] {
+            background: rgba(2, 132, 199, 0.12) !important;
+            color: #0284c7 !important;
+            border-color: #0284c7 !important;
+        }
+
+        /* ──── 13. LEAFLET MAP ──── */
+        [data-theme="light"] .dark-map-tiles .leaflet-tile-pane { filter: none !important; }
+
+        /* ──── 14. TOAST NOTIFICATIONS ──── */
+        [data-theme="light"] .toast, [data-theme="light"] .toast-notification {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+        }
 
         /* -------------------------------------------------------------
            THEME SWITCH PILL & DAY/NIGHT BUTTON STYLES
@@ -2708,7 +2410,7 @@
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-truck-front text-amber" style="font-size: 1.1rem;"></i>
                                     <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">2. Fleet Capacity & Vehicle Management (ফ্লিট ও ভেহিকল ক্যাপাসিটি)</strong>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">2. Fleet Capacity & Vehicle Management</strong>
                                         <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Registered fleet capacity, rental vehicles, borrow vehicles & maintenance status</span>
                                     </div>
                                 </div>
@@ -2759,7 +2461,7 @@
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-file-excel text-green" style="font-size: 1.1rem;"></i>
                                     <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">3. Data Import, Excel & Plan History (ডাটা ইমপোর্ট ও এক্সেল টুলস)</strong>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">3. Data Import, Excel & Plan History</strong>
                                         <span style="font-size: 0.78rem; color: #94a3b8; display: block;">1-click Poloxy ERP import, blank Excel template, offline route upload & history</span>
                                     </div>
                                 </div>
@@ -2804,7 +2506,7 @@
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-paper-plane text-green" style="font-size: 1.1rem;"></i>
                                     <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">4. Dispatch, Print Run-Sheets & Reconciliation (ডিসপ্যাচ ও প্রিন্ট সেটিংস)</strong>
+                                        <strong style="font-size: 0.95rem; color: #f8fafc;">4. Dispatch, Print Run-Sheets &amp; Reconciliation</strong>
                                         <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Local draft saving, printable A4 run sheets & automatic Daily Entry synchronization</span>
                                     </div>
                                 </div>
@@ -4092,7 +3794,7 @@
                 } catch(e) {}
                 updateThemeUI(theme);
                 if (showToastMsg && typeof showToast === 'function') {
-                    showToast(`✨ ${theme === 'light' ? '☀️ ডে মুড (Light Mode)' : '🌙 ডার্ক মুড (Dark Mode)'} সক্রিয় করা হয়েছে!`);
+                    showToast(`✨ ${theme === 'light' ? '☀️ Light Mode Activated' : '🌙 Dark Mode Activated'}`);
                 }
             }
             window.setTheme = setTheme;
@@ -4307,7 +4009,7 @@
                 if (isHidden) {
                     wrap.style.display = 'grid';
                     if (chevron) chevron.className = 'fa-solid fa-chevron-up';
-                    if (label) label.textContent = 'সংক্ষেপ / কলাপ্স';
+                    if (label) label.textContent = 'Collapse';
                 } else {
                     wrap.style.display = 'none';
                     if (chevron) chevron.className = 'fa-solid fa-chevron-down';
@@ -4325,11 +4027,11 @@
                 if (isHidden) {
                     wrap.style.display = 'block';
                     if (chevron) chevron.className = 'fa-solid fa-chevron-up';
-                    if (label) label.textContent = 'সংক্ষেপ / কলাপ্স';
+                    if (label) label.textContent = 'Collapse';
                 } else {
                     wrap.style.display = 'none';
                     if (chevron) chevron.className = 'fa-solid fa-chevron-down';
-                    if (label) label.textContent = 'ডিসপ্যাচ অপশন খুলুন (Show)';
+                    if (label) label.textContent = 'Show Dispatch';
                 }
             }
             window.toggleFinalDispatchCockpit = toggleFinalDispatchCockpit;
@@ -9342,7 +9044,7 @@
                 const r = String(refStr || '').toUpperCase().trim();
                 const o = String(orderNoStr || '').toUpperCase().trim();
 
-                // 01 - Chicken (সকল Chicken: Gazipur or Tejgaon)
+                // 01 - Chicken (All Chicken: Gazipur or Tejgaon)
                 // 03 - Egg (Tejgaon Fresh Egg: 03SO, 03. Branded Eggs, 03TG, EGG)
                 if (o.includes('03SO') || b.includes('BRANDED EGGS') || b.includes('EGG') || r.includes('03TG') || r.includes('09.') || o.includes('09SO')) {
                     return { id: 9, name: "09. Tejgaon - Fresh Egg", category: "Fresh Eggs" };
@@ -9393,7 +9095,7 @@
                     return { id: 2, name: "02. Ashulia Factory - Dry Food", category: "Dry Food" };
                 }
 
-                // 06 - Dairy (সকল Dairy: Sirajganj or Tejgaon)
+                // 06 - Dairy (All Dairy: Sirajganj or Tejgaon)
                 if (b.includes('DAIRY') || b.includes('MILK') || b.includes('06.') || b.includes('06SO') || r.includes('06.')) {
                     if (r.includes('SIRAJGANJ') || r.includes('SJ')) {
                         return { id: 4, name: "04. Sirajganj Dairy", category: "Dairy" };
@@ -10024,7 +9726,7 @@
 
                 const badge = document.getElementById('mapPrimaryCategoryBadge');
                 if (badge) {
-                    badge.innerHTML = `🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">${primaryLabel}</strong>`;
+                    badge.innerHTML = `🎯 Depot Primary Category: <strong style="color: #38bdf8;">${primaryLabel}</strong>`;
                 }
 
                 const catSelect = document.getElementById('mapCategory');
@@ -11498,7 +11200,7 @@
             function downloadMasterMappingTemplate() {
                 const depotId = getSelectedMasterDepotId();
                 if (!depotId || depotId === 'all') {
-                    showToast('⚠️ অনুগ্রহ করে প্রথমে উপরের হেডার ড্রপডাউন থেকে নির্দিষ্ট ডিপো (যেমন: Tejgaon Frozen/CK) সিলেক্ট করুন।', 'warning');
+                    showToast('⚠️ Please select a specific depot from the dropdown above first.', 'warning');
                     const sel = document.getElementById('masterModalDepotSelect');
                     if (sel) {
                         sel.focus();
@@ -11511,7 +11213,7 @@
                 const depotObj = depotList.find(d => d.id == depotId);
                 const depotName = depotObj ? depotObj.name : `Depot #${depotId}`;
                 const depotType = depotObj ? (depotObj.category || depotObj.type || '') : '';
-                showToast(`📥 ${depotName}-এর জন্য ১-শিট এক্সেল টেমপ্লেট ডাউনলোড হচ্ছে...`, 'info');
+                showToast(`📥 Downloading 1-sheet Excel template for ${depotName}...`, 'info');
                 window.location.href = `/api/template/driver-vehicle-mapping-excel?depot_id=${depotId}&type=${encodeURIComponent(depotType)}`;
             }
 
@@ -11521,7 +11223,7 @@
 
                 let depotId = getSelectedMasterDepotId();
                 if (!depotId || depotId === 'all') {
-                    showToast('⚠️ এক্সেল আপলোডের পূর্বে অনুগ্রহ করে উপরে নির্দিষ্ট ডিপো সিলেক্ট করুন।', 'warning');
+                    showToast('⚠️ Please select a specific depot before uploading Excel.', 'warning');
                     const sel = document.getElementById('masterModalDepotSelect');
                     if (sel) {
                         sel.focus();
@@ -11540,7 +11242,7 @@
                 formData.append('type', depotType);
                 formData.append('depot_type', depotType);
 
-                showToast(`⏳ ${depotObj.name}-এর ১-শিট এক্সেল থেকে গাড়ি, ড্রাইভার ও ক্যাপাসিটি আপলোড হচ্ছে...`, 'info');
+                showToast(`⏳ Uploading vehicles, drivers & capacity from Excel for ${depotObj.name}...`, 'info');
 
                 try {
                     const res = await fetch('/api/crew/mapping-bulk-upload', {
@@ -15711,10 +15413,10 @@
                                     <i class="fa-solid fa-truck-ramp-box"></i> 1. Add / Edit Driver-Vehicle Default Mapping & Capacity
                                 </h4>
                                 <span id="mapPrimaryCategoryBadge" style="font-size: 0.78rem; background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 2px 10px; border-radius: 4px; font-weight: 700;">
-                                    🎯 ডিপোর নির্ধারিত ক্যাটাগরি: <strong style="color: #38bdf8;">Auto-detecting...</strong>
+                                    🎯 Depot Primary Category: <strong style="color: #38bdf8;">Auto-detecting...</strong>
                                 </span>
                             </div>
-                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">ডিপো টাইপ ও ক্যাটাগরি অনুসারে ডিফল্ট গাড়ি, নির্ধারিত UoM (যেমন: Kg, Pcs, Liter), চালক, রুট ও ম্যাক্সিমাম ক্যাপাসিটি সেট করুন।</p>
+                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">Default capacity based on depot type & category will auto-fill the form below.</p>
 
                             <!-- Row 1: Category & UoM Details -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">
@@ -15730,7 +15432,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label style="font-size: 0.78rem; font-weight: 800; color: #4ade80; display: block; margin-bottom: 4px;">Assigned UoM (স্বয়ংক্রিয় একক) *</label>
+                                    <label style="font-size: 0.78rem; font-weight: 800; color: #4ade80; display: block; margin-bottom: 4px;">Assigned UoM (Unit) *</label>
                                     <select id="mapUom" style="background: #0b1329; border: 1.5px solid #22c55e; color: #4ade80; font-weight: 800; padding: 7px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                         <option value="Kg">Kg (Kilograms)</option>
                                         <option value="Pcs">Pcs (Pieces)</option>
@@ -15778,7 +15480,7 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <h4 style="color: #cbd5e1; font-size: 0.95rem; font-weight: 700; margin: 0;">
-                                    📋 Default Driver-Vehicle & Capacity Master Table (প্রস্তাবিত মাস্টার ফরম্যাট)
+                                    📋 Default Driver-Vehicle & Capacity Master Table
                                 </h4>
                                 <span id="masterMappingCountBadge" style="font-size: 0.78rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 10px; border-radius: 4px; font-weight: 700;">
                                     0 mappings
@@ -15859,7 +15561,7 @@
 
                     <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; background: #0b1329; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155;">
                         <div>
-                            <strong style="color: #fbbf24; font-size: 0.85rem; display: block;">🥚 Fresh Eggs (ডিম)</strong>
+                            <strong style="color: #fbbf24; font-size: 0.85rem; display: block;">🥚 Fresh Eggs</strong>
                             <span style="font-size: 0.75rem; color: #64748b;">Table eggs, crates, and trays</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 6px;">
