@@ -3505,15 +3505,42 @@ def handle_crew():
             ''', (depot_id, role, name, phone, license_no, status, assigned_vehicle_no, secondary_vehicle_no, default_route_name, driver_id_code))
             crew_id = cursor.lastrowid
             
-        # If Driver has assigned vehicle, link it in fleet_vehicles
-        if role == 'driver' and assigned_vehicle_no:
-            cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?',
-                           (crew_id, depot_id, assigned_vehicle_no))
+        # If Driver vehicle assignment changed, update fleet_vehicles links
+        if role == 'driver':
+            # Unlink previous vehicles linked to this driver
+            cursor.execute('UPDATE fleet_vehicles SET default_driver_id = NULL WHERE default_driver_id = ?', (crew_id,))
+            if assigned_vehicle_no:
+                cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?',
+                               (crew_id, depot_id, assigned_vehicle_no))
             
         conn.commit()
         conn.close()
-        veh_msg = f" (Assigned Van: {assigned_vehicle_no})" if assigned_vehicle_no else ""
+        veh_msg = f" (Assigned Van: {assigned_vehicle_no})" if assigned_vehicle_no else " (Unassigned)"
         return jsonify({"success": True, "message": f"{role.title()} {name}{veh_msg} saved successfully!"})
+
+@app.route('/api/crew/<int:cid>/assign-vehicle', methods=['POST'])
+@login_required
+def assign_crew_vehicle(cid):
+    data = request.json or {}
+    new_veh_no = str(data.get('vehicle_no', '')).strip().upper()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM depot_crew WHERE id = ?', (cid,))
+    crew = cursor.fetchone()
+    if not crew:
+        conn.close()
+        return jsonify({"success": False, "message": "Crew member not found"}), 404
+        
+    depot_id = crew['depot_id']
+    cursor.execute('UPDATE depot_crew SET assigned_vehicle_no = ? WHERE id = ?', (new_veh_no, cid))
+    cursor.execute('UPDATE fleet_vehicles SET default_driver_id = NULL WHERE default_driver_id = ?', (cid,))
+    if new_veh_no:
+        cursor.execute('UPDATE fleet_vehicles SET default_driver_id = ? WHERE depot_id = ? AND UPPER(vehicle_no) = ?', (cid, depot_id, new_veh_no))
+        
+    conn.commit()
+    conn.close()
+    msg = f"Vehicle {new_veh_no} assigned to {crew['name']}" if new_veh_no else f"Vehicle unassigned from {crew['name']}"
+    return jsonify({"success": True, "message": msg, "assigned_vehicle_no": new_veh_no})
 
 @app.route('/api/crew/<int:cid>', methods=['DELETE'])
 @login_required

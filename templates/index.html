@@ -1174,85 +1174,97 @@
 
         /* ──── 3. FONT COLOR HARMONY FOR LIGHT MODE ──── */
 
-        /* White/near-white text → dark for readability */
-        [data-theme="light"] [style*="color: #fff"],
-        [data-theme="light"] [style*="color:#fff"],
-        [data-theme="light"] [style*="color: #f8fafc"],
-        [data-theme="light"] [style*="color:#f8fafc"],
-        [data-theme="light"] [style*="color: #e2e8f0"],
-        [data-theme="light"] [style*="color:#e2e8f0"],
-        [data-theme="light"] [style*="color: white"],
-        [data-theme="light"] [style*="color:#ffffff"],
-        [data-theme="light"] [style*="color: #ffffff"] {
+        /* White/near-white text → dark for readability (EXCEPT on buttons) */
+        [data-theme="light"] [style*="color: #fff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#fff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: #f8fafc"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#f8fafc"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: #e2e8f0"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#e2e8f0"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: white"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#ffffff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: #ffffff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *) {
             color: #0f172a !important;
         }
 
         /* Muted/dim text → medium dark for readability */
-        [data-theme="light"] [style*="color: #94a3b8"],
-        [data-theme="light"] [style*="color:#94a3b8"],
-        [data-theme="light"] [style*="color: #cbd5e1"],
-        [data-theme="light"] [style*="color:#cbd5e1"],
-        [data-theme="light"] [style*="color: #64748b"],
-        [data-theme="light"] [style*="color:#64748b"],
-        [data-theme="light"] [style*="color: #475569"],
-        [data-theme="light"] [style*="color:#475569"],
-        [data-theme="light"] [style*="color: #334155"],
-        [data-theme="light"] [style*="color:#334155"] {
+        [data-theme="light"] [style*="color: #94a3b8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#94a3b8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #cbd5e1"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#cbd5e1"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #64748b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#64748b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #475569"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#475569"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #334155"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#334155"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #475569 !important;
         }
 
         /* Cyan accent → deeper cyan */
         [data-theme="light"] .text-cyan,
-        [data-theme="light"] [style*="color: #38bdf8"],
-        [data-theme="light"] [style*="color:#38bdf8"],
-        [data-theme="light"] [style*="color: #22d3ee"],
-        [data-theme="light"] [style*="color:#22d3ee"] {
+        [data-theme="light"] [style*="color: #38bdf8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#38bdf8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #22d3ee"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#22d3ee"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #0284c7 !important;
         }
 
         /* Amber/yellow accent → deep amber */
         [data-theme="light"] .text-amber,
-        [data-theme="light"] [style*="color: #fbbf24"],
-        [data-theme="light"] [style*="color:#fbbf24"],
-        [data-theme="light"] [style*="color: #facc15"],
-        [data-theme="light"] [style*="color:#facc15"],
-        [data-theme="light"] [style*="color: #f59e0b"],
-        [data-theme="light"] [style*="color:#f59e0b"],
-        [data-theme="light"] [style*="color: #eab308"],
-        [data-theme="light"] [style*="color:#eab308"] {
+        [data-theme="light"] [style*="color: #fbbf24"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#fbbf24"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #facc15"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#facc15"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #f59e0b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#f59e0b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #eab308"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#eab308"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #b45309 !important;
         }
 
         /* Green accent → forest green */
         [data-theme="light"] .text-green,
-        [data-theme="light"] [style*="color: #4ade80"],
-        [data-theme="light"] [style*="color:#4ade80"],
-        [data-theme="light"] [style*="color: #34d399"],
-        [data-theme="light"] [style*="color:#34d399"],
-        [data-theme="light"] [style*="color: #22c55e"],
-        [data-theme="light"] [style*="color:#22c55e"],
-        [data-theme="light"] [style*="color: #86efac"],
-        [data-theme="light"] [style*="color:#86efac"] {
+        [data-theme="light"] [style*="color: #4ade80"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#4ade80"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #34d399"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#34d399"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #22c55e"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#22c55e"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #86efac"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#86efac"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #15803d !important;
         }
 
         /* Red accent → stronger red */
-        [data-theme="light"] [style*="color: #f87171"],
-        [data-theme="light"] [style*="color:#f87171"],
-        [data-theme="light"] [style*="color: #ef4444"],
-        [data-theme="light"] [style*="color:#ef4444"] {
+        [data-theme="light"] [style*="color: #f87171"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#f87171"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #ef4444"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#ef4444"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #dc2626 !important;
         }
 
         /* Purple accent → deeper purple */
-        [data-theme="light"] [style*="color: #c084fc"],
-        [data-theme="light"] [style*="color:#c084fc"],
-        [data-theme="light"] [style*="color: #a78bfa"],
-        [data-theme="light"] [style*="color:#a78bfa"] {
+        [data-theme="light"] [style*="color: #c084fc"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#c084fc"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #a78bfa"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#a78bfa"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #7c3aed !important;
         }
 
-        /* EXCEPTION: Preserve white text on colored action buttons */
+        /* ──── HIGH VISIBILITY BUTTONS IN LIGHT MODE (SAVE, LOGOUT, ACTION BUTTONS) ──── */
+        [data-theme="light"] #btnLogout,
+        [data-theme="light"] #btnLogout * {
+            background-color: #dc2626 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3) !important;
+        }
+        [data-theme="light"] #btnLogout:hover {
+            background-color: #b91c1c !important;
+            color: #ffffff !important;
+        }
+
         [data-theme="light"] button[style*="background: #0284c7"],
         [data-theme="light"] button[style*="background:#0284c7"],
         [data-theme="light"] button[style*="background: #2563eb"],
@@ -1265,6 +1277,8 @@
         [data-theme="light"] button[style*="background:#16a34a"],
         [data-theme="light"] button[style*="background: #10b981"],
         [data-theme="light"] button[style*="background:#10b981"],
+        [data-theme="light"] button[style*="background: #059669"],
+        [data-theme="light"] button[style*="background:#059669"],
         [data-theme="light"] button[style*="background: #0891b2"],
         [data-theme="light"] button[style*="background:#0891b2"],
         [data-theme="light"] button[style*="background: #dc2626"],
@@ -1277,9 +1291,19 @@
         [data-theme="light"] button[style*="background:#ca8a04"],
         [data-theme="light"] .btn-primary,
         [data-theme="light"] .btn-success,
-        [data-theme="light"] .btn-danger {
+        [data-theme="light"] .btn-danger,
+        [data-theme="light"] #btnSubmitDdr,
+        [data-theme="light"] #saveFleetVehBtn,
+        [data-theme="light"] #btnSaveSkuMapping,
+        [data-theme="light"] #btnSaveCrew,
+        [data-theme="light"] button[onclick*="savePlanAsDraftLocally"],
+        [data-theme="light"] button[onclick*="saveUserEdit"],
+        [data-theme="light"] button[onclick*="saveQuickEditVehicleCapacities"],
+        [data-theme="light"] button[onclick*="submitDriverVehicleMappingForm"] {
             color: #ffffff !important;
+            font-weight: 700 !important;
         }
+
         [data-theme="light"] button[style*="background: #0284c7"] *,
         [data-theme="light"] button[style*="background:#0284c7"] *,
         [data-theme="light"] button[style*="background: #2563eb"] *,
@@ -1292,15 +1316,55 @@
         [data-theme="light"] button[style*="background:#16a34a"] *,
         [data-theme="light"] button[style*="background: #10b981"] *,
         [data-theme="light"] button[style*="background:#10b981"] *,
+        [data-theme="light"] button[style*="background: #059669"] *,
+        [data-theme="light"] button[style*="background:#059669"] *,
         [data-theme="light"] button[style*="background: #0891b2"] *,
         [data-theme="light"] button[style*="background:#0891b2"] *,
         [data-theme="light"] button[style*="background: #dc2626"] *,
         [data-theme="light"] button[style*="background:#dc2626"] *,
+        [data-theme="light"] button[style*="background: #ef4444"] *,
+        [data-theme="light"] button[style*="background:#ef4444"] *,
         [data-theme="light"] button[style*="background: #eab308"] *,
         [data-theme="light"] button[style*="background:#eab308"] *,
-        [data-theme="light"] .btn-primary *, [data-theme="light"] .btn-success *,
-        [data-theme="light"] .btn-danger * {
+        [data-theme="light"] .btn-primary *,
+        [data-theme="light"] .btn-success *,
+        [data-theme="light"] .btn-danger *,
+        [data-theme="light"] #btnSubmitDdr *,
+        [data-theme="light"] #saveFleetVehBtn *,
+        [data-theme="light"] #btnSaveSkuMapping *,
+        [data-theme="light"] #btnSaveCrew * {
             color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        /* Clean visible outline buttons (like Save Draft, Secondary actions) */
+        [data-theme="light"] .btn-outline {
+            background: #ffffff !important;
+            border: 1.5px solid #2563eb !important;
+            color: #1e40af !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] .btn-outline:hover {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+        [data-theme="light"] .btn-outline * {
+            color: inherit !important;
+        }
+
+        /* Return Qty inputs & modal elements in Light Mode */
+        [data-theme="light"] .inv-ret-qty,
+        [data-theme="light"] .ret-item-qty,
+        [data-theme="light"] .inv-deliv-qty {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] .inv-ret-qty:focus,
+        [data-theme="light"] .ret-item-qty:focus {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2) !important;
         }
 
         /* ──── 4. STRUCTURAL COMPONENTS ──── */
@@ -3084,14 +3148,7 @@
                                 <input type="file" id="topPoloxyFileInput" accept=".xlsx, .xls" style="display: none;"
                                     onchange="handleTopPoloxyFileSelect(event)">
 
-                                <!-- Toggle Route Settings Accordion Button (Expand / Collapse) -->
-                                <button type="button" class="btn" id="btnToggleRouteSettings" onclick="toggleRouteSettingsCenter()"
-                                    style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: #fff; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.84rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"
-                                    title="Click to Expand or Collapse Route Planner & Distribution Settings Options">
-                                    <i class="fa-solid fa-sliders"></i> <span id="routeSettingsBtnText">Route & Dispatch Options</span>
-                                    <span id="routeSettingsBadge" style="background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 10px; font-size: 0.74rem;">4 Options ▾</span>
-                                    <i class="fa-solid fa-chevron-down" id="routeSettingsMasterIcon" style="transition: transform 0.3s ease;"></i>
-                                </button>
+                                
 
                                 <!-- Auto-Distribute Rebalancer -->
                                 <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
@@ -3169,195 +3226,54 @@
                         </div>
                     </div>
 
-                    <!-- EXPANDABLE ROUTE PLANNER SETTINGS & CONTROLS ACCORDION -->
-                    <div id="routePlannerSettingsAccordion" class="route-settings-accordion" style="display: none; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 0 4px;">
-                            <span style="font-size: 0.88rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-sliders"></i> Route & Dispatch Settings Options (Click to Expand / Collapse)
+                    <!-- Depot Real-time Fleet Status & Actions Bar (Always Visible) -->
+                    <div class="card" style="margin-bottom: 16px; padding: 12px 18px; background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: var(--radius-md);">
+                        <div id="depotFleetStatusBar"
+                            style="padding: 10px 16px; background: rgba(11, 19, 41, 0.85); border: 1px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.82rem; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                                <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered Fleet: <strong id="barTotalFleet" style="color: #fff;">0 Vans</strong></span>
+                                <span style="color: #64748b;">|</span>
+                                <span style="color: #4ade80;"><i class="fa-solid fa-route"></i> Dispatched: <strong id="barActiveVans">0</strong></span>
+                                <span style="color: #64748b;">|</span>
+                                <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle: <strong id="barSpareVans">0</strong></span>
+                                <span style="color: #64748b;">|</span>
+                                <span style="color: #fbbf24;"><i class="fa-solid fa-key"></i> Rental / Borrowed: <strong id="barRentalVans">0</strong></span>
+                                <span style="color: #64748b;">|</span>
+                                <span style="color: #f97316;"><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance: <strong id="barMaintenanceVans">0</strong></span>
+                            </div>
+                            <span id="barFleetAlertBadge" style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem;">
+                                <i class="fa-solid fa-circle-check"></i> Fleet Capacity Sufficient
                             </span>
-                            <div style="display: flex; gap: 8px;">
-                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(true)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8; font-weight: 700;">
-                                    <i class="fa-solid fa-angles-down"></i> Expand All
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openRentalVanModal()"
+                                    style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 6px 12px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
+                                    <i class="fa-solid fa-key"></i> + Add Rental Van
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRouteSettings(false)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #94a3b8; color: #94a3b8; font-weight: 700;">
-                                    <i class="fa-solid fa-angles-up"></i> Collapse All
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openMasterFleetModal('borrow')"
+                                    style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border: none; padding: 6px 12px; font-weight: 700; font-size: 0.8rem; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);">
+                                    <i class="fa-solid fa-handshake"></i> 🔄 Borrow Van
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openMasterFleetModal('routes')"
+                                    style="border-color: #3b82f6; color: #60a5fa; padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
+                                    <i class="fa-solid fa-sliders"></i> Fleet & Route Master
                                 </button>
                             </div>
-                        </div>
-
-                        <!-- 1. Route & Distribution Settings Accordion Panel -->
-                        <div id="panelRouteDistSettings" class="route-settings-card route-settings-accordion-panel open">
-                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelRouteDistSettings')">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-route text-cyan" style="font-size: 1.1rem;"></i>
-                                    <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">1. Route & Distribution Configuration</strong>
-                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Route balancing rules, shift departure schedules & auto-distribution logic</span>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">
-                                        <i class="fa-solid fa-circle-check"></i> Active
-                                    </span>
-                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
-                                </div>
-                            </div>
-                            <div class="route-settings-body accordion-body" style="display: block;">
-                                <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
-                                    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                                        <button type="button" class="btn" onclick="autoDistributeOrdersAcrossVans()"
-                                            style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 800; padding: 8px 14px; border: none; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Rebalance Across Active Vans
-                                        </button>
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="openMasterFleetModal('routes')"
-                                            style="border-color: #3b82f6; color: #60a5fa; padding: 7px 12px; font-weight: 700; font-size: 0.82rem;">
-                                            <i class="fa-solid fa-map-location-dot"></i> Manage Route Master Zones
-                                        </button>
-                                    </div>
-                                    <div style="font-size: 0.8rem; color: #94a3b8;">
-                                        <i class="fa-solid fa-info-circle text-cyan"></i> Orders are automatically grouped by zone distance, vehicle volume limits and weight capacities.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2. Fleet & Vehicle Capacity Master Panel -->
-                        <div id="panelFleetCapacitySettings" class="route-settings-card route-settings-accordion-panel open">
-                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelFleetCapacitySettings')">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-truck-front text-amber" style="font-size: 1.1rem;"></i>
-                                    <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">2. Fleet Capacity & Vehicle Management</strong>
-                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Registered fleet capacity, rental vehicles, borrow vehicles & maintenance status</span>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span id="barFleetAlertBadge" style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem;">
-                                        <i class="fa-solid fa-circle-check"></i> Fleet Capacity Sufficient
-                                    </span>
-                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
-                                </div>
-                            </div>
-                            <div class="route-settings-body accordion-body" style="display: block;">
-                                <!-- Real-time Status Bar -->
-                                <div id="depotFleetStatusBar"
-                                    style="padding: 10px 16px; background: rgba(11, 19, 41, 0.85); border: 1px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.82rem; margin-bottom: 12px;">
-                                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-                                        <span style="color: #94a3b8;"><i class="fa-solid fa-truck text-cyan"></i> Registered Fleet: <strong id="barTotalFleet" style="color: #fff;">0 Vans</strong></span>
-                                        <span style="color: #64748b;">|</span>
-                                        <span style="color: #4ade80;"><i class="fa-solid fa-route"></i> Dispatched: <strong id="barActiveVans">0</strong></span>
-                                        <span style="color: #64748b;">|</span>
-                                        <span style="color: #facc15;"><i class="fa-solid fa-bed"></i> Spare / Idle: <strong id="barSpareVans">0</strong></span>
-                                        <span style="color: #64748b;">|</span>
-                                        <span style="color: #fbbf24;"><i class="fa-solid fa-key"></i> Rental / Borrowed: <strong id="barRentalVans">0</strong></span>
-                                        <span style="color: #64748b;">|</span>
-                                        <span style="color: #f97316;"><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance: <strong id="barMaintenanceVans">0</strong></span>
-                                    </div>
-                                </div>
-                                <!-- Fleet Action Buttons -->
-                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="openRentalVanModal()"
-                                        style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 7px 14px; font-weight: 800; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
-                                        <i class="fa-solid fa-key"></i> + Add Rental Van
-                                    </button>
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="openMasterFleetModal('borrow')"
-                                        style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border: none; padding: 7px 14px; font-weight: 700; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);">
-                                        <i class="fa-solid fa-handshake"></i> 🔄 Borrow Van from Neighbor
-                                    </button>
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="openMasterFleetModal('routes')"
-                                        style="border-color: #3b82f6; color: #60a5fa; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
-                                        <i class="fa-solid fa-sliders"></i> ⚙️ Fleet & Route Master Directory
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 3. Data Import, Excel & Plan History Panel -->
-                        <div id="panelImportHistorySettings" class="route-settings-card route-settings-accordion-panel open">
-                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelImportHistorySettings')">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-file-excel text-green" style="font-size: 1.1rem;"></i>
-                                    <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">3. Data Import, Excel & Plan History</strong>
-                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">1-click Poloxy ERP import, blank Excel template, offline route upload & history</span>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">
-                                        <i class="fa-solid fa-cloud-arrow-up"></i> Excel Tools
-                                    </span>
-                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
-                                </div>
-                            </div>
-                            <div class="route-settings-body accordion-body" style="display: block;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="downloadUniversalRouteTemplate()"
-                                            style="border-color: #38bdf8; color: #38bdf8; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
-                                            <i class="fa-solid fa-cloud-arrow-down"></i> Download Blank Template (.xlsx)
-                                        </button>
-                                        <input type="file" id="routePlanBulkFileInput" accept=".xlsx, .xls" style="display: none;"
-                                            onchange="handleRoutePlanBulkUpload(event)">
-                                        <button type="button" class="btn btn-primary btn-sm" onclick="triggerRoutePlanBulkFileSelect()"
-                                            style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 7px 14px; font-weight: 700; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
-                                            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Route Plan Excel
-                                        </button>
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="openPlanHistoryModal()"
-                                            style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border-color: #6366f1; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
-                                            <i class="fa-solid fa-clock-rotate-left"></i> 📅 Plan History Archive
-                                        </button>
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="clearActiveRoutePlan()"
-                                            style="border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1); padding: 7px 12px; font-weight: 700; font-size: 0.82rem;">
-                                            <i class="fa-solid fa-trash-can"></i> 🧹 Reset / Clear Plan
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 4. Dispatch, Printing & Reconciliation Panel -->
-                        <div id="panelDispatchPrintSettings" class="route-settings-card route-settings-accordion-panel open">
-                            <div class="route-settings-header" onclick="toggleRouteSettingsPanel('panelDispatchPrintSettings')">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-paper-plane text-green" style="font-size: 1.1rem;"></i>
-                                    <div>
-                                        <strong style="font-size: 0.95rem; color: #f8fafc;">4. Dispatch, Print Run-Sheets &amp; Reconciliation</strong>
-                                        <span style="font-size: 0.78rem; color: #94a3b8; display: block;">Local draft saving, printable A4 run sheets & automatic Daily Entry synchronization</span>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px;">
-                                        <i class="fa-solid fa-truck-fast"></i> Dispatch Controls
-                                    </span>
-                                    <i class="fa-solid fa-chevron-down accordion-chevron" style="transform: rotate(180deg);"></i>
-                                </div>
-                            </div>
-                            <div class="route-settings-body accordion-body" style="display: block;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="savePlanAsDraftLocally()"
-                                            style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 7px 14px; font-weight: 700; font-size: 0.82rem;"
-                                            title="Save current route plan without dispatching">
-                                            <i class="fa-solid fa-floppy-disk"></i> Save Draft
-                                        </button>
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="printAllVanRunSheets()"
-                                            style="border-color: #f59e0b; color: #fbbf24; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
-                                            <i class="fa-solid fa-print"></i> Print Run Sheets
-                                        </button>
-                                        <button type="button" class="btn btn-outline btn-sm" onclick="transferPlanToDailyEntryForm()"
-                                            style="border-color: #a855f7; color: #c084fc; padding: 7px 14px; font-weight: 700; font-size: 0.82rem;">
-                                            <i class="fa-solid fa-clipboard-list"></i> Transfer to Daily Entry
-                                        </button>
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-sm" onclick="submitAndDispatchRoutePlan()"
-                                            style="background: linear-gradient(135deg, #10b981, #047857); color: #fff; padding: 8px 18px; font-weight: 800; font-size: 0.85rem; border-radius: 6px; border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
-                                            <i class="fa-solid fa-paper-plane"></i> Final Submit & Dispatch
-                                        </button>
-                                    </div>
-                                </div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="downloadUniversalRouteTemplate()"
+                                    style="border-color: #38bdf8; color: #38bdf8; padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Blank Template (.xlsx)
+                                </button>
+                                <input type="file" id="routePlanBulkFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleRoutePlanBulkUpload(event)">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="triggerRoutePlanBulkFileSelect()"
+                                    style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Excel
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openPlanHistoryModal()"
+                                    style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border-color: #6366f1; padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -3389,24 +3305,7 @@
                         </div>
                     </div>
 
-                    <!-- ACTIVE VANS EXPAND / COLLAPSE CONTROL TOOLBAR -->
-                    <div id="activeVansToolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 10px 18px; background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fa-solid fa-truck-moving text-cyan" style="font-size: 1.1rem;"></i>
-                            <strong style="font-size: 0.92rem;">Active Dispatch Delivery Vans</strong>
-                            <span id="activeVansCountBadge" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 0.76rem; padding: 2px 8px; border-radius: 10px; font-weight: 700;">
-                                0 Vans
-                            </span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllVans(true)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #38bdf8; color: #38bdf8; font-weight: 700;" title="Expand all vans to see outlet lists">
-                                <i class="fa-solid fa-angles-down"></i> Expand All Vans
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllVans(false)" style="padding: 5px 12px; font-size: 0.78rem; border-color: #94a3b8; color: #94a3b8; font-weight: 700;" title="Collapse all vans to compact executive view">
-                                <i class="fa-solid fa-angles-up"></i> Collapse All Vans
-                            </button>
-                        </div>
-                    </div>
+                    
 
                     <!-- Active Vehicles / Vans Grid Container -->
                     <div id="activeVansContainer">
@@ -3425,12 +3324,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <span class="badge-verified"><i class="fa-solid fa-shield-halved"></i> 100% Pre-Dispatch Audit Ready</span>
-                                <button type="button" class="btn btn-sm btn-outline" onclick="toggleGrandTotalsCockpit()" id="btnToggleGrandTotals"
-                                    style="border-color: #38bdf8; color: #38bdf8; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"
-                                    title="Click to Expand or Collapse Grand Totals">
-                                    <span id="grandTotalsToggleLabel">Collapse</span>
-                                    <i class="fa-solid fa-chevron-up" id="grandTotalsChevron"></i>
-                                </button>
+                                
                             </div>
                         </div>
                         <div id="grandTotalsGridWrap"
@@ -3505,12 +3399,7 @@
                                     </p>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleFinalDispatchCockpit()" id="btnToggleFinalDispatch"
-                                style="border-color: #10b981; color: #34d399; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"
-                                title="Click to Expand or Collapse Final Dispatch Controls">
-                                <span id="finalDispatchToggleLabel">Collapse</span>
-                                <i class="fa-solid fa-chevron-up" id="finalDispatchChevron"></i>
-                            </button>
+                            
                         </div>
 
                         <div id="finalDispatchBodyWrap">
@@ -4703,159 +4592,14 @@
             }
             window.updateThemeUI = updateThemeUI;
 
-            // ================= ROUTE PLANNER ACCORDION CONTROLS =================
-            function toggleRouteSettingsCenter() {
-                const acc = document.getElementById('routePlannerSettingsAccordion');
-                const icon = document.getElementById('routeSettingsMasterIcon');
-                const btnText = document.getElementById('routeSettingsBtnText');
-                const badge = document.getElementById('routeSettingsBadge');
-                if (!acc) return;
-                const isHidden = acc.style.display === 'none' || !acc.style.display;
-                if (isHidden) {
-                    acc.style.display = 'flex';
-                    if (icon) icon.style.transform = 'rotate(180deg)';
-                    if (btnText) btnText.textContent = '⚙️ Close Options';
-                    if (badge) badge.textContent = '4 Options Open ▴';
-                } else {
-                    acc.style.display = 'none';
-                    if (icon) icon.style.transform = 'rotate(0deg)';
-                    if (btnText) btnText.textContent = '⚙️ Route & Dispatch Options';
-                    if (badge) badge.textContent = '4 Options ▾';
-                }
-            }
-            window.toggleRouteSettingsCenter = toggleRouteSettingsCenter;
-
-            function toggleRouteSettingsPanel(panelId) {
-                const panel = document.getElementById(panelId);
-                if (!panel) return;
-                const body = panel.querySelector('.accordion-body');
-                const icon = panel.querySelector('.accordion-chevron');
-                if (!body) return;
-                const isClosed = body.style.display === 'none';
-                if (isClosed) {
-                    body.style.display = 'block';
-                    if (icon) icon.style.transform = 'rotate(180deg)';
-                    panel.classList.add('open');
-                } else {
-                    body.style.display = 'none';
-                    if (icon) icon.style.transform = 'rotate(0deg)';
-                    panel.classList.remove('open');
-                }
-            }
-            window.toggleRouteSettingsPanel = toggleRouteSettingsPanel;
-
-            function toggleAllRouteSettings(expand) {
-                const panels = document.querySelectorAll('.route-settings-accordion-panel');
-                panels.forEach(panel => {
-                    const body = panel.querySelector('.accordion-body');
-                    const icon = panel.querySelector('.accordion-chevron');
-                    if (body) {
-                        body.style.display = expand ? 'block' : 'none';
-                    }
-                    if (icon) {
-                        icon.style.transform = expand ? 'rotate(180deg)' : 'rotate(0deg)';
-                    }
-                    if (expand) {
-                        panel.classList.add('open');
-                    } else {
-                        panel.classList.remove('open');
-                    }
-                });
-                showToast(expand ? '📂 All settings options expanded' : '📁 All settings options collapsed');
-            }
-            window.toggleAllRouteSettings = toggleAllRouteSettings;
-
-            // ================= DELIVERY VANS EXPAND / COLLAPSE TRACKING =================
-            const collapsedVanIds = new Set();
-            window.collapsedVanIds = collapsedVanIds;
-
-            function toggleVanCollapse(vanId) {
-                const wrap = document.getElementById(`vanOutletsWrap_${vanId}`);
-                const summary = document.getElementById(`vanCollapsedSummary_${vanId}`);
-                const chevron = document.getElementById(`vanCollapseChevron_${vanId}`);
-                const label = document.getElementById(`vanCollapseLabel_${vanId}`);
-                if (!wrap) return;
-
-                const isCollapsed = collapsedVanIds.has(vanId);
-                if (isCollapsed) {
-                    collapsedVanIds.delete(vanId);
-                    wrap.style.display = 'block';
-                    if (summary) summary.style.display = 'none';
-                    if (chevron) chevron.className = 'fa-solid fa-chevron-up';
-                    if (label) label.textContent = '▴ Collapse Outlets';
-                } else {
-                    collapsedVanIds.add(vanId);
-                    wrap.style.display = 'none';
-                    if (summary) summary.style.display = 'flex';
-                    if (chevron) chevron.className = 'fa-solid fa-chevron-down';
-                    if (label) {
-                        const van = (currentPlanData && currentPlanData.vans) ? currentPlanData.vans.find(v => v.id === vanId) : null;
-                        const dropCount = van && van.outlets ? van.outlets.length : 0;
-                        label.textContent = `▾ View Outlets (${dropCount} Drops)`;
-                    }
-                }
-            }
-            window.toggleVanCollapse = toggleVanCollapse;
-
-            function toggleAllVans(expand) {
-                if (!currentPlanData || !currentPlanData.vans) return;
-                currentPlanData.vans.forEach(van => {
-                    if (expand) {
-                        collapsedVanIds.delete(van.id);
-                    } else {
-                        collapsedVanIds.add(van.id);
-                    }
-                    const wrap = document.getElementById(`vanOutletsWrap_${van.id}`);
-                    const summary = document.getElementById(`vanCollapsedSummary_${van.id}`);
-                    const chevron = document.getElementById(`vanCollapseChevron_${van.id}`);
-                    const label = document.getElementById(`vanCollapseLabel_${van.id}`);
-                    if (wrap) wrap.style.display = expand ? 'block' : 'none';
-                    if (summary) summary.style.display = expand ? 'none' : 'flex';
-                    if (chevron) chevron.className = expand ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
-                    if (label) {
-                        const dropCount = van.outlets ? van.outlets.length : 0;
-                        label.textContent = expand ? '▴ Collapse Outlets' : `▾ View Outlets (${dropCount} Drops)`;
-                    }
-                });
-                showToast(expand ? '🚚 All delivery vans expanded' : '📦 All delivery vans collapsed');
-            }
-            window.toggleAllVans = toggleAllVans;
-
-            function toggleGrandTotalsCockpit() {
-                const wrap = document.getElementById('grandTotalsGridWrap');
-                const chevron = document.getElementById('grandTotalsChevron');
-                const label = document.getElementById('grandTotalsToggleLabel');
-                if (!wrap) return;
-                const isHidden = wrap.style.display === 'none';
-                if (isHidden) {
-                    wrap.style.display = 'grid';
-                    if (chevron) chevron.className = 'fa-solid fa-chevron-up';
-                    if (label) label.textContent = 'Collapse';
-                } else {
-                    wrap.style.display = 'none';
-                    if (chevron) chevron.className = 'fa-solid fa-chevron-down';
-                    if (label) label.textContent = 'Show Totals';
-                }
-            }
-            window.toggleGrandTotalsCockpit = toggleGrandTotalsCockpit;
-
-            function toggleFinalDispatchCockpit() {
-                const wrap = document.getElementById('finalDispatchBodyWrap');
-                const chevron = document.getElementById('finalDispatchChevron');
-                const label = document.getElementById('finalDispatchToggleLabel');
-                if (!wrap) return;
-                const isHidden = wrap.style.display === 'none';
-                if (isHidden) {
-                    wrap.style.display = 'block';
-                    if (chevron) chevron.className = 'fa-solid fa-chevron-up';
-                    if (label) label.textContent = 'Collapse';
-                } else {
-                    wrap.style.display = 'none';
-                    if (chevron) chevron.className = 'fa-solid fa-chevron-down';
-                    if (label) label.textContent = 'Show Dispatch';
-                }
-            }
-            window.toggleFinalDispatchCockpit = toggleFinalDispatchCockpit;
+            // Route Planner & Dispatch Sections are open by default without collapse options
+            function toggleRouteSettingsCenter() {}
+            function toggleRouteSettingsPanel(panelId) {}
+            function toggleAllRouteSettings(expand) {}
+            function toggleVanCollapse(vanId) {}
+            function toggleAllVans(expand) {}
+            function toggleGrandTotalsCockpit() {}
+            function toggleFinalDispatchCockpit() {}
 
             // ================= INITIALIZATION =================
             document.addEventListener('DOMContentLoaded', async () => {
@@ -7180,10 +6924,19 @@
 
                 const dispQty = (data.dispatched_qty !== undefined && data.dispatched_qty !== null) ? data.dispatched_qty : '';
                 const dispVal = (data.dispatched_val !== undefined && data.dispatched_val !== null) ? data.dispatched_val : '';
-                const delivQty = (data.delivered_qty !== undefined && data.delivered_qty !== null) ? data.delivered_qty : '';
-                const delivVal = (data.delivered_val !== undefined && data.delivered_val !== null) ? data.delivered_val : '';
                 const retQty = (data.returned_qty !== undefined && data.returned_qty !== null) ? data.returned_qty : 0;
-                const retVal = (data.returned_val !== undefined && data.returned_val !== null) ? data.returned_val : 0;
+                const delivQty = (data.delivered_qty !== undefined && data.delivered_qty !== null)
+                    ? data.delivered_qty
+                    : (data.delivery_status === 'Full Return' 
+                        ? 0 
+                        : (dispQty !== '' ? Math.max(0, parseFloat(dispQty) - parseFloat(retQty)) : ''));
+                const unitPrice = (parseFloat(dispQty) > 0 && parseFloat(dispVal) > 0) ? (parseFloat(dispVal) / parseFloat(dispQty)) : 0;
+                const delivVal = (data.delivered_val !== undefined && data.delivered_val !== null)
+                    ? data.delivered_val
+                    : (delivQty !== '' ? Math.round(parseFloat(delivQty) * unitPrice) : '');
+                const retVal = (data.returned_val !== undefined && data.returned_val !== null)
+                    ? data.returned_val
+                    : (retQty !== '' ? Math.round(parseFloat(retQty) * unitPrice) : 0);
                 const amtColl = (data.amount_collected !== undefined && data.amount_collected !== null) ? data.amount_collected : '';
                 const tripVal = data.trip_no || (tripCounter > 0 ? `TRIP-0${tripCounter}` : 'TRIP-01');
 
@@ -7453,13 +7206,13 @@
                                 ৳ <input type="number" step="0.01" class="ret-item-rate" value="${unitPrice.toFixed(2)}" oninput="calculateReturnModalSummary()" style="width: 75px; text-align: right; background: #0b1329; border: 1px solid #334155; color: #38bdf8; padding: 3px 5px; border-radius: 4px; font-size: 0.8rem;">
                             </td>
                             <td style="text-align: center;">
-                                <input type="number" min="0" step="any" class="ret-item-qty" value="${retQty}" oninput="onReturnItemQtyChanged('${pIdx}')" ${isChecked ? '' : 'disabled'} style="width: 80px; text-align: center; background: ${isChecked ? '#0b1329' : '#1e293b'}; border: 1px solid ${isChecked ? '#f59e0b' : '#475569'}; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
+                                <input type="number" min="0" step="any" class="ret-item-qty" value="${retQty}" oninput="onReturnItemQtyChanged('${pIdx}')" style="width: 80px; text-align: center; background: ${isChecked ? '#0b1329' : '#1e293b'}; border: 1px solid ${isChecked ? '#f59e0b' : '#475569'}; color: #f59e0b; font-weight: 700; padding: 4px; border-radius: 4px; font-size: 0.82rem;">
                             </td>
                             <td style="text-align: right; color: #ef4444; font-weight: 800; font-size: 0.85rem;" class="ret-item-val">
                                 ৳ ${lineRetVal.toLocaleString()}
                             </td>
                             <td>
-                                <select class="ret-item-reason" ${isChecked ? '' : 'disabled'} style="width: 100%; background: ${isChecked ? '#0b1329' : '#1e293b'}; border: 1px solid #334155; color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.75rem;">
+                                <select class="ret-item-reason" style="width: 100%; background: ${isChecked ? '#0b1329' : '#1e293b'}; border: 1px solid #334155; color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.75rem;">
                                     <option value="R-01: Shop Closed / Customer Unavailable" ${retReason.includes('Shop Closed') ? 'selected' : ''}>R-01: Shop Closed</option>
                                     <option value="R-02: Payment Shortage / Cash Not Ready" ${retReason.includes('Payment Shortage') ? 'selected' : ''}>R-02: Payment Shortage</option>
                                     <option value="R-03: Transit Damage / Breakage" ${retReason.includes('Transit Damage') ? 'selected' : ''}>R-03: Transit Damage</option>
@@ -7508,15 +7261,30 @@
             function onReturnItemQtyChanged(pIdx) {
                 const tr = document.getElementById(`retProdRow_${pIdx}`);
                 if (!tr) return;
+                const chk = tr.querySelector('.ret-item-check');
                 const qtyInput = tr.querySelector('.ret-item-qty');
-                const dispQty = parseFloat(tr.querySelector('.ret-item-disp-qty')?.textContent) || 0;
+                const reasonSelect = tr.querySelector('.ret-item-reason');
                 let val = parseFloat(qtyInput.value) || 0;
 
-                if (val > dispQty && dispQty > 0) {
-                    showToast(`Return quantity (${val}) cannot exceed dispatched quantity (${dispQty})!`, 'warning');
-                    qtyInput.value = dispQty;
-                } else if (val < 0) {
+                if (val < 0) {
+                    val = 0;
                     qtyInput.value = 0;
+                }
+
+                // Automatically check or uncheck row based on quantity
+                if (chk) {
+                    chk.checked = (val > 0);
+                }
+                if (val > 0) {
+                    tr.style.background = 'rgba(56, 189, 248, 0.08)';
+                    qtyInput.style.background = '#0b1329';
+                    qtyInput.style.borderColor = '#f59e0b';
+                    if (reasonSelect) reasonSelect.style.background = '#0b1329';
+                } else {
+                    tr.style.background = 'transparent';
+                    qtyInput.style.background = '#1e293b';
+                    qtyInput.style.borderColor = '#475569';
+                    if (reasonSelect) reasonSelect.style.background = '#1e293b';
                 }
                 calculateReturnModalSummary();
             }
@@ -7918,7 +7686,8 @@
 
                 const dispQty = parseFloat(row.querySelector('.inv-disp-qty')?.value) || 0;
                 const dispVal = parseFloat(row.querySelector('.inv-disp-val')?.value) || 0;
-                const retQty = parseFloat(row.querySelector('.inv-ret-qty')?.value) || 0;
+                const retQtyInput = row.querySelector('.inv-ret-qty');
+                const retQty = parseFloat(retQtyInput?.value) || 0;
 
                 const unitPrice = dispQty > 0 ? (dispVal / dispQty) : 0;
                 const delivQty = Math.max(0, dispQty - retQty);
@@ -7943,6 +7712,13 @@
                     }
                 }
 
+                // Visual indicator on SKU Ret button next to return qty
+                const btnSku = retQtyInput?.nextElementSibling;
+                if (btnSku) {
+                    btnSku.style.background = retQty > 0 ? '#f59e0b' : '#334155';
+                    btnSku.style.borderColor = retQty > 0 ? '#f59e0b' : '#475569';
+                }
+
                 recalculateReconciliation();
             }
 
@@ -7951,7 +7727,14 @@
             }
 
             function updateInvCalculations(idx) {
-                updateInvFromDelivQty(idx);
+                const row = document.getElementById(`invRow_${idx}`);
+                if (!row) return;
+                const retQty = parseFloat(row.querySelector('.inv-ret-qty')?.value) || 0;
+                if (retQty > 0) {
+                    updateInvFromRetQty(idx);
+                } else {
+                    updateInvFromDelivQty(idx);
+                }
             }
 
             function recalculateReconciliation() {
@@ -11868,8 +11651,14 @@
                         ? (c.assigned_vehicle_no 
                             ? `<span style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
                                 <i class="fa-solid fa-truck"></i> ${c.assigned_vehicle_no}
-                               </span>`
-                            : `<span style="color: #64748b; font-size: 0.78rem;">-- Unassigned --</span>`)
+                               </span>
+                               <button type="button" onclick="editCrewMaster(${c.id})" class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; padding: 2px 7px; font-size: 0.72rem; margin-left: 6px; font-weight: 700;" title="Change Assigned Vehicle">
+                                <i class="fa-solid fa-repeat"></i> Change
+                               </button>`
+                            : `<span style="color: #64748b; font-size: 0.78rem;">-- Unassigned --</span>
+                               <button type="button" onclick="editCrewMaster(${c.id})" class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; padding: 2px 7px; font-size: 0.72rem; margin-left: 6px; font-weight: 700;" title="Assign Vehicle to Driver">
+                                <i class="fa-solid fa-plus"></i> Assign
+                               </button>`)
                         : `<span style="color: #475569; font-size: 0.78rem;">N/A (Delivery Asst)</span>`;
 
                     return `
@@ -11884,8 +11673,11 @@
                         <td><span style="color: #38bdf8; font-weight: 600;">${c.phone}</span></td>
                         <td>${vehBadge}</td>
                         <td><code>${c.license_no || '-'}</code></td>
-                        <td style="text-align: center;">
-                            <button type="button" onclick="deleteCrewMaster(${c.id})" style="background: transparent; border: none; color: #f87171; cursor: pointer;" title="Remove Staff">
+                        <td style="text-align: center; white-space: nowrap;">
+                            <button type="button" onclick="editCrewMaster(${c.id})" style="background: transparent; border: none; color: #38bdf8; cursor: pointer; padding: 4px 6px; font-size: 0.88rem; margin-right: 6px;" title="Edit Staff / Change Assigned Vehicle">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteCrewMaster(${c.id})" style="background: transparent; border: none; color: #f87171; cursor: pointer; padding: 4px 6px; font-size: 0.88rem;" title="Remove Staff">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </td>
@@ -11893,12 +11685,63 @@
                 `}).join('');
             }
 
+            function editCrewMaster(cid) {
+                const c = (masterCrewCache || []).find(item => item.id === cid);
+                if (!c) return;
+                const idInput = document.getElementById('editCrewId');
+                if (idInput) idInput.value = c.id;
+                const roleSel = document.getElementById('newCrewRole');
+                if (roleSel) roleSel.value = c.role || 'driver';
+                const nameInp = document.getElementById('newCrewName');
+                if (nameInp) nameInp.value = c.name || '';
+                const phoneInp = document.getElementById('newCrewPhone');
+                if (phoneInp) phoneInp.value = c.phone || '';
+                const licInp = document.getElementById('newCrewLicense');
+                if (licInp) licInp.value = c.license_no || '';
+                
+                onCrewRoleChange();
+                populateCrewVehicleOptions(c.assigned_vehicle_no || '');
+                
+                const title = document.getElementById('crewFormTitle');
+                if (title) title.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Edit Staff & Change Vehicle';
+                const btnSave = document.getElementById('btnSaveCrew');
+                if (btnSave) btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Update Staff Member';
+                const btnCancel = document.getElementById('btnCancelCrewEdit');
+                if (btnCancel) btnCancel.style.display = 'inline-block';
+                
+                nameInp?.focus();
+            }
+            window.editCrewMaster = editCrewMaster;
+
+            function resetCrewForm() {
+                const idInput = document.getElementById('editCrewId');
+                if (idInput) idInput.value = '';
+                const nameInp = document.getElementById('newCrewName');
+                if (nameInp) nameInp.value = '';
+                const phoneInp = document.getElementById('newCrewPhone');
+                if (phoneInp) phoneInp.value = '';
+                const licInp = document.getElementById('newCrewLicense');
+                if (licInp) licInp.value = '';
+                const sel = document.getElementById('newCrewVehicleSelect');
+                if (sel) sel.value = '';
+                const customInput = document.getElementById('newCrewVehicleCustom');
+                if (customInput) { customInput.value = ''; customInput.style.display = 'none'; }
+                const title = document.getElementById('crewFormTitle');
+                if (title) title.innerHTML = '<i class="fa-solid fa-user-plus"></i> Register Single Staff Member';
+                const btnSave = document.getElementById('btnSaveCrew');
+                if (btnSave) btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Save Staff Member';
+                const btnCancel = document.getElementById('btnCancelCrewEdit');
+                if (btnCancel) btnCancel.style.display = 'none';
+            }
+            window.resetCrewForm = resetCrewForm;
+
             async function submitNewCrewMaster() {
                 const depotId = getSelectedMasterDepotId();
                 if (depotId === 'all') {
-                    flashDepotSelectRequired('Please select a specific Target Depot above to register new crew staff.');
+                    flashDepotSelectRequired('Please select a specific Target Depot above to register or update crew staff.');
                     return;
                 }
+                const editId = document.getElementById('editCrewId')?.value;
                 const role = document.getElementById('newCrewRole')?.value;
                 const name = document.getElementById('newCrewName')?.value?.trim();
                 const phone = document.getElementById('newCrewPhone')?.value?.trim();
@@ -11925,6 +11768,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            id: editId ? parseInt(editId) : undefined,
                             depot_id: depotId,
                             role: role,
                             name: name,
@@ -11936,15 +11780,11 @@
                     const data = await res.json();
                     if (data.success) {
                         showToast(data.message, 'success');
-                        document.getElementById('newCrewName').value = '';
-                        document.getElementById('newCrewPhone').value = '';
-                        document.getElementById('newCrewLicense').value = '';
-                        const sel = document.getElementById('newCrewVehicleSelect');
-                        if (sel) sel.value = '';
-                        const customInput = document.getElementById('newCrewVehicleCustom');
-                        if (customInput) { customInput.value = ''; customInput.style.display = 'none'; }
+                        resetCrewForm();
                         loadCrewMaster(depotId);
                         loadFleetMaster(depotId);
+                    } else {
+                        showToast(data.error || 'Failed to save staff member', 'error');
                     }
                 } catch (e) {
                     showToast('Error saving crew: ' + e.message, 'error');
@@ -13108,14 +12948,7 @@
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <input type="text" class="van-header-input van-zone-input" value="${escapeHtml(van.route_zone)}" onchange="updateVanField('${van.id}', 'route_zone', this.value)" placeholder="Route / Zone" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 155px; color: #38bdf8; font-weight: 700;">
                         
-                        <!-- Expand / Collapse Toggle Button for this Van -->
-                        <button type="button" class="btn btn-sm btn-outline van-collapse-toggle-btn" onclick="toggleVanCollapse('${van.id}')"
-                            id="vanCollapseBtn_${van.id}"
-                            style="border-color: #38bdf8; color: #38bdf8; font-weight: 700; padding: 4px 10px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;"
-                            title="Click to Expand or Collapse Outlets Table">
-                            <span id="vanCollapseLabel_${van.id}">${isCollapsed ? '▾ View Outlets (' + van.outlets.length + ' Drops)' : '▴ Collapse Outlets'}</span>
-                            <i class="fa-solid fa-chevron-${isCollapsed ? 'down' : 'up'}" id="vanCollapseChevron_${van.id}"></i>
-                        </button>
+                        
 
                         <button type="button" class="btn btn-sm btn-outline" onclick="printVanRunSheet(${vIdx})" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700; padding: 4px 10px;" title="Print Delivery Run Sheet for this Van">
                             <i class="fa-solid fa-print"></i> Print
@@ -13126,16 +12959,7 @@
                     </div>
                 </div>
 
-                <!-- Van Compact Executive Summary Strip (Shown when Collapsed) -->
-                <div id="vanCollapsedSummary_${van.id}" class="van-collapsed-summary" style="display: ${isCollapsed ? 'flex' : 'none'}; padding: 10px 20px; background: rgba(15, 23, 42, 0.45); border-top: 1px solid #334155; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 0.82rem;">
-                    <div>
-                        <i class="fa-solid fa-boxes-stacked text-cyan"></i> <strong class="text-cyan">${van.outlets.length} Outlets</strong> &bull; Total: <strong>${totPkt.toLocaleString()} ${uom.primaryUnit}</strong> | <strong class="text-green">${uom.isEgg ? '-' : totKg.toFixed(2) + ' ' + uom.secondaryUnit}</strong> (${loadPct}% Load)
-                    </div>
-                    <div style="display: flex; gap: 16px;">
-                        <span>Gross Value: <strong class="text-cyan">৳ ${totAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
-                        <span>Expected Cash: <strong class="text-amber">৳ ${totCash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
-                    </div>
-                </div>
+                
 
                 <!-- Van Outlets Table Container (Expandable / Collapsible) -->
                 <div id="vanOutletsWrap_${van.id}" class="van-outlets-collapse-container" style="display: ${isCollapsed ? 'none' : 'block'}; padding: 12px 16px; overflow-x: auto;">
@@ -16074,9 +15898,10 @@
                         </div>
 
                         <div style="display: grid; grid-template-columns: 360px 1fr; gap: 20px;">
-                            <!-- Add Crew Form -->
+                            <!-- Add / Edit Crew Form -->
                             <div class="card" style="padding: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 8px;">
-                                <h4 style="color: #38bdf8; font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-user-plus"></i> Register Single Staff Member</h4>
+                                <input type="hidden" id="editCrewId" value="">
+                                <h4 id="crewFormTitle" style="color: #38bdf8; font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-user-plus"></i> Register Single Staff Member</h4>
                                 <div style="display: flex; flex-direction: column; gap: 10px;">
                                     <div>
                                         <label style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px;">Staff Role *</label>
@@ -16110,9 +15935,14 @@
                                         <input type="text" id="newCrewVehicleCustom" placeholder="Or type Vehicle Reg No (e.g. DM-THA-11-2090)" class="form-control" style="display: none; background: #0b1329; border: 1.5px solid #f59e0b; color: #fbbf24; font-weight: 700; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
                                     </div>
 
-                                    <button type="button" class="btn btn-primary" onclick="submitNewCrewMaster()" style="background: #0284c7; border: none; font-weight: 700; padding: 8px 12px; margin-top: 4px;">
-                                        <i class="fa-solid fa-save"></i> Save Staff Member
-                                    </button>
+                                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                                        <button type="button" id="btnSaveCrew" class="btn btn-primary" onclick="submitNewCrewMaster()" style="background: #0284c7; border: none; font-weight: 700; padding: 8px 14px; flex: 1;">
+                                            <i class="fa-solid fa-save"></i> Save Staff Member
+                                        </button>
+                                        <button type="button" id="btnCancelCrewEdit" onclick="resetCrewForm()" style="display: none; background: #334155; border: 1px solid #475569; color: #fff; font-weight: 700; padding: 8px 12px; border-radius: 4px; cursor: pointer;">
+                                            <i class="fa-solid fa-times"></i> Cancel
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

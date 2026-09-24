@@ -1217,81 +1217,97 @@ body {
         [data-theme="light"] [style*="color: #fff"],
         [data-theme="light"] [style*="color:#fff"],
         [data-theme="light"] [style*="color: #f8fafc"],
-        [data-theme="light"] [style*="color:#f8fafc"],
-        [data-theme="light"] [style*="color: #e2e8f0"],
-        [data-theme="light"] [style*="color:#e2e8f0"],
-        [data-theme="light"] [style*="color: white"],
-        [data-theme="light"] [style*="color:#ffffff"],
-        [data-theme="light"] [style*="color: #ffffff"] {
+        /* White/near-white text → dark for readability (EXCEPT on buttons) */
+        [data-theme="light"] [style*="color: #fff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#fff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: #f8fafc"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#f8fafc"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: #e2e8f0"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#e2e8f0"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: white"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color:#ffffff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
+        [data-theme="light"] [style*="color: #ffffff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *) {
             color: #0f172a !important;
         }
 
         /* Muted/dim text → medium dark for readability */
-        [data-theme="light"] [style*="color: #94a3b8"],
-        [data-theme="light"] [style*="color:#94a3b8"],
-        [data-theme="light"] [style*="color: #cbd5e1"],
-        [data-theme="light"] [style*="color:#cbd5e1"],
-        [data-theme="light"] [style*="color: #64748b"],
-        [data-theme="light"] [style*="color:#64748b"],
-        [data-theme="light"] [style*="color: #475569"],
-        [data-theme="light"] [style*="color:#475569"],
-        [data-theme="light"] [style*="color: #334155"],
-        [data-theme="light"] [style*="color:#334155"] {
+        [data-theme="light"] [style*="color: #94a3b8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#94a3b8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #cbd5e1"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#cbd5e1"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #64748b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#64748b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #475569"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#475569"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #334155"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#334155"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #475569 !important;
         }
 
         /* Cyan accent → deeper cyan */
         [data-theme="light"] .text-cyan,
-        [data-theme="light"] [style*="color: #38bdf8"],
-        [data-theme="light"] [style*="color:#38bdf8"],
-        [data-theme="light"] [style*="color: #22d3ee"],
-        [data-theme="light"] [style*="color:#22d3ee"] {
+        [data-theme="light"] [style*="color: #38bdf8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#38bdf8"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #22d3ee"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#22d3ee"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #0284c7 !important;
         }
 
         /* Amber/yellow accent → deep amber */
         [data-theme="light"] .text-amber,
-        [data-theme="light"] [style*="color: #fbbf24"],
-        [data-theme="light"] [style*="color:#fbbf24"],
-        [data-theme="light"] [style*="color: #facc15"],
-        [data-theme="light"] [style*="color:#facc15"],
-        [data-theme="light"] [style*="color: #f59e0b"],
-        [data-theme="light"] [style*="color:#f59e0b"],
-        [data-theme="light"] [style*="color: #eab308"],
-        [data-theme="light"] [style*="color:#eab308"] {
+        [data-theme="light"] [style*="color: #fbbf24"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#fbbf24"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #facc15"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#facc15"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #f59e0b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#f59e0b"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #eab308"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#eab308"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #b45309 !important;
         }
 
         /* Green accent → forest green */
         [data-theme="light"] .text-green,
-        [data-theme="light"] [style*="color: #4ade80"],
-        [data-theme="light"] [style*="color:#4ade80"],
-        [data-theme="light"] [style*="color: #34d399"],
-        [data-theme="light"] [style*="color:#34d399"],
-        [data-theme="light"] [style*="color: #22c55e"],
-        [data-theme="light"] [style*="color:#22c55e"],
-        [data-theme="light"] [style*="color: #86efac"],
-        [data-theme="light"] [style*="color:#86efac"] {
+        [data-theme="light"] [style*="color: #4ade80"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#4ade80"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #34d399"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#34d399"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #22c55e"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#22c55e"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #86efac"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#86efac"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #15803d !important;
         }
 
         /* Red accent → stronger red */
-        [data-theme="light"] [style*="color: #f87171"],
-        [data-theme="light"] [style*="color:#f87171"],
-        [data-theme="light"] [style*="color: #ef4444"],
-        [data-theme="light"] [style*="color:#ef4444"] {
+        [data-theme="light"] [style*="color: #f87171"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#f87171"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #ef4444"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#ef4444"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #dc2626 !important;
         }
 
         /* Purple accent → deeper purple */
-        [data-theme="light"] [style*="color: #c084fc"],
-        [data-theme="light"] [style*="color:#c084fc"],
-        [data-theme="light"] [style*="color: #a78bfa"],
-        [data-theme="light"] [style*="color:#a78bfa"] {
+        [data-theme="light"] [style*="color: #c084fc"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#c084fc"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color: #a78bfa"]:not(button):not(.btn):not(button *):not(.btn *),
+        [data-theme="light"] [style*="color:#a78bfa"]:not(button):not(.btn):not(button *):not(.btn *) {
             color: #7c3aed !important;
         }
 
-        /* EXCEPTION: Preserve white text on colored action buttons */
+        /* ──── HIGH VISIBILITY BUTTONS IN LIGHT MODE (SAVE, LOGOUT, ACTION BUTTONS) ──── */
+        [data-theme="light"] #btnLogout,
+        [data-theme="light"] #btnLogout * {
+            background-color: #dc2626 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3) !important;
+        }
+        [data-theme="light"] #btnLogout:hover {
+            background-color: #b91c1c !important;
+            color: #ffffff !important;
+        }
+
         [data-theme="light"] button[style*="background: #0284c7"],
         [data-theme="light"] button[style*="background:#0284c7"],
         [data-theme="light"] button[style*="background: #2563eb"],
@@ -1304,6 +1320,8 @@ body {
         [data-theme="light"] button[style*="background:#16a34a"],
         [data-theme="light"] button[style*="background: #10b981"],
         [data-theme="light"] button[style*="background:#10b981"],
+        [data-theme="light"] button[style*="background: #059669"],
+        [data-theme="light"] button[style*="background:#059669"],
         [data-theme="light"] button[style*="background: #0891b2"],
         [data-theme="light"] button[style*="background:#0891b2"],
         [data-theme="light"] button[style*="background: #dc2626"],
@@ -1316,9 +1334,19 @@ body {
         [data-theme="light"] button[style*="background:#ca8a04"],
         [data-theme="light"] .btn-primary,
         [data-theme="light"] .btn-success,
-        [data-theme="light"] .btn-danger {
+        [data-theme="light"] .btn-danger,
+        [data-theme="light"] #btnSubmitDdr,
+        [data-theme="light"] #saveFleetVehBtn,
+        [data-theme="light"] #btnSaveSkuMapping,
+        [data-theme="light"] #btnSaveCrew,
+        [data-theme="light"] button[onclick*="savePlanAsDraftLocally"],
+        [data-theme="light"] button[onclick*="saveUserEdit"],
+        [data-theme="light"] button[onclick*="saveQuickEditVehicleCapacities"],
+        [data-theme="light"] button[onclick*="submitDriverVehicleMappingForm"] {
             color: #ffffff !important;
+            font-weight: 700 !important;
         }
+
         [data-theme="light"] button[style*="background: #0284c7"] *,
         [data-theme="light"] button[style*="background:#0284c7"] *,
         [data-theme="light"] button[style*="background: #2563eb"] *,
@@ -1331,15 +1359,55 @@ body {
         [data-theme="light"] button[style*="background:#16a34a"] *,
         [data-theme="light"] button[style*="background: #10b981"] *,
         [data-theme="light"] button[style*="background:#10b981"] *,
+        [data-theme="light"] button[style*="background: #059669"] *,
+        [data-theme="light"] button[style*="background:#059669"] *,
         [data-theme="light"] button[style*="background: #0891b2"] *,
         [data-theme="light"] button[style*="background:#0891b2"] *,
         [data-theme="light"] button[style*="background: #dc2626"] *,
         [data-theme="light"] button[style*="background:#dc2626"] *,
+        [data-theme="light"] button[style*="background: #ef4444"] *,
+        [data-theme="light"] button[style*="background:#ef4444"] *,
         [data-theme="light"] button[style*="background: #eab308"] *,
         [data-theme="light"] button[style*="background:#eab308"] *,
-        [data-theme="light"] .btn-primary *, [data-theme="light"] .btn-success *,
-        [data-theme="light"] .btn-danger * {
+        [data-theme="light"] .btn-primary *,
+        [data-theme="light"] .btn-success *,
+        [data-theme="light"] .btn-danger *,
+        [data-theme="light"] #btnSubmitDdr *,
+        [data-theme="light"] #saveFleetVehBtn *,
+        [data-theme="light"] #btnSaveSkuMapping *,
+        [data-theme="light"] #btnSaveCrew * {
             color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        /* Clean visible outline buttons (like Save Draft, Secondary actions) */
+        [data-theme="light"] .btn-outline {
+            background: #ffffff !important;
+            border: 1.5px solid #2563eb !important;
+            color: #1e40af !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] .btn-outline:hover {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+        [data-theme="light"] .btn-outline * {
+            color: inherit !important;
+        }
+
+        /* Return Qty inputs & modal elements in Light Mode */
+        [data-theme="light"] .inv-ret-qty,
+        [data-theme="light"] .ret-item-qty,
+        [data-theme="light"] .inv-deliv-qty {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] .inv-ret-qty:focus,
+        [data-theme="light"] .ret-item-qty:focus {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2) !important;
         }
 
         /* ──── 4. STRUCTURAL COMPONENTS ──── */
