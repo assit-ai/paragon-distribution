@@ -1,5 +1,8 @@
 import os
 import io
+import secrets
+import hmac
+from urllib.parse import urlparse
 import re
 import json
 import math
@@ -16,7 +19,30 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'paragon-agro-distribution-secret-key-2026')
+def _load_secret_key():
+    """Never fall back to a key that is published in the source code."""
+    env_key = os.environ.get('FLASK_SECRET_KEY')
+    if env_key:
+        return env_key
+    key_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.secret_key')
+    try:
+        if os.path.exists(key_file):
+            with open(key_file, 'r') as fh:
+                stored = fh.read().strip()
+            if stored:
+                return stored
+        new_key = secrets.token_hex(32)
+        with open(key_file, 'w') as fh:
+            fh.write(new_key)
+        try:
+            os.chmod(key_file, 0o600)
+        except Exception:
+            pass
+        return new_key
+    except Exception:
+        return secrets.token_hex(32)
+
+app.secret_key = _load_secret_key()
 
 # ------------------------------------------------------------------------------
 # SECURITY DECORATORS: LOGIN & ROLE CHECKS
@@ -45,6 +71,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = bool(os.environ.get('RENDER')) or os.environ.get('COOKIE_SECURE') == '1'
 
 @app.after_request
 def add_header(response):
@@ -52,6 +79,129 @@ def add_header(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '-1'
     return response
+
+
+# ------------------------------------------------------------------------------
+# SECURITY LAYER (login throttle, CSRF origin check, role + depot scoping, audit)
+# ------------------------------------------------------------------------------
+DEFAULT_PASSWORDS = {'admin123', 'depot123', 'rider123'}
+MIN_PASSWORD_LENGTH = 8
+LOGIN_MAX_FAILS = 5
+LOGIN_LOCK_SECONDS = 300
+_LOGIN_FAILS = {}
+_LOGIN_LOCK = threading.Lock()
+
+
+def _client_ip():
+    fwd = request.headers.get('X-Forwarded-For', '')
+    return (fwd.split(',')[0].strip() if fwd else request.remote_addr) or 'unknown'
+
+
+def _throttle_keys(username):
+    return ['u:' + (username or ''), 'ip:' + _client_ip()]
+
+
+def login_locked_seconds(username):
+    now = time.time()
+    wait = 0
+    with _LOGIN_LOCK:
+        for k in _throttle_keys(username):
+            rec = _LOGIN_FAILS.get(k)
+            if rec and rec['locked_until'] > now:
+                wait = max(wait, int(rec['locked_until'] - now) + 1)
+    return wait
+
+
+def login_record_failure(username):
+    now = time.time()
+    with _LOGIN_LOCK:
+        for k in _throttle_keys(username):
+            rec = _LOGIN_FAILS.setdefault(k, {'count': 0, 'locked_until': 0, 'first': now})
+            if now - rec['first'] > 900:
+                rec.update(count=0, first=now, locked_until=0)
+            rec['count'] += 1
+            limit = LOGIN_MAX_FAILS if k.startswith('u:') else LOGIN_MAX_FAILS * 4
+            if rec['count'] >= limit:
+                rec['locked_until'] = now + LOGIN_LOCK_SECONDS
+                rec['count'] = 0
+
+
+def login_record_success(username):
+    with _LOGIN_LOCK:
+        _LOGIN_FAILS.pop('u:' + (username or ''), None)
+
+
+def audit_event(action, target_type=None, depot_id=None, details=''):
+    """Append a row to admin_audit_log. Never raises."""
+    try:
+        u = session.get('user') or {}
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO admin_audit_log (username, action, target_type, depot_id, details, ip_address) VALUES (?,?,?,?,?,?)",
+            (u.get('username', 'anonymous'), action, target_type,
+             str(depot_id) if depot_id is not None else None, details, _client_ip()))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+_SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
+_DELIVERY_MAN_ALLOWED = ('/api/tracking/', '/api/current-user', '/api/logout',
+                         '/api/user/change-password', '/api/health', '/api/depots')
+# Cross-depot borrowing is a legitimate workflow, so these are not depot-scoped.
+_SCOPE_EXEMPT = ('/api/fleet/available-borrow', '/api/fleet/borrow', '/api/fleet/return-vehicle',
+                 '/api/fleet/borrowed-vehicles', '/api/fleet/clear-borrowed', '/api/depots')
+
+
+@app.before_request
+def security_guard():
+    path = request.path
+    if not path.startswith('/api/'):
+        return None
+
+    # 1) CSRF defence: state-changing calls must originate from this site.
+    if request.method not in _SAFE_METHODS:
+        origin = request.headers.get('Origin') or request.headers.get('Referer') or ''
+        if origin:
+            host = urlparse(origin).netloc
+            allowed = {request.host}
+            extra = os.environ.get('ALLOWED_ORIGINS', '')
+            allowed.update(h.strip() for h in extra.split(',') if h.strip())
+            if host and host not in allowed:
+                return jsonify({"success": False, "message": "Cross-site request blocked."}), 403
+
+    user = session.get('user')
+    if not user or not user.get('authenticated'):
+        return None  # login_required / admin_required answer with 401
+    role = user.get('role')
+    if role == 'admin':
+        return None
+
+    # 2) Delivery-man accounts only get tracking + own-profile endpoints.
+    if role == 'delivery_man' and not path.startswith(_DELIVERY_MAN_ALLOWED):
+        return jsonify({"success": False, "message": "Not allowed for this account type."}), 403
+
+    # 3) Depot scoping: a non-admin may only touch their own depot_id.
+    if path.startswith(_SCOPE_EXEMPT):
+        return None
+    own = user.get('depot_id')
+    candidates = [request.args.get('depot_id'), request.args.get('depot')]
+    if request.form:
+        candidates.append(request.form.get('depot_id'))
+    candidates.extend((request.view_args or {}).get(k) for k in ('depot_id',))
+    body = request.get_json(silent=True)
+    if isinstance(body, dict):
+        candidates.append(body.get('depot_id'))
+    for c in candidates:
+        if c in (None, '', 'null', 'undefined'):
+            continue
+        if str(c).lower() in ('all', '0') and path.startswith(('/api/tracking/', '/api/export/', '/api/dashboard/')):
+            continue  # these endpoints scope the result server-side
+        if own is None or str(c) != str(own):
+            return jsonify({"success": False, "message": "You can only access your own depot."}), 403
+    return None
+
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'distribution.db')
 
@@ -722,8 +872,47 @@ def ensure_schema_migrations():
         # Ensure sample delivery_man user exists
         c.execute('''
         INSERT OR IGNORE INTO users (id, username, password, role, depot_id, display_name)
-        VALUES (100, 'rider_tejgaon', 'rider123', 'delivery_man', 1, 'Tejgaon Van Rider (Selim)')
+        VALUES (100, 'rider_tejgaon', ?, 'delivery_man', 1, 'Tejgaon Van Rider (Selim)')
+        ''', (generate_password_hash('rider123'),))
+
+        # --- integrity / audit structures -------------------------------------
+        try:
+            c.execute("ALTER TABLE daily_reports ADD COLUMN client_uuid TEXT")
+        except Exception:
+            pass
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_reports_client_uuid ON daily_reports(client_uuid) WHERE client_uuid IS NOT NULL")
+        for col in ("accuracy_m REAL", "fix_time TEXT"):
+            try:
+                c.execute("ALTER TABLE live_tracking_positions ADD COLUMN " + col)
+            except Exception:
+                pass
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS report_revisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            depot_id INTEGER,
+            report_date TEXT,
+            replaced_by TEXT,
+            replaced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            snapshot_json TEXT
+        )
         ''')
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS erp_order_baseline (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            depot_id INTEGER NOT NULL,
+            order_no TEXT NOT NULL,
+            order_date TEXT,
+            ordered_pkt REAL DEFAULT 0,
+            ordered_kg REAL DEFAULT 0,
+            ordered_value REAL DEFAULT 0,
+            source_file TEXT,
+            imported_by TEXT,
+            imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(depot_id, order_no)
+        )
+        ''')
+        c.execute("CREATE TRIGGER IF NOT EXISTS trg_erp_baseline_no_update BEFORE UPDATE ON erp_order_baseline BEGIN SELECT RAISE(ABORT, 'erp_order_baseline is append-only'); END;")
+        c.execute("CREATE TRIGGER IF NOT EXISTS trg_erp_baseline_no_delete BEFORE DELETE ON erp_order_baseline BEGIN SELECT RAISE(ABORT, 'erp_order_baseline is append-only'); END;")
 
         conn.commit()
         conn.close()
@@ -807,6 +996,11 @@ def api_login():
     if not username or not password:
         return jsonify({"success": False, "message": "Username and password are required."}), 400
 
+    wait = login_locked_seconds(username)
+    if wait:
+        return jsonify({"success": False,
+                        "message": f"Too many failed attempts. Try again in {wait // 60 + 1} minute(s)."}), 429
+
     conn = get_db()
     user_row = conn.execute("SELECT * FROM users WHERE REPLACE(LOWER(username), '-', '_') = REPLACE(?, '-', '_')", (username,)).fetchone()
     
@@ -817,7 +1011,7 @@ def api_login():
 
         if stored_pwd.startswith('pbkdf2:') or stored_pwd.startswith('scrypt:'):
             password_matches = check_password_hash(stored_pwd, password)
-        elif stored_pwd == password:
+        elif hmac.compare_digest(stored_pwd.encode('utf-8'), password.encode('utf-8')):
             # Upgrade legacy plaintext to secure hash on login
             password_matches = True
             try:
@@ -839,6 +1033,8 @@ def api_login():
                     depot_name = d_row['name']
             conn.close()
             
+            login_record_success(username)
+            session.clear()  # new session on login (prevents session fixation)
             session['user'] = {
                 "authenticated": True,
                 "id": user_dict['id'],
@@ -848,9 +1044,12 @@ def api_login():
                 "depot_name": depot_name,
                 "display_name": user_dict['display_name']
             }
-            return jsonify({"success": True, "user": session['user']})
+            audit_event('LOGIN', 'session', user_dict.get('depot_id'), 'login ok')
+            return jsonify({"success": True, "user": session['user'],
+                            "must_change_password": password in DEFAULT_PASSWORDS})
 
     conn.close()
+    login_record_failure(username)
     return jsonify({"success": False, "message": "Invalid username or password. Please check your credentials."}), 401
 
 @app.route('/api/logout')
@@ -873,8 +1072,10 @@ def change_user_password():
     if not user_id:
         return jsonify({"success": False, "message": "User session not found. Please log in first."}), 401
         
-    if not new_password or len(new_password) < 4:
-        return jsonify({"success": False, "message": "New password must be at least 4 characters."}), 400
+    if (not new_password or len(new_password) < MIN_PASSWORD_LENGTH
+            or new_password in DEFAULT_PASSWORDS):
+        return jsonify({"success": False,
+                        "message": f"New password must be at least {MIN_PASSWORD_LENGTH} characters and must not be a default password."}), 400
         
     conn = get_db()
     cursor = conn.cursor()
@@ -911,9 +1112,11 @@ def reset_user_password():
     new_username = data.get('username')
     new_password = data.get('password', '').strip()
     
-    if not new_password:
-        return jsonify({"success": False, "message": "Password cannot be empty"}), 400
-        
+    if (not new_password or len(new_password) < MIN_PASSWORD_LENGTH
+            or new_password in DEFAULT_PASSWORDS):
+        return jsonify({"success": False,
+                        "message": f"Password must be at least {MIN_PASSWORD_LENGTH} characters and must not be a default password."}), 400
+
     hashed_pwd = generate_password_hash(new_password)
     conn = get_db()
     cursor = conn.cursor()
@@ -925,12 +1128,13 @@ def reset_user_password():
             cursor.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_pwd, user_id))
     elif depot_id:
         if new_username:
-            cursor.execute('UPDATE users SET username = ?, password = ? WHERE depot_id = ?', (new_username.lower().strip(), hashed_pwd, depot_id))
+            cursor.execute("UPDATE users SET username = ?, password = ? WHERE depot_id = ? AND role = 'incharge'", (new_username.lower().strip(), hashed_pwd, depot_id))
         else:
-            cursor.execute('UPDATE users SET password = ? WHERE depot_id = ?', (hashed_pwd, depot_id))
+            cursor.execute("UPDATE users SET password = ? WHERE depot_id = ? AND role = 'incharge'", (hashed_pwd, depot_id))
             
     conn.commit()
     conn.close()
+    audit_event('PASSWORD_RESET', 'user', depot_id, f'user_id={user_id}')
     return jsonify({"success": True, "message": "Credentials / Password updated successfully!"})
 
 @app.route('/')
@@ -1066,13 +1270,16 @@ def get_dashboard_summary():
         COALESCE(r.returned_val, 0) as returned_val,
         COALESCE(r.stock_mismatch_qty, 0) as stock_mismatch_qty,
         COALESCE(r.cash_mismatch_val, 0) as cash_mismatch_val,
-        COALESCE(r.adjustment_status, '100% Adjusted') as adjustment_status,
-        COALESCE(r.audit_status, 'OK / Verified') as audit_status
+        COALESCE(r.adjustment_status, '-') as adjustment_status,
+        COALESCE(r.audit_status, 'No Report') as audit_status
     FROM depots d
     LEFT JOIN daily_reports r ON d.id = r.depot_id AND r.report_date = ?
+    WHERE (? IS NULL OR d.id = ?)
     ORDER BY d.id ASC
     '''
-    rows = conn.execute(query, (date_param,)).fetchall()
+    _u = session.get('user') or {}
+    _scope = None if _u.get('role') == 'admin' else (_u.get('depot_id') if _u.get('depot_id') is not None else -1)
+    rows = conn.execute(query, (date_param, _scope, _scope)).fetchall()
     
     depot_list = []
     tot_dispatched = 0
@@ -1099,8 +1306,8 @@ def get_dashboard_summary():
         tot_returned += ret
         tot_invoices += d_dict['total_invoices']
         tot_vehicles += d_dict['total_vehicles']
-        tot_stock_var += d_dict['stock_mismatch_qty']
-        tot_cash_var += d_dict['cash_mismatch_val']
+        tot_stock_var += abs(d_dict['stock_mismatch_qty'])
+        tot_cash_var += abs(d_dict['cash_mismatch_val'])
         
         if d_dict['total_vehicles'] > 0:
             util_sum += d_dict['capacity_util_pct']
@@ -1172,8 +1379,9 @@ def get_dashboard_summary():
             u.display_name as user_display_name
         FROM depots d
         LEFT JOIN users u ON d.id = u.depot_id AND u.role = 'incharge'
+        WHERE (? IS NULL OR d.id = ?)
         ORDER BY d.id ASC
-    ''').fetchall()
+    ''', (_scope, _scope)).fetchall()
 
     daily_entry_summary = []
     total_done_entries = 0
@@ -1392,7 +1600,7 @@ def get_dashboard_summary():
         "daily_entry_compliance": compliance_stats
     })
 
-@app.route('/api/admin/clear-all-demo-data', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/admin/clear-all-demo-data', methods=['POST', 'DELETE'])
 @admin_required
 def clear_all_demo_data():
     data = request.json if request.is_json else {}
@@ -1638,134 +1846,237 @@ def admin_clear_data():
     })
 
 # ----------------- REPORT SUBMISSION & ADMIN MANAGEMENT -----------------
+def _num(value, label):
+    try:
+        n = float(value or 0)
+    except (TypeError, ValueError):
+        raise ValueError(f"{label} must be a number")
+    if n != n or n in (float('inf'), float('-inf')):
+        raise ValueError(f"{label} is not a valid number")
+    if n < 0:
+        raise ValueError(f"{label} cannot be negative")
+    return n
+
+
 @app.route('/api/reports/submit', methods=['POST'])
 @login_required
 def submit_report():
-    data = request.json
+    data = request.get_json(silent=True) or {}
+    sess_user = session.get('user', {})
+
+    # Depot incharges can only submit for their own depot (never trust the payload).
+    depot_raw = data.get('depot_id') if sess_user.get('role') == 'admin' else sess_user.get('depot_id')
+    try:
+        depot_id = int(depot_raw)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "A valid depot is required."}), 400
+
+    report_date = str(data.get('report_date') or datetime.date.today().strftime('%Y-%m-%d'))
+    try:
+        datetime.datetime.strptime(report_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({"success": False, "message": "report_date must be YYYY-MM-DD."}), 400
+
+    trips = data.get('trips') or []
+    invoices = data.get('invoices') or []
+    if not isinstance(trips, list) or not isinstance(invoices, list) or len(invoices) > 5000 or len(trips) > 500:
+        return jsonify({"success": False, "message": "Invalid trips/invoices payload."}), 400
+    if not invoices:
+        return jsonify({"success": False, "message": "At least one invoice is required."}), 400
+
+    # Idempotency: the same offline/online submission can never create two reports.
+    client_uuid = (str(request.headers.get('Idempotency-Key') or data.get('client_uuid') or '').strip()[:64]) or None
+
+    # ---- validate every number on the server -------------------------------
+    try:
+        for i, inv in enumerate(invoices, 1):
+            for f in ('dispatched_qty', 'dispatched_val', 'delivered_qty', 'delivered_val',
+                      'returned_qty', 'returned_val', 'amount_collected'):
+                _num(inv.get(f), f"Invoice row {i}: {f}")
+        for i, t in enumerate(trips, 1):
+            for f in ('capacity_kg', 'loaded_kg'):
+                _num(t.get(f), f"Trip row {i}: {f}")
+    except ValueError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+
+    tot_disp_val = sum(float(i.get('dispatched_val') or 0) for i in invoices)
+    tot_deliv_val = sum(float(i.get('delivered_val') or 0) for i in invoices)
+    tot_ret_val = sum(float(i.get('returned_val') or 0) for i in invoices)
+    tot_disp_qty = sum(float(i.get('dispatched_qty') or 0) for i in invoices)
+    tot_deliv_qty = sum(float(i.get('delivered_qty') or 0) for i in invoices)
+    tot_ret_qty = sum(float(i.get('returned_qty') or 0) for i in invoices)
+
+    stock_var = round(tot_disp_qty - (tot_deliv_qty + tot_ret_qty), 2)
+    value_var = round(tot_disp_val - (tot_deliv_val + tot_ret_val), 2)
+    tot_cash = sum(float(i.get('amount_collected') or 0) for i in invoices)
+    tot_credit = sum(float(i.get('delivered_val') or 0) for i in invoices if i.get('collection_mode') == 'Credit')
+    cash_var = round(tot_deliv_val - (tot_cash + tot_credit), 2)
+
+    util_sum = sum(float(t.get('loaded_kg') or 0) / float(t.get('capacity_kg'))
+                   * 100 for t in trips if float(t.get('capacity_kg') or 0) > 0)
+    avg_util = round(util_sum / len(trips), 1) if trips else 0
+    shift = data.get('shift', 'Morning Shift')
+    incharge_name = data.get('incharge_name') or sess_user.get('display_name') or 'Incharge'
+
     conn = get_db()
     cursor = conn.cursor()
-    
-    depot_id = data.get('depot_id')
-    report_date = data.get('report_date', datetime.date.today().strftime('%Y-%m-%d'))
-    incharge_name = data.get('incharge_name')
-    contact = data.get('contact')
-    trips = data.get('trips', [])
-    invoices = data.get('invoices', [])
-    
-    tot_disp_val = sum(float(i.get('dispatched_val', 0)) for i in invoices)
-    tot_deliv_val = sum(float(i.get('delivered_val', 0)) for i in invoices)
-    tot_ret_val = sum(float(i.get('returned_val', 0)) for i in invoices)
-    
-    tot_disp_qty = sum(float(i.get('dispatched_qty', 0)) for i in invoices)
-    tot_deliv_qty = sum(float(i.get('delivered_qty', 0)) for i in invoices)
-    tot_ret_qty = sum(float(i.get('returned_qty', 0)) for i in invoices)
-    
-    stock_var = round(tot_disp_qty - (tot_deliv_qty + tot_ret_qty))
-    
-    tot_cash = sum(float(i.get('amount_collected', 0)) for i in invoices)
-    tot_credit = sum(float(i.get('delivered_val', 0)) for i in invoices if i.get('collection_mode') == 'Credit')
-    cash_var = round(tot_deliv_val - (tot_cash + tot_credit))
-    
-    util_sum = sum(float(t.get('loaded_kg', 0))/float(t.get('capacity_kg', 1))*100 for t in trips if float(t.get('capacity_kg', 0)) > 0)
-    avg_util = round(util_sum / len(trips), 1) if trips else 0
-    
-    shift = data.get('shift', 'Morning Shift')
+    try:
+        if client_uuid:
+            dup = cursor.execute(
+                "SELECT id, audit_status, stock_mismatch_qty, cash_mismatch_val FROM daily_reports WHERE client_uuid = ?",
+                (client_uuid,)).fetchone()
+            if dup:
+                conn.close()
+                return jsonify({"success": True, "duplicate": True, "report_id": dup['id'],
+                                "audit_status": dup['audit_status'],
+                                "message": "This report was already received - no duplicate created."})
 
-    cursor.execute('''
-    DELETE FROM daily_reports WHERE depot_id = ? AND report_date = ?
-    ''', (depot_id, report_date))
-    
-    cursor.execute('''
-    INSERT INTO daily_reports (
-        report_date, depot_id, incharge_name, contact, shift,
-        total_vehicles, total_invoices, capacity_util_pct,
-        dispatched_gross_val, delivered_net_val, returned_val,
-        stock_mismatch_qty, cash_mismatch_val, adjustment_status, audit_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '100% Adjusted', 'OK / Verified')
-    ''', (
-        report_date, depot_id, incharge_name, contact, shift,
-        len(trips), len(invoices), avg_util,
-        tot_disp_val, tot_deliv_val, tot_ret_val,
-        stock_var, cash_var
-    ))
-    report_id = cursor.lastrowid
-    
-    for t in trips:
-        cap = float(t.get('capacity_kg', 0) or 0)
-        load = float(t.get('loaded_kg', 0) or 0)
-        u = round(load / cap * 100, 1) if cap > 0 else 0
+        # ---- server-side audit: variance + ERP baseline -------------------
+        flags = []
+        if abs(stock_var) >= 0.01:
+            flags.append(f"Stock variance {stock_var:+g} (dispatched - delivered - returned)")
+        if abs(value_var) >= 0.01:
+            flags.append(f"Value variance {value_var:+g}")
+        baseline = {r['order_no']: r for r in cursor.execute(
+            "SELECT order_no, ordered_pkt FROM erp_order_baseline WHERE depot_id = ?", (depot_id,)).fetchall()}
+        erp_matched = 0
+        for inv in invoices:
+            inv_no = str(inv.get('invoice_no') or '').strip()
+            d_q = float(inv.get('dispatched_qty') or 0)
+            dl_q = float(inv.get('delivered_qty') or 0)
+            if dl_q > d_q + 0.01:
+                flags.append(f"{inv_no}: delivered qty {dl_q:g} exceeds dispatched {d_q:g}")
+            b = baseline.get(inv_no)
+            if b:
+                erp_matched += 1
+                ordered = float(b['ordered_pkt'] or 0)
+                if ordered > 0 and d_q > ordered + 0.01:
+                    flags.append(f"{inv_no}: dispatched {d_q:g} exceeds ERP ordered {ordered:g}")
+        clean = not flags
+        audit_status = 'OK / Verified' if clean else 'VARIANCE - REVIEW REQUIRED'
+        adjustment_status = '100% Adjusted' if (abs(stock_var) < 0.01 and abs(value_var) < 0.01) else 'Unadjusted Variance'
+
+        # ---- keep a snapshot of anything we replace (append-only history) --
+        for ex in cursor.execute("SELECT * FROM daily_reports WHERE depot_id = ? AND report_date = ?",
+                                 (depot_id, report_date)).fetchall():
+            snap = {
+                'report': dict(ex),
+                'trips': [dict(t) for t in cursor.execute('SELECT * FROM trips WHERE report_id = ?', (ex['id'],)).fetchall()],
+                'invoices': [dict(i) for i in cursor.execute('SELECT * FROM invoices WHERE report_id = ?', (ex['id'],)).fetchall()],
+            }
+            cursor.execute(
+                "INSERT INTO report_revisions (depot_id, report_date, replaced_by, snapshot_json) VALUES (?,?,?,?)",
+                (depot_id, report_date, sess_user.get('username'), json.dumps(snap, default=str)))
+            cursor.execute('DELETE FROM invoices WHERE report_id = ?', (ex['id'],))
+            cursor.execute('DELETE FROM trips WHERE report_id = ?', (ex['id'],))
+            cursor.execute('DELETE FROM daily_reports WHERE id = ?', (ex['id'],))
+
         cursor.execute('''
-        INSERT INTO trips (
-            report_id, trip_no, vehicle_no, vehicle_type, driver_name, delivery_man, route_name,
-            capacity_kg, loaded_kg, util_pct, reefer_temp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            report_id, t.get('trip_no') or 'TRIP-01', t.get('vehicle_no') or 'VAN-01',
-            t.get('vehicle_type') or '1.5T Covered Van',
-            t.get('driver_name') or 'Driver', t.get('delivery_man') or 'Delivery Staff',
-            t.get('route_name') or 'Default Route',
-            cap, load, u, t.get('reefer_temp') or '-18°C'
-        ))
-        
-    for inv in invoices:
-        cursor.execute('''
-        INSERT INTO invoices (
-            report_id, invoice_no, customer_name, trip_no, product_category, sku_uom,
-            dispatched_qty, dispatched_val, delivery_status, delivered_qty, delivered_val,
-            returned_qty, returned_val, return_reason, collection_mode, amount_collected
+        INSERT INTO daily_reports (
+            report_date, depot_id, incharge_name, contact, shift,
+            total_vehicles, total_invoices, capacity_util_pct,
+            dispatched_gross_val, delivered_net_val, returned_val,
+            stock_mismatch_qty, cash_mismatch_val, adjustment_status, audit_status, client_uuid
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            report_id,
-            inv.get('invoice_no') or 'INV-001',
-            inv.get('customer_name') or 'Customer Outlet',
-            inv.get('trip_no') or 'TRIP-01',
-            inv.get('product_category') or 'Frozen Food',
-            inv.get('sku_uom') or 'Pkt',
-            float(inv.get('dispatched_qty') or 0),
-            float(inv.get('dispatched_val') or 0),
-            inv.get('delivery_status') or 'Delivered',
-            float(inv.get('delivered_qty') or 0),
-            float(inv.get('delivered_val') or 0),
-            float(inv.get('returned_qty') or 0),
-            float(inv.get('returned_val') or 0),
-            inv.get('return_reason') or 'None',
-            inv.get('collection_mode') or 'Credit',
-            float(inv.get('amount_collected') or 0)
+            report_date, depot_id, incharge_name, data.get('contact'), shift,
+            len(trips), len(invoices), avg_util,
+            tot_disp_val, tot_deliv_val, tot_ret_val,
+            stock_var, cash_var, adjustment_status, audit_status, client_uuid
         ))
-        
-    conn.commit()
-    conn.close()
-    return jsonify({"success": True, "report_id": report_id, "message": "Report submitted and verified successfully!"})
+        report_id = cursor.lastrowid
 
-@app.route('/api/reports/delete/<int:report_id>', methods=['GET', 'DELETE', 'POST'])
-@app.route('/api/reports/delete-by-depot/<int:report_id>', methods=['GET', 'DELETE', 'POST'])
-@login_required
+        for t in trips:
+            cap = float(t.get('capacity_kg') or 0)
+            load = float(t.get('loaded_kg') or 0)
+            u = round(load / cap * 100, 1) if cap > 0 else 0
+            cursor.execute('''
+            INSERT INTO trips (
+                report_id, trip_no, vehicle_no, vehicle_type, driver_name, delivery_man, route_name,
+                capacity_kg, loaded_kg, util_pct, reefer_temp
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                report_id, t.get('trip_no') or 'TRIP-01', t.get('vehicle_no') or 'VAN-01',
+                t.get('vehicle_type') or '1.5T Covered Van',
+                t.get('driver_name') or 'Driver', t.get('delivery_man') or 'Delivery Staff',
+                t.get('route_name') or 'Default Route',
+                cap, load, u, t.get('reefer_temp') or '-18\u00b0C'
+            ))
+
+        for inv in invoices:
+            row_var = round(float(inv.get('dispatched_qty') or 0)
+                            - float(inv.get('delivered_qty') or 0) - float(inv.get('returned_qty') or 0), 2)
+            cursor.execute('''
+            INSERT INTO invoices (
+                report_id, invoice_no, customer_name, trip_no, product_category, sku_uom,
+                dispatched_qty, dispatched_val, delivery_status, delivered_qty, delivered_val,
+                returned_qty, returned_val, return_reason, collection_mode, amount_collected,
+                reconciliation_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                report_id,
+                inv.get('invoice_no') or 'INV-001',
+                inv.get('customer_name') or 'Customer Outlet',
+                inv.get('trip_no') or 'TRIP-01',
+                inv.get('product_category') or 'Frozen Food',
+                inv.get('sku_uom') or 'Pkt',
+                float(inv.get('dispatched_qty') or 0),
+                float(inv.get('dispatched_val') or 0),
+                inv.get('delivery_status') or 'Delivered',
+                float(inv.get('delivered_qty') or 0),
+                float(inv.get('delivered_val') or 0),
+                float(inv.get('returned_qty') or 0),
+                float(inv.get('returned_val') or 0),
+                inv.get('return_reason') or 'None',
+                inv.get('collection_mode') or 'Credit',
+                float(inv.get('amount_collected') or 0),
+                '100% Reconciled' if abs(row_var) < 0.01 else f'Variance {row_var:+g}'
+            ))
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        conn.close()
+        print('[submit_report] failed:', exc)
+        return jsonify({"success": False, "message": "Could not save the report. Nothing was changed - please retry."}), 500
+    conn.close()
+    audit_event('REPORT_SUBMIT', 'daily_report', depot_id,
+                f'report_id={report_id} date={report_date} status={audit_status} flags={len(flags)}')
+    return jsonify({
+        "success": True, "report_id": report_id, "audit_status": audit_status,
+        "stock_variance": stock_var, "value_variance": value_var, "cash_variance": cash_var,
+        "erp_matched_invoices": erp_matched, "flags": flags,
+        "message": ("Report submitted and verified (0 variance)." if clean
+                    else "Report saved, but flagged for review: " + "; ".join(flags[:3]))
+    })
+
+
+@app.route('/api/reports/delete/<int:report_id>', methods=['DELETE', 'POST'])
+@admin_required
 def delete_report(report_id):
+    """Deletes exactly ONE report (admin only). The old version also wiped every report of a depot whose id == report_id."""
     conn = get_db()
     cursor = conn.cursor()
-    # Find all report ids that match either report_id or are associated with this depot_id
-    cursor.execute('SELECT id FROM daily_reports WHERE id = ? OR depot_id = ?', (report_id, report_id))
-    matching_report_ids = [row['id'] for row in cursor.fetchall()]
-    if report_id not in matching_report_ids:
-        matching_report_ids.append(report_id)
-        
-    for r_id in matching_report_ids:
-        cursor.execute('DELETE FROM invoices WHERE report_id = ?', (r_id,))
-        cursor.execute('DELETE FROM trips WHERE report_id = ?', (r_id,))
-        cursor.execute('DELETE FROM daily_reports WHERE id = ?', (r_id,))
-        
-    cursor.execute('DELETE FROM daily_reports WHERE depot_id = ?', (report_id,))
-    
-    try:
-        cursor.execute('DELETE FROM saved_route_plans WHERE depot_id = ?', (report_id,))
-    except Exception:
-        pass
-    
+    ex = cursor.execute('SELECT * FROM daily_reports WHERE id = ?', (report_id,)).fetchone()
+    if not ex:
+        conn.close()
+        return jsonify({"success": False, "message": f"Report #{report_id} not found."}), 404
+    snap = {
+        'report': dict(ex),
+        'trips': [dict(t) for t in cursor.execute('SELECT * FROM trips WHERE report_id = ?', (report_id,)).fetchall()],
+        'invoices': [dict(i) for i in cursor.execute('SELECT * FROM invoices WHERE report_id = ?', (report_id,)).fetchall()],
+    }
+    sess_user = session.get('user', {})
+    cursor.execute("INSERT INTO report_revisions (depot_id, report_date, replaced_by, snapshot_json) VALUES (?,?,?,?)",
+                   (ex['depot_id'], ex['report_date'], 'DELETED by ' + str(sess_user.get('username')), json.dumps(snap, default=str)))
+    cursor.execute('DELETE FROM invoices WHERE report_id = ?', (report_id,))
+    cursor.execute('DELETE FROM trips WHERE report_id = ?', (report_id,))
+    cursor.execute('DELETE FROM daily_reports WHERE id = ?', (report_id,))
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "message": f"Daily report, invoices & uploaded route plans for Depot / Report #{report_id} deleted successfully!"})
+    audit_event('REPORT_DELETE', 'daily_report', ex['depot_id'], f'report_id={report_id} date={ex["report_date"]}')
+    return jsonify({"success": True, "message": f"Report #{report_id} deleted (snapshot kept in history)."})
 
-@app.route('/api/admin/clear-all-uploaded-data', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/admin/clear-all-uploaded-data', methods=['POST', 'DELETE'])
 @admin_required
 def admin_clear_all_uploaded_data():
     data = request.json if request.is_json else {}
@@ -1806,7 +2117,7 @@ def admin_clear_all_uploaded_data():
     conn.close()
     return jsonify({"success": True, "message": msg})
 
-@app.route('/api/admin/reset-demo-data', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/admin/reset-demo-data', methods=['POST', 'DELETE'])
 @admin_required
 def admin_reset_demo_data():
     conn = get_db()
@@ -1873,7 +2184,7 @@ def get_report_by_date():
         "invoices": invoices
     })
 
-@app.route('/api/reports/delete-by-date', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/reports/delete-by-date', methods=['POST', 'DELETE'])
 @admin_required
 def delete_report_by_date():
     data = request.json if request.is_json else {}
@@ -2266,6 +2577,11 @@ def generate_live_master_excel(date_param=None, depot_id=None):
 def export_master_excel():
     date_param = request.args.get('date', datetime.date.today().strftime('%Y-%m-%d'))
     depot_param = request.args.get('depot')
+    _u = session.get('user') or {}
+    if _u.get('role') != 'admin':
+        depot_param = _u.get('depot_id')  # depot users can only export their own depot
+        if depot_param is None:
+            return jsonify({"error": "Not allowed"}), 403
     try:
         excel_stream = generate_live_master_excel(date_param, depot_param)
         filename = f"Paragon_Master_Distribution_{date_param}.xlsx"
@@ -2662,8 +2978,8 @@ def create_admin_user():
 
     if not display_name or not username or not password:
         return jsonify({"success": False, "message": "Display name, username and password are all required."}), 400
-    if len(password) < 4:
-        return jsonify({"success": False, "message": "Password must be at least 4 characters."}), 400
+    if len(password) < MIN_PASSWORD_LENGTH or password in DEFAULT_PASSWORDS:
+        return jsonify({"success": False, "message": f"Password must be at least {MIN_PASSWORD_LENGTH} characters and must not be a default password."}), 400
     if role not in ('admin', 'incharge', 'delivery_man'):
         return jsonify({"success": False, "message": "Invalid role selected."}), 400
     if role != 'admin' and not depot_id:
@@ -2694,6 +3010,7 @@ def create_admin_user():
         return jsonify({"success": False, "message": f"Failed to create user: {str(e)}"}), 500
 
     conn.close()
+    audit_event('USER_CREATE', 'user', depot_id, f'user_id={new_id} username={username} role={role}')
     return jsonify({"success": True, "message": f"User '{username}' created successfully!", "user_id": new_id})
 
 @app.route('/api/admin/users/update', methods=['POST'])
@@ -2707,7 +3024,11 @@ def update_admin_user():
     
     if not user_id:
         return jsonify({"success": False, "message": "User ID required"}), 400
-        
+    if password and password.strip() and (len(password.strip()) < MIN_PASSWORD_LENGTH or password.strip() in DEFAULT_PASSWORDS):
+        return jsonify({"success": False, "message": f"Password must be at least {MIN_PASSWORD_LENGTH} characters and must not be a default password."}), 400
+    if str(user_id) == str((session.get('user') or {}).get('id')) and str(is_active) in ('0', 'False', 'false'):
+        return jsonify({"success": False, "message": "You cannot deactivate your own account."}), 400
+
     conn = get_db()
     cursor = conn.cursor()
     
@@ -2726,6 +3047,7 @@ def update_admin_user():
         
     conn.commit()
     conn.close()
+    audit_event('USER_UPDATE', 'user', None, f'user_id={user_id} password_changed={bool(password and password.strip())} active={is_active}')
     return jsonify({"success": True, "message": "User credentials and status updated successfully!"})
 
 @app.route('/api/admin/users/delete/<int:user_id>', methods=['POST', 'DELETE'])
@@ -3067,6 +3389,26 @@ def import_poloxy_orders():
                 "deliverymen": d_deliverymen
             })
             
+        # First-seen ERP quantities are stored as a baseline (first write wins, never updated).
+        try:
+            sess_u = session.get('user', {})
+            for dep in depots_result:
+                dep_id = dep.get('depot_id')
+                if sess_u.get('role') != 'admin' and str(dep_id) != str(sess_u.get('depot_id')):
+                    continue
+                for o in dep.get('orders', []):
+                    ono = str(o.get('order_no') or '').strip()
+                    if not ono:
+                        continue
+                    conn.execute(
+                        "INSERT OR IGNORE INTO erp_order_baseline (depot_id, order_no, order_date, ordered_pkt, ordered_kg, ordered_value, source_file, imported_by) VALUES (?,?,?,?,?,?,?,?)",
+                        (dep_id, ono, str(o.get('date') or ''), float(o.get('total_pkt') or 0),
+                         float(o.get('total_kg') or 0), float(o.get('total_amount') or 0),
+                         file.filename, sess_u.get('username')))
+            conn.commit()
+        except Exception as base_err:
+            print('[baseline] could not store ERP baseline:', base_err)
+
         conn.close()
         
         if explicit_depot_id:
@@ -5389,7 +5731,7 @@ def get_distribution_plan_history():
 
 # ----------------- ADMIN DIRECTORY & PLAN CLEAR APIS -----------------
 
-@app.route('/api/admin/clear-master-data', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/admin/clear-master-data', methods=['POST', 'DELETE'])
 @admin_required
 def admin_clear_master_data():
     data = request.json if request.is_json else {}
@@ -5511,7 +5853,7 @@ def get_borrowed_vehicles():
     conn.close()
     return jsonify({"success": True, "borrowed_vehicles": borrowed})
 
-@app.route('/api/admin/clear-route-plan', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/admin/clear-route-plan', methods=['POST', 'DELETE'])
 @admin_required
 def admin_clear_route_plan():
     data = request.json if request.is_json else {}
@@ -5790,6 +6132,9 @@ def get_tracking_depot_routes():
                         else:
                             v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
                             
+                    if not live_v:
+                        # No real GPS fix: do NOT invent a position/speed. Park at depot and flag it.
+                        v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
                     completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
                     van_ownership = van.get('ownership') or ('Borrowed' if van.get('is_borrowed') else 'Owned')
                     d_routes.append({
@@ -5808,7 +6153,8 @@ def get_tracking_depot_routes():
                             "lat": v_lat,
                             "lng": v_lng,
                             "heading": v_heading,
-                            "speed": v_speed
+                            "speed": v_speed,
+                            **_pos_meta(live_v)
                         },
                         "drop_points": drop_points
                     })
@@ -5861,8 +6207,8 @@ def get_tracking_depot_routes():
                             "invoice_no": inv.get('invoice_no') or offset['inv'],
                             "lat": drop_lat,
                             "lng": drop_lng,
-                            "total_pkts": float(inv.get('dispatched_qty') or 25),
-                            "total_amount": float(inv.get('dispatched_val') or 4500.0),
+                            "total_pkts": float(inv.get('dispatched_qty') or 0),
+                            "total_amount": float(inv.get('dispatched_val') or 0.0),
                             "payment_type": inv.get('collection_mode') or 'Cash',
                             "status": curr_status,
                             "delivered_at": override['delivered_at'] if override else (rep['report_date'] if curr_status == 'completed' else None)
@@ -5881,6 +6227,9 @@ def get_tracking_depot_routes():
                         else:
                             v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
                             
+                    if not live_v:
+                        # No real GPS fix: do NOT invent a position/speed. Park at depot and flag it.
+                        v_lat, v_lng, v_heading, v_speed = depot_coords['lat'], depot_coords['lng'], 0.0, 0.0
                     completed_count = sum(1 for d in drop_points if d['status'] == 'completed')
                     d_routes.append({
                         "depot_id": d_id,
@@ -5898,7 +6247,8 @@ def get_tracking_depot_routes():
                             "lat": v_lat,
                             "lng": v_lng,
                             "heading": v_heading,
-                            "speed": v_speed
+                            "speed": v_speed,
+                            **_pos_meta(live_v)
                         },
                         "drop_points": drop_points
                     })
@@ -5919,35 +6269,88 @@ def get_tracking_depot_routes():
         "routes": routes_list
     })
 
+def _pos_meta(live_row):
+    """Honest metadata for a vehicle position: where it came from and how old the fix is."""
+    if not live_row:
+        return {"has_fix": False, "source": "NO_FIX", "age_seconds": None, "is_stale": True}
+    age = None
+    try:
+        ts = datetime.datetime.strptime(str(live_row['updated_at'])[:19], '%Y-%m-%d %H:%M:%S')
+        age = max(0, int((datetime.datetime.utcnow() - ts).total_seconds()))
+    except Exception:
+        pass
+    return {"has_fix": True, "source": live_row.get('source') or 'MOBILE_GEOLOCATION',
+            "age_seconds": age, "is_stale": (age is None or age > 120)}
+
+
 @app.route('/api/tracking/mobile-ping', methods=['POST'])
-@app.route('/api/telematics/webhook', methods=['POST'])
 @login_required
 def receive_tracking_ping():
-    data = request.json if request.is_json else request.form.to_dict()
+    data = request.get_json(silent=True) if request.is_json else request.form.to_dict()
     if not data:
         return jsonify({"success": False, "message": "Missing telemetry payload"}), 400
+    return _store_ping(data, session.get('user', {}), 'MOBILE_GEOLOCATION')
 
-    vehicle_no = data.get('vehicle_no') or data.get('vehicle_id') or 'DHK-METRO-TA-11-2041'
-    depot_id = data.get('depot_id') or 9
-    driver_mobile = data.get('driver_mobile') or data.get('user_id') or '01711-000000'
-    driver_name = data.get('driver_name') or 'Mobile Driver'
-    route_id = data.get('route_id') or data.get('route_code') or 'RT-01'
-    
+
+@app.route('/api/telematics/webhook', methods=['POST'])
+def telematics_webhook():
+    """Vehicle GPS device endpoint. Auth = X-Device-Key header (env TELEMATICS_API_KEY) or an admin session."""
+    key = os.environ.get('TELEMATICS_API_KEY', '')
+    sent = request.headers.get('X-Device-Key', '')
+    su = session.get('user') or {}
+    if key and sent and hmac.compare_digest(key.encode('utf-8'), sent.encode('utf-8')):
+        actor = {'role': 'admin', 'username': 'telematics-device'}
+    elif su.get('authenticated') and su.get('role') == 'admin':
+        actor = su
+    else:
+        return jsonify({"success": False, "message": "Unauthorized device."}), 401
+    data = request.get_json(silent=True) if request.is_json else request.form.to_dict()
+    if not data:
+        return jsonify({"success": False, "message": "Missing telemetry payload"}), 400
+    return _store_ping(data, actor, 'TELEMATICS_GPS')
+
+
+def _store_ping(data, sess_user, source):
+    vehicle_no = str(data.get('vehicle_no') or data.get('vehicle_id') or '').strip()
+    if not vehicle_no:
+        return jsonify({"success": False, "message": "vehicle_no is required"}), 400
+
+    depot_raw = data.get('depot_id') if sess_user.get('role') == 'admin' else sess_user.get('depot_id')
     try:
-        lat = float(data.get('lat') or data.get('latitude') or 0.0)
-        lng = float(data.get('lng') or data.get('longitude') or 0.0)
+        depot_id = int(depot_raw)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "depot_id is required"}), 400
+
+    driver_mobile = data.get('driver_mobile') or data.get('user_id') or ''
+    driver_name = data.get('driver_name') or sess_user.get('display_name') or ''
+    route_id = data.get('route_id') or data.get('route_code') or ''
+
+    try:
+        lat = float(data.get('lat') if data.get('lat') is not None else data.get('latitude'))
+        lng = float(data.get('lng') if data.get('lng') is not None else data.get('longitude'))
         heading = float(data.get('heading') or 0.0)
         speed = float(data.get('speed') or data.get('speed_kmh') or 0.0)
-    except (ValueError, TypeError):
+        accuracy = float(data['accuracy']) if data.get('accuracy') not in (None, '') else None
+    except (ValueError, TypeError, KeyError):
         return jsonify({"success": False, "message": "Invalid numeric coordinates"}), 400
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180) or (lat == 0 and lng == 0):
+        return jsonify({"success": False, "message": "Coordinates out of range"}), 400
 
-    source = data.get('source') or ('TELEMATICS_GPS' if '/telematics/' in request.path else 'MOBILE_GEOLOCATION')
+    # Device-reported time of the fix (ms since epoch) -> lets the UI show real fix age.
+    fix_time = None
+    try:
+        if data.get('fix_ts'):
+            fix_time = datetime.datetime.utcfromtimestamp(float(data['fix_ts']) / 1000.0).strftime('%Y-%m-%d %H:%M:%S')
+    except Exception:
+        fix_time = None
+
+    # Source is decided by the server, never claimed by the client.
 
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO live_tracking_positions (vehicle_no, driver_mobile, driver_name, depot_id, route_id, latitude, longitude, heading, speed_kmh, source, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO live_tracking_positions (vehicle_no, driver_mobile, driver_name, depot_id, route_id, latitude, longitude, heading, speed_kmh, source, accuracy_m, fix_time, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(vehicle_no, depot_id) DO UPDATE SET
         driver_mobile = excluded.driver_mobile,
         driver_name = excluded.driver_name,
@@ -5957,27 +6360,36 @@ def receive_tracking_ping():
         heading = excluded.heading,
         speed_kmh = excluded.speed_kmh,
         source = excluded.source,
+        accuracy_m = excluded.accuracy_m,
+        fix_time = excluded.fix_time,
         updated_at = CURRENT_TIMESTAMP
-    ''', (vehicle_no, driver_mobile, driver_name, depot_id, route_id, lat, lng, heading, speed, source))
+    ''', (vehicle_no, driver_mobile, driver_name, depot_id, route_id, lat, lng, heading, speed, source, accuracy, fix_time))
     conn.commit()
     conn.close()
 
-    return jsonify({
-        "success": True,
-        "message": f"Position logged for {vehicle_no} @ ({lat}, {lng}) via {source}"
-    })
+    return jsonify({"success": True, "message": f"Position logged for {vehicle_no} via {source}"})
 
 @app.route('/api/tracking/live-positions', methods=['GET'])
 @login_required
 def get_live_tracking_positions():
+    sess_user = session.get('user', {})
     depot_id = request.args.get('depot_id')
+    if sess_user.get('role') != 'admin':
+        depot_id = sess_user.get('depot_id')  # non-admins only ever see their own depot
     conn = get_db()
     cursor = conn.cursor()
+    base = ("SELECT *, CAST((julianday('now') - julianday(updated_at)) * 86400 AS INTEGER) AS age_seconds "
+            "FROM live_tracking_positions")
     if depot_id and str(depot_id).lower() != 'all':
-        cursor.execute('SELECT * FROM live_tracking_positions WHERE depot_id = ? ORDER BY updated_at DESC', (depot_id,))
+        cursor.execute(base + ' WHERE depot_id = ? ORDER BY updated_at DESC', (depot_id,))
     else:
-        cursor.execute('SELECT * FROM live_tracking_positions ORDER BY updated_at DESC')
-    positions = [dict(r) for r in cursor.fetchall()]
+        cursor.execute(base + ' ORDER BY updated_at DESC')
+    positions = []
+    for r in cursor.fetchall():
+        p = dict(r)
+        p['is_stale'] = (p.get('age_seconds') is None or p['age_seconds'] > 120)
+        p['is_simulated'] = (p.get('source') == 'SIMULATED')
+        positions.append(p)
     conn.close()
     return jsonify({"success": True, "positions": positions})
 
@@ -5990,7 +6402,16 @@ def update_tracking_drop_status():
     drop_id = data.get('drop_id')
     new_status = data.get('status', 'completed') # pending, in_transit, completed, failed
     proof_note = data.get('proof_note', '')
-    cash_collected = float(data.get('cash_collected') or 0.0)
+    try:
+        cash_collected = float(data.get('cash_collected') or 0.0)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "cash_collected must be a number"}), 400
+    if cash_collected < 0:
+        return jsonify({"success": False, "message": "cash_collected cannot be negative"}), 400
+    if new_status not in ('pending', 'in_transit', 'completed', 'failed'):
+        return jsonify({"success": False, "message": "Invalid status"}), 400
+    if session.get('user', {}).get('role') != 'admin':
+        depot_id = session.get('user', {}).get('depot_id')
 
     if not depot_id or not route_code or not drop_id:
         return jsonify({"success": False, "message": "Missing depot_id, route_code, or drop_id"}), 400
@@ -6017,10 +6438,13 @@ def update_tracking_drop_status():
         "new_status": new_status
     })
 
-@app.route('/api/tracking/simulate-movement', methods=['GET', 'POST'])
-@login_required
+@app.route('/api/tracking/simulate-movement', methods=['POST'])
+@admin_required
 def simulate_vehicle_movement():
-    data = request.json if request.is_json else {}
+    if os.environ.get('ENABLE_SIMULATION') != '1':
+        return jsonify({"success": False,
+                        "message": "Simulation is disabled on this server. Set ENABLE_SIMULATION=1 to enable it for demos/testing only."}), 403
+    data = request.get_json(silent=True) or {}
     depot_val = str(data.get('depot_id') or request.args.get('depot_id') or 'ALL').strip().upper()
     is_all = (depot_val == 'ALL' or depot_val == '0')
     
@@ -6035,7 +6459,7 @@ def simulate_vehicle_movement():
     conn = get_db()
     cursor = conn.cursor()
     for d_id in target_depot_ids:
-        cursor.execute('SELECT * FROM live_tracking_positions WHERE depot_id = ?', (d_id,))
+        cursor.execute("SELECT *, CAST((julianday('now') - julianday(updated_at)) * 86400 AS INTEGER) AS age_seconds FROM live_tracking_positions WHERE depot_id = ?", (d_id,))
         rows = cursor.fetchall()
         depot_coords = depot_coord_map.get(d_id, {"lat": DEFAULT_MAP_CENTER["lat"], "lng": DEFAULT_MAP_CENTER["lng"], "name": f"Depot #{d_id}"})
         if not rows:
@@ -6043,6 +6467,9 @@ def simulate_vehicle_movement():
             continue
         else:
             for r in rows:
+                # never overwrite a vehicle that is reporting a real, recent GPS fix
+                if (r['source'] or '') != 'SIMULATED' and (r['age_seconds'] is not None and r['age_seconds'] < 300):
+                    continue
                 r_id = int(r['id'] or 1)
                 current_heading = float(r['heading'] if r['heading'] is not None else 45.0)
                 new_heading = round((current_heading + 15.0) % 360, 1)
@@ -6060,12 +6487,41 @@ def simulate_vehicle_movement():
                 new_speed = round(max(18.0, min(52.0, current_speed + speed_delta)), 1)
                 
                 cursor.execute('''
-                UPDATE live_tracking_positions SET latitude = ?, longitude = ?, heading = ?, speed_kmh = ?, updated_at = CURRENT_TIMESTAMP
+                UPDATE live_tracking_positions SET latitude = ?, longitude = ?, heading = ?, speed_kmh = ?, source = 'SIMULATED', updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 ''', (new_lat, new_lng, new_heading, new_speed, r['id']))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": "Simulation step applied!"})
+
+
+@app.route('/api/admin/security-check', methods=['GET'])
+@admin_required
+def admin_security_check():
+    """IT-head self audit: which accounts still use default passwords + key config warnings."""
+    conn = get_db()
+    users = conn.execute("SELECT id, username, role, password, is_active FROM users").fetchall()
+    conn.close()
+    weak = []
+    for u in users:
+        pwd = u['password'] or ''
+        for dp in DEFAULT_PASSWORDS:
+            if pwd.startswith(('pbkdf2:', 'scrypt:')):
+                hit = check_password_hash(pwd, dp)
+            else:
+                hit = hmac.compare_digest(pwd.encode('utf-8'), dp.encode('utf-8'))
+            if hit:
+                weak.append({"username": u['username'], "role": u['role'],
+                             "active": (u['is_active'] is None or bool(u['is_active']))})
+                break
+    return jsonify({
+        "success": True,
+        "accounts_with_default_password": weak,
+        "secret_key_from_env": bool(os.environ.get('FLASK_SECRET_KEY')),
+        "cookie_secure": app.config.get('SESSION_COOKIE_SECURE'),
+        "simulation_enabled": os.environ.get('ENABLE_SIMULATION') == '1',
+        "login_lockout": f"{LOGIN_MAX_FAILS} failed attempts -> {LOGIN_LOCK_SECONDS // 60} min lock",
+    })
 
 
 # ------------------------------------------------------------------------------

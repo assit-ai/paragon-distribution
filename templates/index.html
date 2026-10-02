@@ -3609,7 +3609,7 @@
                                             RECONCILIATION</h4>
                                         <p>Live matching of Dispatched Quantity & Value vs (Delivered + Physical Returns)</p>
                                     </div>
-                                    <div id="liveReconBadge" class="badge-verified">BALANCED & RECONCILED</div>
+                                    <div id="liveReconBadge" class="badge-pending">AWAITING ENTRY</div>
                                 </div>
 
                                 <div class="recon-grid">
@@ -4118,7 +4118,7 @@
                                     <i class="fa-solid fa-bolt"></i>
                                 </div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Optimization Score</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Route Completion</div>
                                     <div id="statTrackingEfficiency" style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;">--</div>
                                 </div>
                             </div>
@@ -4985,6 +4985,10 @@
                         } else {
                             showToast(`Welcome ${currentUser.display_name}! Navigating to Route Planning & Van Dispatch...`, 'success');
                         }
+                        if (data.must_change_password) {
+                            showToast('You are using a default password. Please set a new password now.', 'warning');
+                            setTimeout(() => { if (typeof openChangePasswordModal === 'function') openChangePasswordModal(); }, 700);
+                        }
                         return;
                     } else {
                         showToast(data.message || 'Invalid User ID or Password. Please check credentials.', 'error');
@@ -4992,25 +4996,8 @@
                         if (passInp) passInp.value = '';
                     }
                 } catch (e) {
-                    // Offline Fallback Login
-                    if (username.toLowerCase() === 'admin' && password === 'admin123') {
-                        sessionStorage.setItem('paragon_active_session', '1');
-                        currentUser = { authenticated: true, role: 'admin', username: 'admin', depot_id: null, display_name: 'Executive Admin' };
-                        updateUserBadge();
-                        applyUserPermissions();
-                        showToast(`Welcome Administrator! Navigating to Executive Dashboard (Offline Mode)...`, 'success');
-                    } else {
-                        const foundDepot = currentDepots.find(d => d.slug === username.toLowerCase());
-                        if (foundDepot && password === 'depot123') {
-                            sessionStorage.setItem('paragon_active_session', '1');
-                            currentUser = { authenticated: true, role: 'incharge', username: foundDepot.slug, depot_id: foundDepot.id, display_name: `${foundDepot.name} (${foundDepot.incharge_name})` };
-                            updateUserBadge();
-                            applyUserPermissions();
-                            showToast(`Welcome ${currentUser.display_name}! Navigating to Route Planning & Van Dispatch (Offline Mode)...`, 'success');
-                        } else {
-                            showToast('Invalid User ID or Password. Check credentials.', 'error');
-                        }
-                    }
+                    // No offline login: credentials are ONLY ever verified by the server.
+                    showToast('Cannot reach the server. Login needs an internet connection - please try again.', 'error');
                 }
             }
 
@@ -5626,7 +5613,7 @@
                                 <td class="text-right text-green"><strong>${formatTaka(c.deliv_val || 0)}</strong></td>
                                 <td class="text-right"><strong>${catRate}%</strong></td>
                                 <td class="text-right">${share}%</td>
-                                <td class="text-center"><span class="badge-verified">OK / Reconciled</span></td>
+                                <td class="text-center"><span style="color:#94a3b8;">&mdash;</span></td>
                             </tr>
                         `;
                     });
@@ -5683,7 +5670,7 @@
                                             <th class="text-right text-green">${formatTaka(totDeliv)}</th>
                                             <th class="text-right">${overallRate}%</th>
                                             <th class="text-right">100.0%</th>
-                                            <th class="text-center"><span class="badge-verified">100% RECONCILED</span></th>
+                                            <th class="text-center"><span style="color:#94a3b8;">&mdash;</span></th>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -6063,7 +6050,7 @@
                     }
 
                     const isOk = (d.audit_status === 'OK / Verified');
-                    const badgeClass = isOk ? 'badge-verified' : 'badge-alert';
+                    const badgeClass = isOk ? 'badge-verified' : (d.report_id ? 'badge-alert' : 'badge-pending');
                     const inTransitBadge = d.is_in_transit
                         ? ' <span style="background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.4); border-radius: 4px; padding: 1px 6px; font-size: 0.7rem; font-weight: 700; white-space: nowrap;"><i class="fa-solid fa-truck-fast"></i> In Transit</span>'
                         : '';
@@ -6110,7 +6097,7 @@
                 <th class="text-right text-red">${formatTaka(totRet)}</th>
                 <th class="text-center">${overallSuccess}%</th>
                 <th class="text-center">${totStockVar}</th>
-                <th class="text-center"><span class="badge-verified">100% RECONCILED</span></th>
+                <th class="text-center">${Math.abs(totStockVar) < 0.01 ? '<span class="badge-verified">RECONCILED</span>' : '<span class="badge-pending">VARIANCE</span>'}</th>
                 <th class="text-center"><span class="badge-verified">ALL AUDITED</span></th>
                 <th class="text-center">-</th>
             </tr>
@@ -6169,8 +6156,8 @@
                 <th class="text-right text-red">${formatTaka(totRetVal)}</th>
                 <th class="text-center">${overallCatSuccess}%</th>
                 <th class="text-center">${overallCatRet}%</th>
-                <th class="text-center">0</th>
-                <th class="text-center"><span class="badge-verified">100% RECONCILED</span></th>
+                <th class="text-center">${Math.round(totDispVal - totDelivVal - totRetVal)}</th>
+                <th class="text-center">${Math.abs(totDispVal - totDelivVal - totRetVal) < 1 ? '<span class="badge-verified">RECONCILED</span>' : '<span class="badge-pending">VARIANCE</span>'}</th>
             </tr>
         `;
                 }
@@ -7805,7 +7792,7 @@
                 if (badge) {
                     if (qtyMismatch === 0 && valMismatch === 0) {
                         badge.className = 'badge-verified';
-                        badge.textContent = 'BALANCED & RECONCILED';
+                        badge.textContent = 'ENTRY BALANCED - verified on submit';
                     } else {
                         badge.className = 'badge-pending';
                         badge.textContent = 'VARIANCE DETECTED';
@@ -7875,6 +7862,7 @@
                 }
 
                 const payload = {
+                    client_uuid: newClientUuid(),
                     depot_id: parseInt(depotId),
                     report_date: reportDate,
                     incharge_name: inchargeName,
@@ -7886,13 +7874,16 @@
                 try {
                     const res = await fetch('/api/reports/submit', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': payload.client_uuid },
                         body: JSON.stringify(payload)
                     });
                     const result = await res.json();
 
                     if (result.success) {
-                        showToast('Daily Distribution Report submitted & audited successfully!', 'success');
+                        const flagged = result.flags && result.flags.length;
+                        showToast(flagged ? ('Report saved but FLAGGED: ' + result.flags.slice(0, 2).join('; '))
+                                          : 'Daily Distribution Report submitted & verified (0 variance).',
+                                  flagged ? 'warning' : 'success');
                         setTimeout(() => {
                             if (currentUser && currentUser.role === 'admin') {
                                 document.querySelector('.nav-tab[data-tab="dashboard-tab"]')?.click();
@@ -7904,11 +7895,17 @@
                             }
                         }, 1000);
                     } else {
-                        showToast('Failed to submit report. Please check details.', 'error');
+                        showToast(result.message || 'Failed to submit report. Please check details.', 'error');
                     }
                 } catch (err) {
                     console.error(err);
-                    showToast('Report submitted & saved locally (Offline Mode)', 'success');
+                    // The old code only SAID "saved locally" without saving anything (data loss).
+                    try {
+                        await saveReportOffline(payload);
+                        showToast('Connection problem: report saved on this device and will sync automatically.', 'warning');
+                    } catch (saveErr) {
+                        showToast('Report could NOT be saved. Please keep this page open and retry.', 'error');
+                    }
                 }
             }
 
@@ -8182,8 +8179,8 @@
                 </div>
                 <div style="margin-bottom: 20px;">
                     <label style="font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:4px;">New Password:</label>
-                    <input type="text" id="resetPasswordInput" value="depot123" style="width:100%; padding:8px 10px; background:#0b1329; border:1px solid #334155; color:#fff; border-radius:6px;">
-                    <small style="color:#64748b; margin-top:4px; display:block;">Enter a new password or keep <code>depot123</code> as standard default.</small>
+                    <input type="text" id="resetPasswordInput" value="" placeholder="Min 8 characters" autocomplete="new-password" style="width:100%; padding:8px 10px; background:#0b1329; border:1px solid #334155; color:#fff; border-radius:6px;">
+                    <small style="color:#64748b; margin-top:4px; display:block;">Minimum 8 characters. Default passwords (admin123 / depot123 / rider123) are rejected.</small>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
                     <button type="button" class="btn btn-outline" onclick="closeDrillModal()">Cancel</button>
@@ -8537,6 +8534,7 @@
                     const store = tx.objectStore('offline_reports');
                     reportPayload.saved_at = new Date().toISOString();
                     reportPayload.sync_status = 'pending';
+                    if (!reportPayload.client_uuid) reportPayload.client_uuid = newClientUuid();
                     const req = store.add(reportPayload);
                     req.onsuccess = () => {
                         checkPendingSyncCount();
@@ -8554,12 +8552,13 @@
                     const req = store.getAll();
                     req.onsuccess = () => {
                         const pending = req.result.filter(r => r.sync_status === 'pending');
+                        const failedCount = req.result.filter(r => r.sync_status === 'failed').length;
                         const syncBtn = document.getElementById('pendingSyncBtn');
                         const syncCountSpan = document.getElementById('pendingSyncCount');
                         if (syncBtn && syncCountSpan) {
-                            if (pending.length > 0) {
+                            if (pending.length > 0 || failedCount > 0) {
                                 syncBtn.style.display = 'inline-flex';
-                                syncCountSpan.textContent = `${pending.length} Pending Offline Report(s)`;
+                                syncCountSpan.textContent = `${pending.length} Pending Offline Report(s)` + (failedCount ? ` | ${failedCount} FAILED - needs attention` : '');
                             } else {
                                 syncBtn.style.display = 'none';
                             }
@@ -8570,49 +8569,81 @@
                 }
             }
 
+            let syncInProgress = false;
+            const SYNC_MAX_ATTEMPTS = 8;
+
+            function newClientUuid() {
+                if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+                return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+            }
+            function idbRequest(req) {
+                return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
+            }
+            function idbDone(tx) {
+                return new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); });
+            }
+
+            // Every queued report carries a client_uuid that is sent as an Idempotency-Key, so a
+            // retry after a lost response can never create a duplicate report on the server.
             async function triggerAutoSync() {
-                if (!navigator.onLine || !dbInstance) return;
+                if (syncInProgress || !navigator.onLine || !dbInstance) return;
+                syncInProgress = true;
                 try {
-                    const tx = dbInstance.transaction('offline_reports', 'readwrite');
-                    const store = tx.objectStore('offline_reports');
-                    const req = store.getAll();
-                    req.onsuccess = async () => {
-                        const pending = req.result.filter(r => r.sync_status === 'pending');
-                        if (pending.length === 0) return;
+                    const all = await idbRequest(dbInstance.transaction('offline_reports', 'readonly').objectStore('offline_reports').getAll());
+                    const now = Date.now();
+                    const pending = all.filter(r => r.sync_status === 'pending' && (!r.next_retry_at || r.next_retry_at <= now));
+                    if (pending.length === 0) return;
 
-                        showToast(`Auto-Syncing ${pending.length} offline report(s) to central database...`, 'info');
-                        let syncedCount = 0;
+                    showToast(`Auto-Syncing ${pending.length} offline report(s) to central database...`, 'info');
+                    let synced = 0, failed = 0, needLogin = false;
 
-                        for (const item of pending) {
-                            try {
-                                const res = await fetch('/api/reports/submit', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(item)
-                                });
-                                const resData = await res.json();
-                                if (resData.success) {
-                                    const delTx = dbInstance.transaction('offline_reports', 'readwrite');
-                                    delTx.objectStore('offline_reports').delete(item.id);
-                                    syncedCount++;
-                                }
-                            } catch (err) {
-                                console.error('Failed to sync item:', item.id, err);
-                            }
+                    for (const item of pending) {
+                        if (!item.client_uuid) item.client_uuid = newClientUuid();
+                        let outcome = 'retry', errMsg = '';
+                        try {
+                            const res = await fetch('/api/reports/submit', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.client_uuid },
+                                body: JSON.stringify(item)
+                            });
+                            if (res.status === 401) { needLogin = true; break; }
+                            let body = {};
+                            try { body = await res.json(); } catch (_) { }
+                            if (res.ok && body.success) outcome = 'done';
+                            else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+                                outcome = 'rejected'; errMsg = body.message || ('HTTP ' + res.status);
+                            } else { errMsg = body.message || ('HTTP ' + res.status); }
+                        } catch (err) { errMsg = String((err && err.message) || err); }
+
+                        const tx = dbInstance.transaction('offline_reports', 'readwrite');
+                        const store = tx.objectStore('offline_reports');
+                        if (outcome === 'done') {
+                            store.delete(item.id); synced++;
+                        } else if (outcome === 'rejected') {
+                            item.sync_status = 'failed'; item.last_error = errMsg; store.put(item); failed++;
+                        } else {
+                            item.attempts = (item.attempts || 0) + 1;
+                            item.last_error = errMsg;
+                            item.next_retry_at = Date.now() + Math.min(15 * 60 * 1000, 5000 * Math.pow(2, item.attempts));
+                            if (item.attempts >= SYNC_MAX_ATTEMPTS) { item.sync_status = 'failed'; failed++; }
+                            store.put(item);
                         }
+                        await idbDone(tx);
+                    }
 
-                        if (syncedCount > 0) {
-                            showToast(`Auto-Sync Complete: ${syncedCount} report(s) synchronized successfully!`, 'success');
-                            checkPendingSyncCount();
-                            if (currentUser.role === 'admin') {
-                                loadDashboardData();
-                            } else if (currentUser.depot_id) {
-                                loadDepotMyReports(currentUser.depot_id);
-                            }
-                        }
-                    };
+                    if (needLogin) showToast('Offline reports are waiting - please log in again to sync them.', 'warning');
+                    if (synced > 0) {
+                        showToast(`Auto-Sync Complete: ${synced} report(s) synchronized successfully!`, 'success');
+                        if (currentUser.role === 'admin') { loadDashboardData(); }
+                        else if (currentUser.depot_id) { loadDepotMyReports(currentUser.depot_id); }
+                    }
+                    if (failed > 0) showToast(`${failed} offline report(s) could NOT be synced and need attention.`, 'error');
                 } catch (e) {
                     console.error('Auto sync error:', e);
+                    showToast('Offline sync problem: ' + ((e && e.message) || e), 'error');
+                } finally {
+                    syncInProgress = false;
+                    checkPendingSyncCount();
                 }
             }
 
@@ -8685,6 +8716,7 @@
                 }
 
                 const payload = {
+                    client_uuid: newClientUuid(),
                     depot_id: parseInt(depotSelect.value),
                     report_date: reportDate,
                     incharge_name: inchargeName,
@@ -8703,12 +8735,15 @@
                 try {
                     const res = await fetch('/api/reports/submit', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': payload.client_uuid },
                         body: JSON.stringify(payload)
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast('Daily Report Submitted & Verified with 0 Mismatch!', 'success');
+                        const flaggedR = data.flags && data.flags.length;
+                        showToast(flaggedR ? ('Report saved but FLAGGED: ' + data.flags.slice(0, 2).join('; '))
+                                           : 'Daily Report submitted & verified (0 variance).',
+                                  flaggedR ? 'warning' : 'success');
                         if (currentUser.depot_id) {
                             loadDepotMyReports(currentUser.depot_id);
                         }
@@ -9157,7 +9192,7 @@
                 fetch('/api/dashboard/summary?date=' + (document.getElementById('filterDate')?.value || ''))
                     .then(res => res.json())
                     .then(data => {
-                        const discrepancies = (data.depots || []).filter(d => (d.stock_mismatch_qty > 0 || d.audit_status !== 'OK / Verified'));
+                        const discrepancies = (data.depots || []).filter(d => (d.report_id && (Math.abs(d.stock_mismatch_qty) > 0 || d.audit_status !== 'OK / Verified')));
 
                         if (discrepancies.length === 0) {
                             tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #4ade80; padding: 25px;"><i class="fa-solid fa-circle-check" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> <strong>100% RECONCILED!</strong> No stock discrepancies detected across all depots today.</td></tr>`;
@@ -14272,7 +14307,7 @@
                     totalDrops += (r.total_drops || 0);
                     completedDrops += (r.completed_drops || 0);
                     const vPos = r.vehicle_position || {};
-                    if (parseFloat(vPos.speed || 0) > 0) {
+                    if (vPos.has_fix && !vPos.is_stale && parseFloat(vPos.speed || 0) > 0) {
                         movingVansCount++;
                     }
 
@@ -14303,13 +14338,13 @@
                 if (totalAmountEl) totalAmountEl.textContent = `৳ ${totalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
                 if (cashEl) cashEl.textContent = `৳ ${cashCollected.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
-                // Efficiency / Route Optimization Score (82% base + completion factor up to 12% + active fleet factor)
-                let optScore = 86;
-                if (totalDrops > 0) {
-                    const compRate = completedDrops / totalDrops;
-                    optScore = Math.min(99, Math.round(82 + (compRate * 12) + (movingVansCount > 0 ? 4 : 0)));
+                // Route completion rate: real data only. (No synthetic "optimisation" score - that
+                // needs distance/load/cost data and a routing solver, which this system does not have.)
+                if (efficiencyEl) {
+                    efficiencyEl.textContent = totalDrops > 0
+                        ? `${Math.round((completedDrops / totalDrops) * 100)}% Completed`
+                        : '--';
                 }
-                if (efficiencyEl) efficiencyEl.textContent = `${optScore}% (Optimal)`;
 
                 // Update Route Filter Dropdown
                 const routeFilter = document.getElementById('trackingRouteFilter');
@@ -14509,6 +14544,7 @@
                                 <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.6;">
                                     <div><strong>Driver:</strong> ${escapeHtml(r.driver_name)} (<a href="tel:${escapeHtml(r.driver_mobile)}" style="color:#38bdf8;">${escapeHtml(r.driver_mobile)}</a>)</div>
                                     <div><strong>Speed:</strong> <span style="color:#22c55e; font-weight:700;">${vPos.speed || 0} km/h</span></div>
+                                    <div><strong>GPS:</strong> <span style="color:${!vPos.has_fix ? '#ef4444' : (vPos.is_stale ? '#f59e0b' : '#22c55e')}; font-weight:700;">${!vPos.has_fix ? 'No live GPS fix (parked at depot)' : (vPos.is_stale ? ('STALE - last fix ' + (vPos.age_seconds == null ? '?' : Math.round(vPos.age_seconds / 60)) + ' min ago') : ('Live (' + (vPos.source || 'GPS') + ', ' + (vPos.age_seconds || 0) + 's ago)'))}</span></div>
                                     <div><strong>Progress:</strong> ${r.completed_drops || 0} / ${r.total_drops || 0} Drops Delivered</div>
                                     <div><strong>Fleet:</strong> <span style="color:${isOwned ? '#38bdf8' : '#f59e0b'}; font-weight:700;">${r.ownership || 'Owned'}</span></div>
                                 </div>
@@ -14773,7 +14809,24 @@
                 }
             }
 
+            // Keep the screen awake while sharing (browsers pause GPS in background/locked tabs).
+            let gpsWakeLock = null;
+            async function acquireGpsWakeLock() {
+                try { if ('wakeLock' in navigator) gpsWakeLock = await navigator.wakeLock.request('screen'); } catch (e) { }
+            }
+            function releaseGpsWakeLock() {
+                try { if (gpsWakeLock) gpsWakeLock.release(); } catch (e) { }
+                gpsWakeLock = null;
+            }
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible') return;
+                if (gpsWatchId !== null) acquireGpsWakeLock();
+                const t = document.getElementById('tracking-tab');
+                if (t && t.classList.contains('active') && typeof loadLiveTrackingData === 'function') loadLiveTrackingData(false);
+            });
+
             function stopLiveLocationSharing() {
+                releaseGpsWakeLock();
                 if (gpsWatchId !== null && navigator.geolocation) {
                     navigator.geolocation.clearWatch(gpsWatchId);
                 }
@@ -14835,9 +14888,12 @@
                                 lat: latitude,
                                 lng: longitude,
                                 heading: heading || 0,
-                                speed: speed ? (speed * 3.6) : 0
+                                speed: speed ? (speed * 3.6) : 0,
+                                accuracy: accuracy || null,
+                                fix_ts: pos.timestamp
                             })
-                        }).catch(() => { /* silent - will retry on next GPS fix */ });
+                        }).then(r => { if (statusEl && !r.ok) statusEl.textContent = 'Location NOT accepted by server (HTTP ' + r.status + ')'; })
+                          .catch(() => { lastGpsSendTime = 0; if (statusEl) statusEl.textContent = 'Location NOT delivered - no connection. Retrying...'; });
                     },
                     (err) => {
                         let msg = 'GPS error: ' + err.message;
@@ -14855,6 +14911,7 @@
                     btn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Sharing Location';
                     btn.style.background = '#dc2626';
                 }
+                acquireGpsWakeLock();
             }
 
             async function triggerTrackingSimulation() {
@@ -14873,6 +14930,8 @@
                     if (resJson.success) {
                         showToast('Simulation step applied! GPS telemetry updated.', 'success');
                         await loadLiveTrackingData(false);
+                    } else {
+                        showToast(resJson.message || 'Simulation is not available.', 'warning');
                     }
                 } catch (e) {
                     showToast('Simulation failed: ' + e.message, 'error');
