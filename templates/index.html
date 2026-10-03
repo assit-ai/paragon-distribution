@@ -511,6 +511,60 @@
         .kpi-footer {
             font-size: 0.72rem;
             color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .btn-kpi-modal-opt {
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+        }
+        .btn-kpi-modal-opt:hover {
+            background: rgba(56, 189, 248, 0.25);
+            color: #38bdf8;
+            border-color: #38bdf8;
+        }
+
+        [data-theme="light"] .btn-kpi-modal-opt {
+            background: rgba(0, 0, 0, 0.05);
+            color: #475569;
+            border-color: rgba(0, 0, 0, 0.15);
+        }
+        [data-theme="light"] .btn-kpi-modal-opt:hover {
+            background: rgba(37, 99, 235, 0.12);
+            color: #2563eb;
+            border-color: #2563eb;
+        }
+
+        @keyframes sectionHighlightGlow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.85);
+                border-color: #38bdf8;
+            }
+            35% {
+                box-shadow: 0 0 28px 8px rgba(56, 189, 248, 0.75);
+                border-color: #38bdf8;
+            }
+            100% {
+                box-shadow: none;
+                border-color: var(--border-color);
+            }
+        }
+        .section-highlight-pulse {
+            animation: sectionHighlightGlow 2.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
 
         .text-green {
@@ -2663,7 +2717,7 @@
         <div id="mainAppView" style="display: none;">
             <!-- Top Executive Navbar -->
             <header class="top-navbar">
-                <div class="brand-block">
+                <div class="brand-block" onclick="jumpToDashboardSection(event, 'dashboard-tab')" style="cursor: pointer;" title="Back to Executive Dashboard Top">
                     <div class="logo-badge">
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
@@ -2865,84 +2919,90 @@
                     <!-- 6 High-Impact KPI Cards -->
                     <div class="kpi-grid">
                         <a href="#categoryMatrixCard" class="kpi-card card-cyan clickable-kpi"
-                            onclick="openKPIDrilldown('dispatched'); return false;"
-                            title="Click to view Product Category & Depot Summary">
+                            onclick="jumpToDashboardSection(event, 'categoryMatrixCard')"
+                            title="Click to jump to Product Category & Depot Summary Table">
                             <div class="kpi-header">
                                 <span>TOTAL DISPATCHED VALUE</span>
-                                <span class="badge-kpi-jump"><i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                    Summary</span>
+                                <span class="badge-kpi-jump"><i class="fa-solid fa-arrow-down"></i> Jump &darr;</span>
                             </div>
                             <div class="kpi-val" id="kpiDispatched">৳ 0</div>
                             <div id="kpiInTransitNote" style="font-size: 0.72rem; color: #eab308; font-weight: 700; margin-top: 2px; display: none;">
                                 <i class="fa-solid fa-truck-fast"></i> <span id="kpiInTransitText"></span>
                             </div>
-                            <div class="kpi-footer"><i class="fa-solid fa-layer-group"></i> <strong>Click for Category &
-                                    Depot Summary &raquo;</strong></div>
+                            <div class="kpi-footer">
+                                <span><i class="fa-solid fa-layer-group"></i> <strong>Jump to Category Matrix &raquo;</strong></span>
+                                <button type="button" class="btn-kpi-modal-opt" onclick="event.stopPropagation(); openKPIDrilldown('dispatched');" title="Open Full-Screen Drilldown Modal"><i class="fa-solid fa-window-restore"></i> Modal</button>
+                            </div>
                         </a>
 
                         <a href="#categoryMatrixCard" class="kpi-card card-green clickable-kpi"
-                            onclick="openKPIDrilldown('delivered'); return false;"
-                            title="Click to view Delivered Net by Category & Depot">
+                            onclick="jumpToDashboardSection(event, 'categoryMatrixCard')"
+                            title="Click to jump to Net Delivered Delivery Breakdown Table">
                             <div class="kpi-header">
                                 <span>DELIVERED VALUE (SUCCESS)</span>
-                                <span class="badge-kpi-jump text-green"><i
-                                        class="fa-solid fa-arrow-up-right-from-square"></i> Net</span>
+                                <span class="badge-kpi-jump text-green"><i class="fa-solid fa-arrow-down"></i> Jump &darr;</span>
                             </div>
                             <div class="kpi-val text-green" id="kpiDelivered">৳ 0</div>
-                            <div class="kpi-footer"><i class="fa-solid fa-circle-check"></i> <strong>Click for Net
-                                    Delivery Breakdown &raquo;</strong></div>
+                            <div class="kpi-footer">
+                                <span><i class="fa-solid fa-circle-check"></i> <strong>Jump to Net Delivery Table &raquo;</strong></span>
+                                <button type="button" class="btn-kpi-modal-opt" onclick="event.stopPropagation(); openKPIDrilldown('delivered');" title="Open Full-Screen Drilldown Modal"><i class="fa-solid fa-window-restore"></i> Modal</button>
+                            </div>
                         </a>
 
                         <a href="#returnReasonsCard" class="kpi-card card-red clickable-kpi"
-                            onclick="openKPIDrilldown('returned'); return false;"
-                            title="Click to view Undelivered & Return Root Causes">
+                            onclick="jumpToDashboardSection(event, 'returnReasonsCard')"
+                            title="Click to jump to Undelivered & Return Root Causes Section">
                             <div class="kpi-header">
                                 <span>UNDELIVERED / RETURN VALUE</span>
-                                <span class="badge-kpi-jump text-red"><i
-                                        class="fa-solid fa-arrow-up-right-from-square"></i> Loss</span>
+                                <span class="badge-kpi-jump text-red"><i class="fa-solid fa-arrow-down"></i> Jump &darr;</span>
                             </div>
                             <div class="kpi-val text-red" id="kpiReturned">৳ 0</div>
-                            <div class="kpi-footer"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Click for
-                                    Return Root Causes &raquo;</strong></div>
+                            <div class="kpi-footer">
+                                <span><i class="fa-solid fa-triangle-exclamation"></i> <strong>Jump to Return Reasons &raquo;</strong></span>
+                                <button type="button" class="btn-kpi-modal-opt" onclick="event.stopPropagation(); openKPIDrilldown('returned');" title="Open Full-Screen Drilldown Modal"><i class="fa-solid fa-window-restore"></i> Modal</button>
+                            </div>
                         </a>
 
                         <a href="#categoryMatrixCard" class="kpi-card card-amber clickable-kpi"
-                            onclick="openKPIDrilldown('success_rate'); return false;"
-                            title="Click to view Delivery Success Rate Ranking">
+                            onclick="jumpToDashboardSection(event, 'categoryMatrixCard')"
+                            title="Click to jump to Delivery Success Rate in Category Matrix">
                             <div class="kpi-header">
                                 <span>DELIVERY SUCCESS RATE</span>
-                                <span class="badge-kpi-jump text-amber"><i
-                                        class="fa-solid fa-arrow-up-right-from-square"></i> Rate</span>
+                                <span class="badge-kpi-jump text-amber"><i class="fa-solid fa-arrow-down"></i> Jump &darr;</span>
                             </div>
                             <div class="kpi-val text-amber" id="kpiSuccessRate">0.0%</div>
-                            <div class="kpi-footer"><i class="fa-solid fa-bullseye"></i> <strong>Click for Performance
-                                    Ranking &raquo;</strong></div>
+                            <div class="kpi-footer">
+                                <span><i class="fa-solid fa-bullseye"></i> <strong>Jump to Success Matrix &raquo;</strong></span>
+                                <button type="button" class="btn-kpi-modal-opt" onclick="event.stopPropagation(); openKPIDrilldown('success_rate');" title="Open Full-Screen Drilldown Modal"><i class="fa-solid fa-window-restore"></i> Modal</button>
+                            </div>
                         </a>
 
                         <a href="#depotMatrixCard" class="kpi-card card-blue clickable-kpi"
-                            onclick="openKPIDrilldown('fleet'); return false;"
-                            title="Click to view Fleet & Depot Utilization">
+                            onclick="jumpToDashboardSection(event, 'depotMatrixCard')"
+                            title="Click to jump to Fleet & Depot Utilization Matrix Table">
                             <div class="kpi-header">
                                 <span>FLEET & CAPACITY UTILIZATION</span>
-                                <span class="badge-kpi-jump text-blue"><i
-                                        class="fa-solid fa-arrow-up-right-from-square"></i> Fleet</span>
+                                <span class="badge-kpi-jump text-blue"><i class="fa-solid fa-arrow-down"></i> Jump &darr;</span>
                             </div>
                             <div class="kpi-val text-blue" id="kpiFleetStats">0 Vans / 0%</div>
-                            <div class="kpi-footer"><i class="fa-solid fa-truck"></i> <strong>Click for Fleet & Capacity
-                                    Summary &raquo;</strong></div>
+                            <div class="kpi-footer">
+                                <span><i class="fa-solid fa-truck"></i> <strong>Jump to Depot & Fleet Table &raquo;</strong></span>
+                                <button type="button" class="btn-kpi-modal-opt" onclick="event.stopPropagation(); openKPIDrilldown('fleet');" title="Open Full-Screen Drilldown Modal"><i class="fa-solid fa-window-restore"></i> Modal</button>
+                            </div>
                         </a>
 
-                        <a href="javascript:void(0)" class="kpi-card card-alert clickable-kpi" id="cardTheft"
-                            onclick="openKPIDrilldown('theft'); return false;"
-                            title="Click to view Zero-Pilferage Audit SOP">
+                        <a href="#pilferageBanner" class="kpi-card card-alert clickable-kpi" id="cardTheft"
+                            onclick="jumpToDashboardSection(event, 'pilferageBanner')"
+                            title="Click to jump to Zero-Pilferage Audit Status & SOP">
                             <div class="kpi-header">
                                 <span>THEFT / UNRECONCILED LOSS</span>
-                                <span class="badge-kpi-jump text-cyan"><i class="fa-solid fa-shield-halved"></i>
-                                    SOP</span>
+                                <span class="badge-kpi-jump text-cyan"><i class="fa-solid fa-arrow-down"></i> Jump &darr;</span>
                             </div>
                             <div class="kpi-val text-green" id="kpiTheft">0 Qty</div>
-                            <div class="kpi-footer"><i class="fa-solid fa-lock"></i> <strong>Click for Zero-Theft Rules
-                                    &raquo;</strong></div>
+                            <div class="kpi-footer">
+                                <span><i class="fa-solid fa-lock"></i> <strong>Jump to Audit Banner &raquo;</strong></span>
+                                <button type="button" class="btn-kpi-modal-opt" onclick="event.stopPropagation(); openKPIDrilldown('theft');" title="Open Zero-Theft SOP Modal"><i class="fa-solid fa-window-restore"></i> SOP</button>
+                            </div>
                         </a>
                     </div>
 
@@ -5468,6 +5528,41 @@
                 masterDashboardData = EMBEDDED_MASTER_SUMMARY;
                 applyDashboardFilters();
             }
+
+            // Smooth Scroll Hyperlink Engine for Dashboard Heading / KPI Jump Anchors
+            function jumpToDashboardSection(e, targetId) {
+                if (e && e.preventDefault) e.preventDefault();
+                const target = document.getElementById(targetId);
+                if (!target) return;
+
+                // Ensure Dashboard tab is active
+                const dashTab = document.querySelector('.nav-tab[data-tab="dashboard-tab"]');
+                if (dashTab && !dashTab.classList.contains('active')) {
+                    dashTab.click();
+                }
+
+                setTimeout(() => {
+                    const topNavbar = document.querySelector('.top-navbar');
+                    const navOffset = topNavbar ? topNavbar.offsetHeight : 0;
+                    const rect = target.getBoundingClientRect();
+                    const absoluteTop = window.pageYOffset + rect.top;
+                    const scrollPos = Math.max(0, absoluteTop - 24);
+
+                    window.scrollTo({
+                        top: scrollPos,
+                        behavior: 'smooth'
+                    });
+
+                    // Visual pulse highlight on arrived table / section
+                    target.classList.remove('section-highlight-pulse');
+                    void target.offsetWidth; // Force DOM reflow
+                    target.classList.add('section-highlight-pulse');
+                    setTimeout(() => {
+                        target.classList.remove('section-highlight-pulse');
+                    }, 2400);
+                }, 60);
+            }
+            window.jumpToDashboardSection = jumpToDashboardSection;
 
             // Modal and KPI functions
             function openKPIDrilldown(type) {
@@ -9199,14 +9294,14 @@
                         } else {
                             tbody.innerHTML = discrepancies.map(d => `
                     <tr style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444;">
-                        <td><strong style="color: #fff; font-size: 0.95rem;">${d.name}</strong><br><small style="color: #38bdf8;">${d.category}</small></td>
-                        <td>${escapeHtml(d.incharge_name)}</td>
-                        <td style="font-weight: 700;">৳ ${Number(d.dispatched_gross_val).toLocaleString()}</td>
-                        <td style="color: #4ade80;">৳ ${Number(d.delivered_net_val).toLocaleString()}</td>
+                        <td><strong style="color: #fff; font-size: 0.95rem;">${escapeHtml(d.depot_name || d.name || 'Depot')}</strong><br><small style="color: #38bdf8;">${escapeHtml(d.category || '')}</small></td>
+                        <td>${escapeHtml(d.incharge_name || '-')}</td>
+                        <td style="font-weight: 700;">৳ ${Number(d.dispatched_gross_val || 0).toLocaleString()}</td>
+                        <td style="color: #4ade80;">৳ ${Number(d.delivered_net_val || 0).toLocaleString()}</td>
                         <td style="color: #f87171;">৳ ${Number(d.returned_val || 0).toLocaleString()}</td>
                         <td style="color: #f87171; font-weight: 700;">${d.stock_mismatch_qty > 0 ? d.stock_mismatch_qty + ' ' + (d.default_uom || 'Kg') : '0'}</td>
                         <td>
-                            <button class="btn btn-primary" onclick="closeDiscrepancyModal(); openDepotDrilldown('${d.name}');" style="padding: 5px 12px; font-size: 0.78rem; background: #2563eb;">
+                            <button class="btn btn-primary" onclick="closeDiscrepancyModal(); openDepotDrilldown(${d.depot_id || `'${escapeJsAttr(d.depot_name || d.name || '')}'`});" style="padding: 5px 12px; font-size: 0.78rem; background: #2563eb;">
                                 <i class="fa-solid fa-magnifying-glass"></i> View Depot Invoices
                             </button>
                         </td>
