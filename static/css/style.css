@@ -967,7 +967,7 @@ body {
     justify-content: center !important;
     z-index: 999999 !important;
     padding: 20px !important;
-    display: none !important;
+    display: none;
 }
 
 .modal-overlay.active {
