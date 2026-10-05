@@ -1185,38 +1185,134 @@ body {
             color: #0f172a !important;
         }
 
-        /* Keep action button backgrounds (NOT overridden) */
-        [data-theme="light"] [style*="background: #0284c7"],
-        [data-theme="light"] [style*="background:#0284c7"],
-        [data-theme="light"] [style*="background: #2563eb"],
-        [data-theme="light"] [style*="background:#2563eb"],
-        [data-theme="light"] [style*="background: #1d4ed8"],
-        [data-theme="light"] [style*="background:#1d4ed8"],
-        [data-theme="light"] [style*="background: #16a34a"],
-        [data-theme="light"] [style*="background:#16a34a"],
-        [data-theme="light"] [style*="background: #10b981"],
-        [data-theme="light"] [style*="background:#10b981"],
-        [data-theme="light"] [style*="background: #0891b2"],
-        [data-theme="light"] [style*="background:#0891b2"],
-        [data-theme="light"] [style*="background: #dc2626"],
-        [data-theme="light"] [style*="background:#dc2626"],
-        [data-theme="light"] [style*="background: #ef4444"],
-        [data-theme="light"] [style*="background:#ef4444"],
-        [data-theme="light"] [style*="background: #eab308"],
-        [data-theme="light"] [style*="background:#eab308"],
-        [data-theme="light"] [style*="background: #ca8a04"],
-        [data-theme="light"] [style*="background:#ca8a04"] {
-            background-color: inherit !important;
+        /* Keep action button backgrounds and ensure crisp white text in Light Mode */
+        [data-theme="light"] button[style*="background: #0284c7"],
+        [data-theme="light"] button[style*="background:#0284c7"],
+        [data-theme="light"] button[style*="background: #2563eb"],
+        [data-theme="light"] button[style*="background:#2563eb"],
+        [data-theme="light"] button[style*="background: #1d4ed8"],
+        [data-theme="light"] button[style*="background:#1d4ed8"],
+        [data-theme="light"] button[style*="background: #16a34a"],
+        [data-theme="light"] button[style*="background:#16a34a"],
+        [data-theme="light"] button[style*="background: #10b981"],
+        [data-theme="light"] button[style*="background:#10b981"],
+        [data-theme="light"] button[style*="background: #0891b2"],
+        [data-theme="light"] button[style*="background:#0891b2"],
+        [data-theme="light"] button[style*="background: #7c3aed"],
+        [data-theme="light"] button[style*="background:#7c3aed"],
+        [data-theme="light"] button[style*="background: #dc2626"],
+        [data-theme="light"] button[style*="background:#dc2626"],
+        [data-theme="light"] button[style*="background: #ef4444"],
+        [data-theme="light"] button[style*="background:#ef4444"] {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        [data-theme="light"] button[style*="background: #0284c7"] *,
+        [data-theme="light"] button[style*="background:#0284c7"] *,
+        [data-theme="light"] button[style*="background: #2563eb"] *,
+        [data-theme="light"] button[style*="background:#2563eb"] *,
+        [data-theme="light"] button[style*="background: #1d4ed8"] *,
+        [data-theme="light"] button[style*="background:#1d4ed8"] *,
+        [data-theme="light"] button[style*="background: #16a34a"] *,
+        [data-theme="light"] button[style*="background:#16a34a"] *,
+        [data-theme="light"] button[style*="background: #10b981"] *,
+        [data-theme="light"] button[style*="background:#10b981"] *,
+        [data-theme="light"] button[style*="background: #0891b2"] *,
+        [data-theme="light"] button[style*="background:#0891b2"] *,
+        [data-theme="light"] button[style*="background: #7c3aed"] *,
+        [data-theme="light"] button[style*="background:#7c3aed"] *,
+        [data-theme="light"] button[style*="background: #dc2626"] *,
+        [data-theme="light"] button[style*="background:#dc2626"] *,
+        [data-theme="light"] button[style*="background: #ef4444"] *,
+        [data-theme="light"] button[style*="background:#ef4444"] * {
+            color: #ffffff !important;
+        }
+
+        /* ──── DEDICATED BULK UPLOAD BUTTON STYLES IN LIGHT MODE ──── */
+        [data-theme="light"] button[onclick*="bulkRoutesFileInput"],
+        [data-theme="light"] button[onclick*="bulkFleetFileInput"] {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="bulkConsigneesFileInput"] {
+            background-color: #10b981 !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="bulkCrewFileInput"] {
+            background-color: #7c3aed !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="bulkMappingFileInput"] {
+            background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="triggerRoutePlanBulkFileSelect"] {
+            background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="triggerExcelFileSelect"] {
+            background: linear-gradient(135deg, #059669, #10b981) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="triggerTopPoloxyImport"] {
+            background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
+        }
+        [data-theme="light"] button[onclick*="bulkRoutesFileInput"] *,
+        [data-theme="light"] button[onclick*="bulkFleetFileInput"] *,
+        [data-theme="light"] button[onclick*="bulkConsigneesFileInput"] *,
+        [data-theme="light"] button[onclick*="bulkCrewFileInput"] *,
+        [data-theme="light"] button[onclick*="bulkMappingFileInput"] *,
+        [data-theme="light"] button[onclick*="triggerRoutePlanBulkFileSelect"] *,
+        [data-theme="light"] button[onclick*="triggerExcelFileSelect"] *,
+        [data-theme="light"] button[onclick*="triggerTopPoloxyImport"] * {
+            color: #ffffff !important;
+        }
+
+        /* ──── DEDICATED BLANK TEMPLATE BUTTON STYLES IN LIGHT MODE ──── */
+        [data-theme="light"] button[onclick*="downloadUniversalRouteTemplate"],
+        [data-theme="light"] a[href*="template"] {
+            background: #ffffff !important;
+            border: 1.5px solid #0284c7 !important;
+            color: #0284c7 !important;
+            font-weight: 700 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+        }
+        [data-theme="light"] button[onclick*="downloadUniversalRouteTemplate"]:hover,
+        [data-theme="light"] a[href*="template"]:hover {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+        [data-theme="light"] button[onclick*="downloadUniversalRouteTemplate"] *,
+        [data-theme="light"] a[href*="template"] * {
             color: inherit !important;
-            border-color: inherit !important;
         }
 
         /* ──── 3. FONT COLOR HARMONY FOR LIGHT MODE ──── */
 
-        /* White/near-white text → dark for readability */
-        [data-theme="light"] [style*="color: #fff"],
-        [data-theme="light"] [style*="color:#fff"],
-        [data-theme="light"] [style*="color: #f8fafc"],
         /* White/near-white text → dark for readability (EXCEPT on buttons) */
         [data-theme="light"] [style*="color: #fff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
         [data-theme="light"] [style*="color:#fff"]:not(button):not(.btn):not(button *):not(.btn *):not(#btnLogout):not(#btnLogout *),
