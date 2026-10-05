@@ -416,7 +416,9 @@ def seed_database(cursor):
     VALUES (100, 'rider_tejgaon', ?, 'delivery_man', 1, 'Tejgaon Van Rider (Selim)')
     ''', (generate_password_hash('rider123'),))
 
-    seed_sample_daily_reports(cursor)
+    # NOTE: Demo data is NOT auto-seeded on init_db() to allow clean database state.
+    # To seed demo data on demand, use the /api/admin/reseed-demo-data admin endpoint.
+    # seed_sample_daily_reports(cursor)
 
 def seed_sample_daily_reports(cursor):
     today = datetime.date.today()

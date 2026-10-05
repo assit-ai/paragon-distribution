@@ -1537,7 +1537,6 @@
             box-shadow: 0 1px 4px rgba(245, 158, 11, 0.15) !important;
         }
 
-        [data-theme="light"] #themeToggleBtn2,
         [data-theme="light"] #btnOpenChangePassword {
             background: #f0f9ff !important;
             border-color: #38bdf8 !important;
@@ -1545,7 +1544,6 @@
             font-weight: 700 !important;
         }
 
-        [data-theme="light"] #themeToggleBtn2:hover,
         [data-theme="light"] #btnOpenChangePassword:hover {
             background: #e0f2fe !important;
             border-color: #0284c7 !important;
@@ -2074,15 +2072,20 @@
             color: #0f172a !important;
         }
 
-        /* ──── 34. GRADIENT ACTION BUTTONS: KEEP their color scheme ──── */
+        /* ──── 34. GRADIENT ACTION BUTTONS: KEEP their color scheme & crisp white text ──── */
         [data-theme="light"] button[style*="linear-gradient(135deg, #0284c7"],
         [data-theme="light"] button[style*="linear-gradient(135deg, #2563eb"],
         [data-theme="light"] button[style*="linear-gradient(135deg, #4f46e5"],
         [data-theme="light"] button[style*="linear-gradient(135deg, #eab308"],
         [data-theme="light"] button[style*="linear-gradient(135deg, #10b981"],
-        [data-theme="light"] button[style*="linear-gradient(135deg, #059669"] {
-            color: inherit !important;
-            background: inherit !important;
+        [data-theme="light"] button[style*="linear-gradient(135deg, #059669"],
+        [data-theme="light"] button[style*="linear-gradient(135deg, #0284c7"] *,
+        [data-theme="light"] button[style*="linear-gradient(135deg, #2563eb"] *,
+        [data-theme="light"] button[style*="linear-gradient(135deg, #4f46e5"] *,
+        [data-theme="light"] button[style*="linear-gradient(135deg, #eab308"] *,
+        [data-theme="light"] button[style*="linear-gradient(135deg, #10b981"] *,
+        [data-theme="light"] button[style*="linear-gradient(135deg, #059669"] * {
+            color: #ffffff !important;
         }
 
         /* ──── 35. QUICK FIX: `.text-cyan`, `.text-blue`, etc. utility classes ──── */
@@ -2116,7 +2119,16 @@
         [data-theme="light"] #settings-tab .card-header strong { color: #0f172a !important; }
         [data-theme="light"] #settings-tab .card-header span { color: #475569 !important; }
 
-        /* ──── 40. MASTER MODAL (Fleet, Routes, Crew, Consignees) ──── */
+        /* ──── 40. MASTER MODAL (Fleet, Routes, Crew, Consignees) FULL LIGHT-THEME STYLING ──── */
+        [data-theme="light"] #masterFleetModal,
+        [data-theme="light"] #editVehicleCapacitiesModal,
+        [data-theme="light"] #addRentalVanModal,
+        [data-theme="light"] #duplicateAlertModal,
+        [data-theme="light"] #updateDropStatusModal,
+        [data-theme="light"] #adminClearConfirmModal {
+            background: rgba(15, 23, 42, 0.55) !important;
+        }
+
         [data-theme="light"] #masterFleetModal > div,
         [data-theme="light"] #editVehicleCapacitiesModal > div,
         [data-theme="light"] #addRentalVanModal > div,
@@ -2126,6 +2138,134 @@
             background: #ffffff !important;
             color: #0f172a !important;
             border-color: #cbd5e1 !important;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18) !important;
+        }
+
+        /* Master modal header & tabs */
+        [data-theme="light"] #masterFleetModal > div > div:first-child {
+            background: #f8fafc !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        [data-theme="light"] #masterFleetModal h2,
+        [data-theme="light"] #masterFleetModal h3,
+        [data-theme="light"] #masterFleetModal h4 {
+            color: #0f172a !important;
+        }
+        [data-theme="light"] #masterFleetModal p {
+            color: #64748b !important;
+        }
+        [data-theme="light"] #masterFleetModal #masterAdminDepotContainer {
+            background: #f1f5f9 !important;
+            border: 1.5px solid #93c5fd !important;
+        }
+        [data-theme="light"] #masterFleetModal #masterAdminDepotContainer label {
+            color: #0284c7 !important;
+        }
+        [data-theme="light"] #masterFleetModal #masterModalDepotSelect {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+        }
+        [data-theme="light"] #masterFleetModal > div > div:nth-child(2) {
+            background: #f1f5f9 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-btn {
+            background: #ffffff !important;
+            color: #475569 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-btn.active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-btn:hover:not(.active) {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* Master modal inner cards, tables & drawers */
+        [data-theme="light"] #masterFleetModal .master-tab-pane .card,
+        [data-theme="light"] #masterFleetModal #masterTabPaneMapping > div:first-child,
+        [data-theme="light"] #masterFleetModal #masterActiveBorrowedContainer,
+        [data-theme="light"] #masterFleetModal #addFleetVehicleDrawer {
+            background: #f8fafc !important;
+            border: 1.5px solid #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] #masterFleetModal label {
+            color: #334155 !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] #masterFleetModal input,
+        [data-theme="light"] #masterFleetModal select {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+        }
+
+        /* Bulk Upload & Primary Buttons inside Master Modal */
+        [data-theme="light"] #masterFleetModal button.btn-primary,
+        [data-theme="light"] #masterFleetModal button[style*="background: #0284c7"],
+        [data-theme="light"] #masterFleetModal button[style*="background:#0284c7"],
+        [data-theme="light"] #masterFleetModal button[style*="background: #10b981"],
+        [data-theme="light"] #masterFleetModal button[style*="background:#10b981"],
+        [data-theme="light"] #masterFleetModal button[style*="background: #7c3aed"],
+        [data-theme="light"] #masterFleetModal button[style*="background:#7c3aed"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkMappingFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkRoutesFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkConsigneesFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkFleetFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkCrewFileInput"] {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] #masterFleetModal button.btn-primary *,
+        [data-theme="light"] #masterFleetModal button[style*="background: #0284c7"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background:#0284c7"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background: #10b981"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background:#10b981"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background: #7c3aed"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background:#7c3aed"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkMappingFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkRoutesFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkConsigneesFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkFleetFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkCrewFileInput"] * {
+            color: #ffffff !important;
+        }
+
+        /* Blank Template links inside Master Modal */
+        [data-theme="light"] #masterFleetModal a.btn-outline,
+        [data-theme="light"] #masterFleetModal a[href*="template"] {
+            background: #ffffff !important;
+            border: 1.5px solid #0284c7 !important;
+            color: #0284c7 !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] #masterFleetModal a.btn-outline:hover,
+        [data-theme="light"] #masterFleetModal a[href*="template"]:hover {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+        [data-theme="light"] #masterFleetModal a.btn-outline *,
+        [data-theme="light"] #masterFleetModal a[href*="template"] * {
+            color: inherit !important;
+        }
+
+        /* Route Planner Command Bar Bulk Upload / Excel Buttons */
+        [data-theme="light"] button[onclick*="triggerRoutePlanBulkFileSelect"],
+        [data-theme="light"] button[onclick*="triggerRoutePlanBulkFileSelect"] *,
+        [data-theme="light"] button[onclick*="triggerTopPoloxyImport"],
+        [data-theme="light"] button[onclick*="triggerTopPoloxyImport"] * {
+            color: #ffffff !important;
+        }
+        [data-theme="light"] button[onclick*="downloadUniversalRouteTemplate"] {
+            background: #ffffff !important;
+            border: 1.5px solid #0284c7 !important;
+            color: #0284c7 !important;
+            font-weight: 700 !important;
         }
 
         /* ──── 41. ACTIVE FILTER BADGE / STATUS ──── */
@@ -2964,11 +3104,6 @@
                             &rarr; Sync Now</span>
                     </button>
 
-                    <button type="button" class="btn btn-sm btn-outline" id="themeToggleBtn2" onclick="toggleTheme()"
-                        style="border-color: #38bdf8; color: #38bdf8; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); display: inline-flex; align-items: center; gap: 6px;"
-                        title="Toggle Theme (Dark / Light Mode)">
-                        <i class="fa-solid fa-circle-half-stroke"></i> <span id="themeToggleText2">Light / Dark</span>
-                    </button>
 
                     <button type="button" class="btn btn-sm btn-outline" id="btnOpenChangePassword" onclick="openChangePasswordModal()"
                         style="border-color: #38bdf8; color: #38bdf8; padding: 6px 14px; font-size: 0.85rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); display: inline-flex; align-items: center; gap: 6px;"
@@ -3336,10 +3471,10 @@
                                 </div>
                                 <div>
                                     <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-bottom: 2px;">
-                                        Universal Daily Distribution Route Planner
+                                        Daily Distribution Route Planner
                                     </h3>
                                     <p style="font-size: 0.82rem; color: #94a3b8;">
-                                        1-Click Poloxy ERP Order Import &bull; Smart Van Allocation &bull; Printable Driver Trip Run-Sheets &bull; Zero Pilferage Reconcile
+                                        Smart Van Allocation, Trip Run-Sheets & Dispatch
                                     </p>
                                 </div>
                             </div>
@@ -3680,10 +3815,8 @@
                                 </div>
                                 <div>
                                     <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 2px;">
-                                        Bulk Excel Data Entry & Auto-Populate</h3>
-                                    <p style="font-size: 0.82rem; color: #94a3b8;">Download blank Excel template &rarr;
-                                        Fill trips & invoices offline &rarr; Upload to populate the entire form in 1
-                                        click!</p>
+                                        Bulk Excel Data Entry</h3>
+                                    <p style="font-size: 0.82rem; color: #94a3b8;">Download template, fill offline, and upload in one click</p>
                                 </div>
                             </div>
 
@@ -4188,12 +4321,12 @@
                                     </div>
                                     <div>
                                         <h2 style="font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
-                                            Live GPS Fleet & Van Tracking
+                                            Live Fleet & GPS Tracking
                                             <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">
                                                 <i class="fa-solid fa-circle" style="font-size: 6px; animation: pulse 1.5s infinite;"></i> REAL-TIME GPS
                                             </span>
                                         </h2>
-                                        <p style="font-size: 0.82rem; color: #94a3b8; margin: 2px 0 0;">Interactive OpenStreetMap visualization of live vans, delivery drop sequences & cash collections</p>
+                                        <p style="font-size: 0.82rem; color: #94a3b8; margin: 2px 0 0;">Real-time map tracking of vehicles, delivery routes & collections</p>
                                     </div>
                                 </div>
 
@@ -5227,6 +5360,73 @@
 
             window.toggleShowPassword = toggleShowPassword;
             window.openDepotDrilldown = openDepotDrilldown;
+
+            // =========================================================================
+            // DEPOT REPORT ACTIONS & CLEAR HELPERS
+            // =========================================================================
+            function goToDailyEntryForDepot(depotId, date) {
+                closeDrillModal();
+                const entryTab = document.querySelector('.nav-tab[data-tab="entry-tab"]');
+                if (entryTab) entryTab.click();
+                setTimeout(() => {
+                    const select = document.getElementById('entryDepot');
+                    if (select && depotId) {
+                        select.value = depotId;
+                        select.dispatchEvent(new Event('change'));
+                    }
+                    const dateInput = document.getElementById('reportDate');
+                    if (dateInput && date && date !== 'Today') {
+                        dateInput.value = date;
+                    }
+                }, 200);
+            }
+            window.goToDailyEntryForDepot = goToDailyEntryForDepot;
+
+            async function deleteDepotReport(reportId, depotName, date) {
+                if (!confirm(`Are you sure you want to DELETE the daily report for "${depotName}" on ${date}? This will permanently remove all associated trips and invoices.`)) {
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/reports/delete/${reportId}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || `Report for ${depotName} deleted successfully.`, 'success');
+                        closeDrillModal();
+                        if (typeof loadDashboardSummary === 'function') loadDashboardSummary();
+                    } else {
+                        showToast(data.message || 'Failed to delete report.', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error communicating with server: ' + (e.message || e), 'error');
+                }
+            }
+            window.deleteDepotReport = deleteDepotReport;
+
+            async function clearAllReportsForSelectedDate(date) {
+                if (!date) date = document.getElementById('filterDate')?.value || 'Today';
+                if (!confirm(`Are you sure you want to CLEAR ALL operational reports for date: ${date}? All depots on this date will be reset to 0.`)) {
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/admin/clear-data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 'single', date: date, depot_id: 'ALL' })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || `All operational reports for ${date} have been cleared!`, 'success');
+                        closeDrillModal();
+                        if (typeof loadDashboardSummary === 'function') loadDashboardSummary();
+                    } else {
+                        showToast(data.message || 'Failed to clear reports.', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error communicating with server: ' + (e.message || e), 'error');
+                }
+            }
+            window.clearAllReportsForSelectedDate = clearAllReportsForSelectedDate;
+
             window.openCategoryDrilldown = openCategoryDrilldown;
             window.openKPIDrilldown = openKPIDrilldown;
             window.openDepotMatrixModal = openDepotMatrixModal;
@@ -5718,9 +5918,13 @@
 
                 let totTrips = 0, totInvs = 0, totDisp = 0, totDeliv = 0, totRet = 0, totStockVar = 0;
                 let utilSum = 0, utilCount = 0;
+                let reportedCount = 0;
 
                 let rowsHtml = '';
                 depots.forEach(d => {
+                    const hasReport = (d.dispatched_gross_val > 0 || d.report_id);
+                    if (hasReport) reportedCount++;
+
                     totTrips += (d.total_vehicles || 0);
                     totInvs += (d.total_invoices || 0);
                     totDisp += (d.dispatched_gross_val || 0);
@@ -5734,8 +5938,9 @@
                     }
 
                     const isOk = (d.audit_status === 'OK / Verified');
-                    const badgeClass = isOk ? 'badge-verified' : (d.report_id ? 'badge-alert' : 'badge-pending');
-                    const successRate = (d.dispatched_gross_val > 0) ? ((d.delivered_net_val / d.dispatched_gross_val) * 100).toFixed(1) + '%' : (d.success_rate ? d.success_rate + '%' : '-');
+                    const badgeClass = isOk ? 'badge-verified' : (hasReport ? 'badge-alert' : 'badge-pending');
+                    const auditStatusText = hasReport ? (d.audit_status || 'Submitted') : 'Pending Entry';
+                    const successRate = (d.dispatched_gross_val > 0) ? ((d.delivered_net_val / d.dispatched_gross_val) * 100).toFixed(1) + '%' : '-';
 
                     rowsHtml += `
                         <tr>
@@ -5753,11 +5958,17 @@
                             <td class="text-right text-green"><strong>${formatTaka(d.delivered_net_val || 0)}</strong></td>
                             <td class="text-right text-red">${formatTaka(d.returned_val || 0)}</td>
                             <td class="text-center">${successRate}</td>
-                            <td class="text-center"><span class="${badgeClass}">${d.audit_status || 'OK / Verified'}</span></td>
+                            <td class="text-center"><span class="${badgeClass}">${auditStatusText}</span></td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${d.depot_id}, '${escapeJsAttr(d.depot_name)}', '${escapeJsAttr(d.category || '')}', '${escapeJsAttr(d.incharge_name || '')}')" style="padding:4px 10px; font-weight:700;">
-                                    <i class="fa-solid fa-folder-open"></i> View Trips & Invoices
-                                </button>
+                                ${hasReport ? `
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openDepotDrilldown(${d.depot_id}, '${escapeJsAttr(d.depot_name)}', '${escapeJsAttr(d.category || '')}', '${escapeJsAttr(d.incharge_name || '')}')" style="padding:4px 10px; font-weight:700;">
+                                        <i class="fa-solid fa-truck-fast"></i> View Trips & Invoices
+                                    </button>
+                                ` : `
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="openDepotDrilldown(${d.depot_id}, '${escapeJsAttr(d.depot_name)}', '${escapeJsAttr(d.category || '')}', '${escapeJsAttr(d.incharge_name || '')}')" style="padding:4px 10px; font-weight:600;">
+                                        <i class="fa-solid fa-folder-open"></i> View Status
+                                    </button>
+                                `}
                             </td>
                         </tr>
                     `;
@@ -5766,14 +5977,38 @@
                 const overallSuccess = totDisp > 0 ? ((totDeliv / totDisp) * 100).toFixed(1) : '0.0';
                 const avgUtil = utilCount > 0 ? (utilSum / utilCount).toFixed(1) : '0.0';
 
-                modalTitle.innerHTML = `<i class="fa-solid fa-warehouse text-cyan"></i> <span>1. Depot & Factory Performance & Fleet Utilization Matrix (Consolidated Window)</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
+                modalTitle.innerHTML = `<i class="fa-solid fa-warehouse text-cyan"></i> <span>1. Depot & Factory Performance & Fleet Utilization Matrix</span> &bull; <small style="color:#94a3b8;">${filterDate}</small>`;
 
                 modalBody.innerHTML = `
+                    <!-- Matrix Action & Status Banner -->
+                    <div class="card" style="margin-bottom: 16px; background: #1e293b; border-color: rgba(56,189,248,0.3);">
+                        <div style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">
+                                    <i class="fa-solid fa-calendar-day text-cyan"></i> Matrix Date: <span style="color: #38bdf8;">${filterDate}</span>
+                                </span>
+                                <span class="badge" style="background: ${reportedCount > 0 ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)'}; color: ${reportedCount > 0 ? '#4ade80' : '#eab308'}; border: 1px solid ${reportedCount > 0 ? '#16a34a' : '#ca8a04'}; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">
+                                    ${reportedCount} of ${depots.length} Depots Reported
+                                </span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                ${reportedCount > 0 ? `
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="clearAllReportsForSelectedDate('${filterDate}')" style="border-color: rgba(239,68,68,0.5); color: #f87171; font-weight: 700; font-size: 0.78rem;">
+                                        <i class="fa-solid fa-trash-can"></i> Clear All Reports for ${filterDate}
+                                    </button>
+                                ` : ''}
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openDepotMatrixModal()" style="font-size: 0.78rem; font-weight: 600;">
+                                    <i class="fa-solid fa-rotate"></i> Refresh Matrix
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="card-header" style="background:#1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                             <div class="card-title"><i class="fa-solid fa-list-check text-cyan"></i> All 17 Production Plants & Operational Distribution Depots</div>
                             <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid #0284c7; padding:4px 10px; border-radius:6px; font-weight:700;">
-                                Click any depot name to view vehicle trips and invoices
+                                Click any depot name to view detailed trips and customer invoices
                             </span>
                         </div>
                         <div class="table-responsive">
@@ -5807,7 +6042,7 @@
                                         <th class="text-right text-green">${formatTaka(totDeliv)}</th>
                                         <th class="text-right text-red">${formatTaka(totRet)}</th>
                                         <th class="text-center">${overallSuccess}%</th>
-                                        <th class="text-center"><span class="badge-verified">RECONCILED</span></th>
+                                        <th class="text-center"><span class="${reportedCount > 0 ? 'badge-verified' : 'badge-pending'}">${reportedCount > 0 ? 'RECONCILED' : 'NO DATA'}</span></th>
                                         <th class="text-center">-</th>
                                     </tr>
                                 </tfoot>
@@ -6925,7 +7160,7 @@
                             tripRowsHtml = `<tr><td colspan="11" class="text-center" style="padding:16px; color:#94a3b8;">No specific vehicle trips logged in this report.</td></tr>`;
                         }
 
-                        // Section 3: Invoices (CRITICAL: ALL CUSTOMERS)
+                        // Section 3: Customer Invoices
                         let invRowsHtml = '';
                         if (invoices.length > 0) {
                             invoices.forEach((inv, i) => {
@@ -6957,7 +7192,20 @@
                         }
 
                         modalBody.innerHTML = `
-                            <!-- Section 1: Depot Product Performance -->
+                            <!-- Live Report Header Toolbar -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; background: #1e293b; padding: 12px 18px; border-radius: 8px; border: 1px solid rgba(34,197,94,0.3);">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-verified" style="font-size: 0.82rem; padding: 4px 12px;">
+                                        <i class="fa-solid fa-circle-check"></i> Report Live in Database (ID: #${rep.id})
+                                    </span>
+                                    <span style="color: #cbd5e1; font-size: 0.82rem;">Incharge: <strong>${escapeHtml(rep.incharge_name || incharge)}</strong> &bull; Status: <strong>${escapeHtml(rep.audit_status || 'OK / Verified')}</strong></span>
+                                </div>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="deleteDepotReport(${rep.id}, '${escapeJsAttr(depotName)}', '${filterDate}')" style="border-color: rgba(239,68,68,0.5); color: #f87171; font-weight: 700; font-size: 0.78rem;">
+                                    <i class="fa-solid fa-trash-can"></i> Delete This Report
+                                </button>
+                            </div>
+
+                            <!-- Section 1: Product Line Performance -->
                             <div class="card" style="margin-bottom:16px;">
                                 <div class="card-header" style="background:#1e293b;">
                                     <div class="card-title"><i class="fa-solid fa-boxes-stacked text-cyan"></i> 1. Product Line Performance Summary &bull; ${depotName}</div>
@@ -7015,7 +7263,7 @@
                                 </div>
                             </div>
 
-                            <!-- Section 3: ALL Customer Invoices -->
+                            <!-- Section 3: Customer Invoices -->
                             <div class="card" id="modalInvoicesSection">
                                 <div class="card-header" style="background:#1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                                     <div class="card-title"><i class="fa-solid fa-receipt text-green"></i> 3. Customer Delivery & Invoice Settlement Register for ${depotName} (${invoices.length} Invoices)</div>
@@ -7061,213 +7309,64 @@
                             </div>
                         `;
                     } else {
-                        // Fallback to rich embedded master details for this depot
-                        const accData = (typeof DEPOT_ACCURATE_DETAILS !== 'undefined' && DEPOT_ACCURATE_DETAILS[depotName]) 
-                            ? DEPOT_ACCURATE_DETAILS[depotName] 
-                            : null;
-                        
-                        let fallbackProducts = [];
-                        let fallbackTrips = [];
-                        let fallbackInvoices = [];
-
-                        if (accData) {
-                            fallbackProducts = accData.products || [];
-                            fallbackTrips = accData.fleet || [];
-                            fallbackInvoices = accData.invoices || [];
-                        } else {
-                            // Synthesize realistic depot data
-                            fallbackProducts = [
-                                { product: `${category} Premium Line`, uom: defaultUom, disp_qty: 12000, disp_val: 180000, deliv_qty: 11800, deliv_val: 177000, ret_qty: 200, ret_val: 3000, succ: 98.3 }
-                            ];
-                            fallbackTrips = [
-                                { trip: `TRIP-01`, veh: 'DM-CHA-11-2045', type: '1.5T Covered Van', driver: 'Abdul Malek', deliv: 'Md. Sohel', route: 'Primary Distribution Route', cap: 1500, load: 1420, temp: '-18°C' }
-                            ];
-                            fallbackInvoices = [
-                                { inv: `INV-01`, cust: 'Central Superstore Hub', trip: 'TRIP-01', cat: category, sku: defaultUom, disp_qty: 6000, disp_val: 90000, stat: 'Delivered', del_qty: 6000, del_val: 90000, ret_qty: 0, ret_val: 0 },
-                                { inv: `INV-02`, cust: 'General Grocery Mart', trip: 'TRIP-01', cat: category, sku: defaultUom, disp_qty: 6000, disp_val: 90000, stat: 'Delivered', del_qty: 5800, del_val: 87000, ret_qty: 200, ret_val: 3000 }
-                            ];
-                        }
-
-                        const fbDispQty = fallbackInvoices.reduce((a, b) => a + (parseFloat(b.disp_qty || b.dispatched_qty) || 0), 0);
-                        const fbDispVal = fallbackInvoices.reduce((a, b) => a + (parseFloat(b.disp_val || b.dispatched_val) || 0), 0);
-                        const fbDelivQty = fallbackInvoices.reduce((a, b) => a + (parseFloat(b.del_qty || b.delivered_qty) || 0), 0);
-                        const fbDelivVal = fallbackInvoices.reduce((a, b) => a + (parseFloat(b.del_val || b.delivered_val) || 0), 0);
-                        const fbRetQty = fallbackInvoices.reduce((a, b) => a + (parseFloat(b.ret_qty || b.returned_qty) || 0), 0);
-                        const fbRetVal = fallbackInvoices.reduce((a, b) => a + (parseFloat(b.ret_val || b.returned_val) || 0), 0);
-                        const fbSuccPct = fbDispVal > 0 ? ((fbDelivVal / fbDispVal) * 100).toFixed(1) : '98.5';
-
-                        let fbProdHtml = '';
-                        fallbackProducts.forEach(p => {
-                            fbProdHtml += `
-                                <tr>
-                                    <td><strong>${p.product}</strong></td>
-                                    <td class="text-center"><code>${p.uom}</code></td>
-                                    <td class="text-right">${(p.disp_qty || 0).toLocaleString()}</td>
-                                    <td class="text-right"><strong>${formatTaka(p.disp_val || 0)}</strong></td>
-                                    <td class="text-right text-green">${(p.deliv_qty || 0).toLocaleString()}</td>
-                                    <td class="text-right text-green"><strong>${formatTaka(p.deliv_val || 0)}</strong></td>
-                                    <td class="text-right text-red">${(p.ret_qty || 0).toLocaleString()}</td>
-                                    <td class="text-right text-red">${formatTaka(p.ret_val || 0)}</td>
-                                    <td class="text-center"><strong>${p.succ || 98}%</strong></td>
-                                    <td class="text-center"><span class="badge-verified">Reconciled</span></td>
-                                </tr>
-                            `;
-                        });
-
-                        let fbTripHtml = '';
-                        fallbackTrips.forEach(t => {
-                            fbTripHtml += `
-                                <tr>
-                                    <td><strong>${t.trip}</strong></td>
-                                    <td><strong>${t.veh}</strong></td>
-                                    <td>${t.type}</td>
-                                    <td>${escapeHtml(t.driver)}</td>
-                                    <td>${escapeHtml(t.deliv)}</td>
-                                    <td>${escapeHtml(t.route)}</td>
-                                    <td class="text-right">${(t.cap || 1500).toLocaleString()} Kg</td>
-                                    <td class="text-right">${(t.load || 1400).toLocaleString()} Kg</td>
-                                    <td class="text-center"><strong>${Math.round(((t.load || 1400) / (t.cap || 1500)) * 100)}%</strong></td>
-                                    <td class="text-center"><code>${t.temp || '-18°C'}</code></td>
-                                    <td class="text-center"><span class="badge-verified">Dispatched</span></td>
-                                </tr>
-                            `;
-                        });
-
-                        let fbInvHtml = '';
-                        fallbackInvoices.forEach(inv => {
-                            const stat = inv.stat || inv.delivery_status || 'Delivered';
-                            const badge = stat === 'Delivered' ? 'badge-verified' : 'badge-pending';
-                            fbInvHtml += `
-                                <tr>
-                                    <td><strong>${inv.inv || inv.invoice_no}</strong></td>
-                                    <td><strong style="color:#fff;">${escapeHtml(inv.cust || inv.customer_name)}</strong></td>
-                                    <td>${inv.trip || inv.trip_no || 'TRIP-01'}</td>
-                                    <td><small style="color:#38bdf8;">${inv.cat || category}</small></td>
-                                    <td class="text-center"><code>${inv.sku || defaultUom}</code></td>
-                                    <td class="text-right">${(parseFloat(inv.disp_qty || inv.dispatched_qty) || 0).toLocaleString()}</td>
-                                    <td class="text-right"><strong>${formatTaka(parseFloat(inv.disp_val || inv.dispatched_val) || 0)}</strong></td>
-                                    <td class="text-center"><span class="${badge}">${stat}</span></td>
-                                    <td class="text-right text-green"><strong>${(parseFloat(inv.del_qty || inv.delivered_qty) || 0).toLocaleString()}</strong></td>
-                                    <td class="text-right text-green"><strong>${formatTaka(parseFloat(inv.del_val || inv.delivered_val) || 0)}</strong></td>
-                                    <td class="text-right text-red">${(parseFloat(inv.ret_qty || inv.returned_qty) || 0).toLocaleString()}</td>
-                                    <td class="text-right text-red">${formatTaka(parseFloat(inv.ret_val || inv.returned_val) || 0)}</td>
-                                    <td><small style="color:#cbd5e1;">${inv.mode || 'Credit'}</small></td>
-                                </tr>
-                            `;
-                        });
-
+                        // Authentic Empty State when no report exists for this depot on this date
                         modalBody.innerHTML = `
-                            <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-circle-info text-cyan" style="font-size: 1.2rem;"></i>
-                                    <div>
-                                        <strong style="color: #fff; font-size: 0.9rem;">Operational Distribution & Fleet Register for ${escapeHtml(depotName)}</strong>
-                                        <span style="display: block; font-size: 0.8rem; color: #94a3b8;">Daily closing report pending for ${filterDate}. Showing standard catalog & route distribution data.</span>
+                            <div class="card" style="margin-bottom: 20px; border-color: rgba(234, 179, 8, 0.35); background: rgba(15, 23, 42, 0.6);">
+                                <div style="padding: 28px 20px; text-align: center;">
+                                    <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(234, 179, 8, 0.15); color: #eab308; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px; border: 1px solid rgba(234, 179, 8, 0.3);">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                    </div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">
+                                        No Daily Report Submitted for ${escapeHtml(depotName)}
+                                    </h3>
+                                    <p style="font-size: 0.9rem; color: #94a3b8; max-width: 650px; margin: 0 auto 18px; line-height: 1.6;">
+                                        Operational Date: <strong style="color: #38bdf8;">${filterDate}</strong> &bull; Category: <strong>${escapeHtml(category)}</strong> &bull; Incharge: <strong>${escapeHtml(incharge)}</strong><br>
+                                        No operational dispatches, delivery fleet trips, or customer invoices have been recorded yet for this date.
+                                    </p>
+                                    <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-primary" onclick="goToDailyEntryForDepot(${depotId}, '${filterDate}')" style="padding: 8px 20px; font-weight: 700;">
+                                            <i class="fa-solid fa-file-circle-plus"></i> Submit Daily Report for this Depot
+                                        </button>
+                                        <button type="button" class="btn btn-outline" onclick="closeDrillModal()" style="padding: 8px 18px;">
+                                            <i class="fa-solid fa-xmark"></i> Close Window
+                                        </button>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="closeDrillModal(); openDepotEntryFromSummary(${depotId}, '${filterDate}');" style="font-weight:700;">
-                                    <i class="fa-solid fa-pen-to-square"></i> Open Depot Daily Entry
-                                </button>
                             </div>
 
-                            <!-- Section 1: Products -->
-                            <div class="card" style="margin-bottom:16px;">
-                                <div class="card-header" style="background:#1e293b;">
-                                    <div class="card-title"><i class="fa-solid fa-boxes-stacked text-cyan"></i> 1. Product Line Performance Summary &bull; ${depotName}</div>
+                            <!-- 0-Summary Metrics -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                                <div class="card" style="padding: 16px; text-align: center;">
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Dispatched Gross</div>
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin-top: 4px;">৳ 0</div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Product Line</th>
-                                                <th class="text-center">SKU</th>
-                                                <th class="text-right">Dispatched Qty</th>
-                                                <th class="text-right">Gross Val (৳)</th>
-                                                <th class="text-right">Delivered Qty</th>
-                                                <th class="text-right">Delivered Net (৳)</th>
-                                                <th class="text-right">Return Qty</th>
-                                                <th class="text-right">Return Val (৳)</th>
-                                                <th class="text-center">Success %</th>
-                                                <th class="text-center">Stock Audit</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${fbProdHtml}
-                                        </tbody>
-                                    </table>
+                                <div class="card" style="padding: 16px; text-align: center;">
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Delivered Net</div>
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #22c55e; margin-top: 4px;">৳ 0</div>
+                                </div>
+                                <div class="card" style="padding: 16px; text-align: center;">
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Total Returns</div>
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #ef4444; margin-top: 4px;">৳ 0</div>
+                                </div>
+                                <div class="card" style="padding: 16px; text-align: center;">
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Fleet Vans</div>
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">0</div>
+                                </div>
+                                <div class="card" style="padding: 16px; text-align: center;">
+                                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Invoices</div>
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">0</div>
                                 </div>
                             </div>
 
-                            <!-- Section 2: Fleet -->
-                            <div class="card" style="margin-bottom:16px;">
-                                <div class="card-header" style="background:#1e293b;">
-                                    <div class="card-title"><i class="fa-solid fa-truck text-cyan"></i> 2. Dispatched Vehicles & Fleet Logs for ${depotName} (${fallbackTrips.length} Vans)</div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Trip #</th>
-                                                <th>Vehicle Reg #</th>
-                                                <th>Vehicle Type</th>
-                                                <th>Driver Name</th>
-                                                <th>Delivery Man</th>
-                                                <th>Route / Market Area</th>
-                                                <th class="text-right">Capacity</th>
-                                                <th class="text-right">Loaded</th>
-                                                <th class="text-center">Util %</th>
-                                                <th class="text-center">Temp</th>
-                                                <th class="text-center">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${fbTripHtml}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- Section 3: Invoices -->
+                            <!-- Empty Register Card -->
                             <div class="card">
-                                <div class="card-header" style="background:#1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                                    <div class="card-title"><i class="fa-solid fa-receipt text-green"></i> 3. Customer Delivery & Invoice Settlement Register (${fallbackInvoices.length} Invoices)</div>
+                                <div class="card-header" style="background: #1e293b;">
+                                    <div class="card-title"><i class="fa-solid fa-list text-cyan"></i> Operational Register Details</div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Invoice #</th>
-                                                <th>Customer / Outlet Name</th>
-                                                <th>Trip #</th>
-                                                <th>Category</th>
-                                                <th class="text-center">SKU</th>
-                                                <th class="text-right">Dispatched Qty</th>
-                                                <th class="text-right">Gross Value (৳)</th>
-                                                <th class="text-center">Status</th>
-                                                <th class="text-right">Deliv Qty</th>
-                                                <th class="text-right">Deliv Value (৳)</th>
-                                                <th class="text-right">Return Qty</th>
-                                                <th class="text-right">Return Value (৳)</th>
-                                                <th>Mode</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${fbInvHtml}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <th colspan="5">TOTAL REGISTER CONSOLIDATED (${fallbackInvoices.length} CUSTOMERS)</th>
-                                                <th class="text-right">${fbDispQty.toLocaleString()}</th>
-                                                <th class="text-right text-cyan">${formatTaka(fbDispVal)}</th>
-                                                <th class="text-center"><span class="badge-verified">${fbSuccPct}% Done</span></th>
-                                                <th class="text-right text-green">${fbDelivQty.toLocaleString()}</th>
-                                                <th class="text-right text-green">${formatTaka(fbDelivVal)}</th>
-                                                <th class="text-right text-red">${fbRetQty.toLocaleString()}</th>
-                                                <th class="text-right text-red">${formatTaka(fbRetVal)}</th>
-                                                <th>-</th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                <div style="padding: 36px 20px; text-align: center; color: #64748b;">
+                                    <i class="fa-solid fa-inbox" style="font-size: 36px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                                    <p style="font-size: 0.95rem; font-weight: 600; margin: 0; color: #cbd5e1;">No vehicle trips or customer invoices logged yet for this date.</p>
+                                    <p style="font-size: 0.82rem; color: #94a3b8; margin: 6px 0 0 0;">Use the Daily Entry tab or Excel Upload to import official distribution records for this depot.</p>
                                 </div>
                             </div>
                         `;
@@ -7282,6 +7381,7 @@
                     `;
                 }
             }
+            window.openDepotDrilldown = openDepotDrilldown;
 
             function closeDrillModal() {
                 const modal = document.getElementById('drillModal');
@@ -16395,8 +16495,8 @@
                             <i class="fa-solid fa-sliders"></i>
                         </div>
                         <div>
-                            <h2 style="font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 2px;">Depot Fleet, Route & Crew Master Directory</h2>
-                            <p style="font-size: 0.82rem; color: #94a3b8; margin: 0;">Manage Predefined Routes, Consignee Mapping, Vehicle Numbers, Rental Vans, Drivers & Deliverymen</p>
+                            <h2 style="font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 2px;">Fleet, Route & Crew Master</h2>
+                            <p style="font-size: 0.82rem; color: #94a3b8; margin: 0;">Manage routes, consignees, vehicles, and delivery crew</p>
                         </div>
                     </div>
                     
@@ -16486,8 +16586,8 @@
                                 <div class="card" style="padding: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; margin-bottom: 16px;">
                                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                                         <div>
-                                            <h4 style="color: #4ade80; font-size: 0.95rem; font-weight: 700; margin: 0;"><i class="fa-solid fa-store"></i> Enlist Consignee / Sales Center</h4>
-                                            <p style="font-size: 0.78rem; color: #94a3b8; margin: 2px 0 0;">Map outlet to a specific route for 100% automatic Poloxy order division</p>
+                                            <h4 style="color: #4ade80; font-size: 0.95rem; font-weight: 700; margin: 0;"><i class="fa-solid fa-store"></i> Enlist Consignee / Outlet</h4>
+                                            <p style="font-size: 0.78rem; color: #94a3b8; margin: 2px 0 0;">Map outlet to a route for automatic order allocation</p>
                                         </div>
                                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                             <a href="/api/template/consignees-blank-template" class="btn btn-outline btn-sm" style="font-size: 0.78rem; padding: 5px 10px; color: #4ade80; border-color: rgba(74, 222, 128, 0.4); text-decoration: none;">
@@ -16551,8 +16651,8 @@
                     <div id="masterTabPaneFleet" class="master-tab-pane" style="display: none;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
-                                <h3 style="color: #fff; font-size: 1.1rem; font-weight: 800; margin-bottom: 2px;">Depot Vehicles & Dedicated Fleet &bull; <span id="masterFleetDepotLbl" style="color: #38bdf8; font-size: 0.95rem;">Current Depot</span></h3>
-                                <p style="font-size: 0.82rem; color: #94a3b8;">Enlist company owned vans, capacity, default drivers and quick add rental vans</p>
+                                <h3 style="color: #fff; font-size: 1.1rem; font-weight: 800; margin-bottom: 2px;">Depot Fleet &bull; <span id="masterFleetDepotLbl" style="color: #38bdf8; font-size: 0.95rem;">Current Depot</span></h3>
+                                <p style="font-size: 0.82rem; color: #94a3b8;">Manage vehicles, capacities, drivers, and rental vans</p>
                             </div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                 <a href="/api/template/fleet-blank-template" class="btn btn-outline btn-sm" style="font-size: 0.82rem; padding: 6px 12px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); text-decoration: none;">
@@ -16751,8 +16851,8 @@
                     <div id="masterTabPaneBorrow" class="master-tab-pane" style="display: none;">
                         <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                             <div>
-                                <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 700; margin-bottom: 2px;"><i class="fa-solid fa-handshake"></i> Inter-Depot Fleet Borrowing System</h4>
-                                <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">If order volume is high and your depot runs short of vans, you can borrow idle/spare vehicles from neighboring Paragon depots with 1-click authorization.</p>
+                                <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 700; margin-bottom: 2px;"><i class="fa-solid fa-handshake"></i> Inter-Depot Fleet Borrowing</h4>
+                                <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">Borrow idle/spare vehicles from neighboring Paragon depots</p>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <button type="button" class="btn btn-outline btn-sm" onclick="clearBorrowedFleet()" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700; font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Return and clear all active borrowed vehicles for this depot">
@@ -16838,13 +16938,13 @@
                             <input type="hidden" id="mapSkuId" value="">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                                 <h4 style="color: #38bdf8; font-size: 1rem; font-weight: 800; margin: 0;">
-                                    <i class="fa-solid fa-truck-ramp-box"></i> 1. Add / Edit Driver-Vehicle Default Mapping & Capacity
+                                    <i class="fa-solid fa-truck-ramp-box"></i> Driver-Vehicle Mapping & Capacities
                                 </h4>
                                 <span id="mapPrimaryCategoryBadge" style="font-size: 0.78rem; background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 2px 10px; border-radius: 4px; font-weight: 700;">
                                     🎯 Depot Primary Category: <strong style="color: #38bdf8;">Auto-detecting...</strong>
                                 </span>
                             </div>
-                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">Default capacity based on depot type & category will auto-fill the form below.</p>
+                            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 14px;">Configure vehicle capacities and assigned default drivers</p>
 
                             <!-- Row 1: Category & UoM Details -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">

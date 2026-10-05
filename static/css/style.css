@@ -1601,22 +1601,111 @@ body {
         [data-theme="light"] .kpi-val { color: #0f172a !important; }
         [data-theme="light"] .kpi-footer { color: #64748b !important; border-color: #f1f5f9 !important; }
 
-        /* ──── 8. MODALS ──── */
+        /* ──── 8. MODALS & MASTER DIRECTORY HUB ──── */
         [data-theme="light"] .modal-overlay,
+        [data-theme="light"] #masterFleetModal,
         [data-theme="light"] [style*="position: fixed"][style*="inset: 0"] {
-            background: rgba(15, 23, 42, 0.45) !important;
+            background: rgba(15, 23, 42, 0.55) !important;
             backdrop-filter: blur(6px) !important;
         }
-        [data-theme="light"] .modal-container, [data-theme="light"] .modal-content {
+        [data-theme="light"] .modal-container, [data-theme="light"] .modal-content,
+        [data-theme="light"] #masterFleetModal > div {
             background: #ffffff !important;
             color: #0f172a !important;
             border: 1px solid #cbd5e1 !important;
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18) !important;
         }
-        [data-theme="light"] .modal-header, [data-theme="light"] .modal-footer {
+        [data-theme="light"] .modal-header, [data-theme="light"] .modal-footer,
+        [data-theme="light"] #masterFleetModal > div > div:first-child {
             background: #f8fafc !important;
             border-color: #e2e8f0 !important;
             color: #0f172a !important;
+        }
+        [data-theme="light"] #masterFleetModal h2,
+        [data-theme="light"] #masterFleetModal h3,
+        [data-theme="light"] #masterFleetModal h4 {
+            color: #0f172a !important;
+        }
+        [data-theme="light"] #masterFleetModal p {
+            color: #64748b !important;
+        }
+        [data-theme="light"] #masterFleetModal #masterAdminDepotContainer {
+            background: #f1f5f9 !important;
+            border: 1.5px solid #93c5fd !important;
+        }
+        [data-theme="light"] #masterFleetModal #masterAdminDepotContainer label {
+            color: #0284c7 !important;
+        }
+        [data-theme="light"] #masterFleetModal #masterModalDepotSelect {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+        }
+        [data-theme="light"] #masterFleetModal > div > div:nth-child(2) {
+            background: #f1f5f9 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-btn {
+            background: #ffffff !important;
+            color: #475569 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-btn.active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-btn:hover:not(.active) {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] #masterFleetModal .master-tab-pane .card,
+        [data-theme="light"] #masterFleetModal #masterTabPaneMapping > div:first-child,
+        [data-theme="light"] #masterFleetModal #masterActiveBorrowedContainer,
+        [data-theme="light"] #masterFleetModal #addFleetVehicleDrawer {
+            background: #f8fafc !important;
+            border: 1.5px solid #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] #masterFleetModal button.btn-primary,
+        [data-theme="light"] #masterFleetModal button[style*="background: #0284c7"],
+        [data-theme="light"] #masterFleetModal button[style*="background:#0284c7"],
+        [data-theme="light"] #masterFleetModal button[style*="background: #10b981"],
+        [data-theme="light"] #masterFleetModal button[style*="background:#10b981"],
+        [data-theme="light"] #masterFleetModal button[style*="background: #7c3aed"],
+        [data-theme="light"] #masterFleetModal button[style*="background:#7c3aed"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkMappingFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkRoutesFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkConsigneesFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkFleetFileInput"],
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkCrewFileInput"] {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] #masterFleetModal button.btn-primary *,
+        [data-theme="light"] #masterFleetModal button[style*="background: #0284c7"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background:#0284c7"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background: #10b981"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background:#10b981"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background: #7c3aed"] *,
+        [data-theme="light"] #masterFleetModal button[style*="background:#7c3aed"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkMappingFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkRoutesFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkConsigneesFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkFleetFileInput"] *,
+        [data-theme="light"] #masterFleetModal button[onclick*="bulkCrewFileInput"] * {
+            color: #ffffff !important;
+        }
+        [data-theme="light"] #masterFleetModal a.btn-outline,
+        [data-theme="light"] #masterFleetModal a[href*="template"] {
+            background: #ffffff !important;
+            border: 1.5px solid #0284c7 !important;
+            color: #0284c7 !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] #masterFleetModal a.btn-outline *,
+        [data-theme="light"] #masterFleetModal a[href*="template"] * {
+            color: inherit !important;
         }
 
         /* ──── 9. LOGIN VIEW (MISSING before) ──── */
