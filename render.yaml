@@ -1,27 +1,13 @@
 services:
   - type: web
-    name: daily-update-portal
-    runtime: node
+    name: paragon-distribution-portal
+    env: python
+    region: singapore
     plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /healthz
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind=0.0.0.0:$PORT
     envVars:
-      - key: NODE_VERSION
-        value: 20
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: daily-update-db
-          property: connectionString
-      - key: SESSION_SECRET
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: FLASK_SECRET_KEY
         generateValue: true
-      - key: ADMIN_USERNAME
-        value: admin
-      - key: ADMIN_PASSWORD
-        sync: false
-
-databases:
-  - name: daily-update-db
-    plan: free
