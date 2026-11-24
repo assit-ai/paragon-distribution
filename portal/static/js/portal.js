@@ -26,6 +26,17 @@
   };
 })();
 
+function getAuthToken() {
+  return sessionStorage.getItem('paragon_session_token') || localStorage.getItem('paragon_session_token') || '';
+}
+
+function authDownloadUrl(rawUrl) {
+  const token = getAuthToken();
+  if (!token) return rawUrl;
+  const separator = rawUrl.includes('?') ? '&' : '?';
+  return `${rawUrl}${separator}token=${encodeURIComponent(token)}`;
+}
+
 const AppState = {
   currentUser: {
     id: 1,
@@ -47,7 +58,8 @@ const AppState = {
   charts: {},
   storeFilter: 'all',
   theme: localStorage.getItem('portal_theme') || 'light',
-  reportFilterMode: 'month'
+  reportFilterMode: 'month',
+  hasUnsavedChanges: false
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -62,43 +74,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// ----------------- GUIDED WORKFLOW BAR TOGGLE (COLLAPSE / EXPAND) -----------------
-function toggleWorkflowBar() {
-  const content = document.getElementById('workflow-steps-content');
-  const icon = document.getElementById('workflow-toggle-icon');
-  const label = document.getElementById('workflow-toggle-label');
-  const badge = document.getElementById('workflow-collapsed-badge');
-  if (!content) return;
-
-  const isHidden = content.style.display === 'none';
-  if (isHidden) {
-    content.style.display = 'flex';
-    if (icon) icon.className = 'fas fa-chevron-up';
-    if (label) label.textContent = 'হাইড করুন';
-    if (badge) badge.style.display = 'none';
-    localStorage.setItem('workflow_bar_collapsed', 'false');
+// ----------------- GUIDED WORKFLOW SLIDE-OUT DRAWER -----------------
+function toggleWorkflowDrawer() {
+  const drawer = document.getElementById('workflow-slider-drawer');
+  const backdrop = document.getElementById('workflow-drawer-backdrop');
+  if (!drawer) return;
+  const isOpen = drawer.classList.contains('open');
+  if (isOpen) {
+    drawer.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
   } else {
-    content.style.display = 'none';
-    if (icon) icon.className = 'fas fa-chevron-down';
-    if (label) label.textContent = 'এক্সপ্যান্ড করুন';
-    if (badge) badge.style.display = 'inline-block';
-    localStorage.setItem('workflow_bar_collapsed', 'true');
+    drawer.classList.add('open');
+    if (backdrop) backdrop.classList.add('open');
   }
 }
 
-function initWorkflowBarState() {
-  const isCollapsed = localStorage.getItem('workflow_bar_collapsed') === 'true';
-  const content = document.getElementById('workflow-steps-content');
-  const icon = document.getElementById('workflow-toggle-icon');
-  const label = document.getElementById('workflow-toggle-label');
-  const badge = document.getElementById('workflow-collapsed-badge');
+function closeWorkflowDrawer() {
+  const drawer = document.getElementById('workflow-slider-drawer');
+  const backdrop = document.getElementById('workflow-drawer-backdrop');
+  if (drawer) drawer.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('open');
+}
 
-  if (isCollapsed && content) {
-    content.style.display = 'none';
-    if (icon) icon.className = 'fas fa-chevron-down';
-    if (label) label.textContent = 'এক্সপ্যান্ড করুন';
-    if (badge) badge.style.display = 'inline-block';
-  }
+function toggleWorkflowBar() {
+  toggleWorkflowDrawer();
+}
+
+function initWorkflowBarState() {
+  // Legacy bar removed to keep pages high-density; drawer is opt-in
 }
 
 // ----------------- THEME CONTROLLER -----------------
@@ -136,6 +139,7 @@ async function initCurrentUser() {
   
   if (!sessionUserStr || !token) {
     if (loginOverlay) {
+      loginOverlay.style.display = 'flex';
       loginOverlay.classList.remove('hidden');
       setTimeout(() => {
         const uInp = document.getElementById('login-username');
@@ -148,7 +152,10 @@ async function initCurrentUser() {
   try {
     const user = JSON.parse(sessionUserStr);
     AppState.currentUser = user;
-    if (loginOverlay) loginOverlay.classList.add('hidden');
+    if (loginOverlay) {
+      loginOverlay.classList.add('hidden');
+      loginOverlay.style.display = 'none';
+    }
     updateUserUI();
     if (user.must_change_password) {
       setTimeout(() => {
@@ -228,7 +235,7 @@ async function submitChangePassword() {
         sessionStorage.setItem('paragon_session_user', JSON.stringify(AppState.currentUser));
       }
       hideModal('modal-change-password');
-      showToast('Password changed successfully! (পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে)', 'success');
+      showToast('Password changed successfully!', 'success');
     } else {
       showError(data.error || 'Failed to update password.');
     }
@@ -261,12 +268,21 @@ async function handleLoginSubmit() {
     if (data.success && data.user) {
       if (data.token) {
         sessionStorage.setItem('paragon_session_token', data.token);
+        localStorage.setItem('paragon_session_token', data.token);
       }
       sessionStorage.setItem('paragon_session_user', JSON.stringify(data.user));
+      localStorage.setItem('paragon_session_user', JSON.stringify(data.user));
       AppState.currentUser = data.user;
       
       const loginOverlay = document.getElementById('login-screen-overlay');
-      if (loginOverlay) loginOverlay.classList.add('hidden');
+      if (loginOverlay) {
+        loginOverlay.classList.add('hidden');
+        setTimeout(() => {
+          if (loginOverlay.classList.contains('hidden')) {
+            loginOverlay.style.display = 'none';
+          }
+        }, 320);
+      }
       if (errBox) errBox.style.display = 'none';
 
       // Enforce category access
@@ -280,6 +296,15 @@ async function handleLoginSubmit() {
       
       // Always switch to dashboard on login so unauthorized views never persist
       switchView('dashboard');
+
+      // Guarantee charts redraw seamlessly once login overlay transition (300ms) completes
+      setTimeout(() => {
+        if (AppState.currentView === 'dashboard') {
+          renderDashboardCharts();
+          if (AppState.charts.perf) AppState.charts.perf.resize();
+          if (AppState.charts.health) AppState.charts.health.resize();
+        }
+      }, 350);
 
       // Check first-time login notification for password change
       if (data.user.must_change_password) {
@@ -337,10 +362,11 @@ async function logout() {
   });
 
   const titleEl = document.getElementById('page-header-title');
-  if (titleEl) titleEl.textContent = 'Executive Dashboard & Overview';
+  if (titleEl) titleEl.textContent = window.innerWidth <= 640 ? 'Dashboard' : 'Executive Dashboard & Overview';
 
   const loginOverlay = document.getElementById('login-screen-overlay');
   if (loginOverlay) {
+    loginOverlay.style.display = 'flex';
     loginOverlay.classList.remove('hidden');
     const pInp = document.getElementById('login-password');
     if (pInp) pInp.value = '';
@@ -459,16 +485,20 @@ function applyRolePermissions() {
   const createPlanBtn = document.querySelector('[onclick="openCreatePlanModal()"]');
   const bulkProdBtn = document.querySelector('[onclick="openBulkProductionModal()"]');
   const poloxyBtn = document.querySelector('[onclick="openPoloxySyncModal()"]') || document.querySelector('[onclick="syncFromPoloxyERP()"]');
+  const saveProdBtn = document.getElementById('btn-save-production-plans');
   if (createPlanBtn) createPlanBtn.style.display = canEditProduction ? '' : 'none';
   if (bulkProdBtn) bulkProdBtn.style.display = canEditProduction ? '' : 'none';
   if (poloxyBtn) poloxyBtn.style.display = canEditProduction ? '' : 'none';
+  if (saveProdBtn) saveProdBtn.style.display = canEditProduction ? '' : 'none';
 
   // 3. Store Section Edit Buttons
   const canEditStore = canUserEdit('store');
   const mrrBtn = document.querySelector('[onclick="openCreateMRRModal()"]');
   const replenishBtn = document.querySelector('[onclick="triggerAutoReplenishment()"]');
+  const saveStoreBtn = document.getElementById('btn-save-store-stock');
   if (mrrBtn) mrrBtn.style.display = canEditStore ? '' : 'none';
   if (replenishBtn) replenishBtn.style.display = canEditStore ? '' : 'none';
+  if (saveStoreBtn) saveStoreBtn.style.display = canEditStore ? '' : 'none';
 
   // 4. Wastage Section
   const wastageBtn = document.querySelector('[onclick="openCreateWastageModal()"]');
@@ -551,11 +581,40 @@ async function submitAddCategory() {
 }
 
 // ----------------- UOM TOGGLE (Packet vs Carton) -----------------
+function updateForecastHeadersForUOM(uom) {
+  const isCarton = uom === 'Carton';
+  const thOrig = document.getElementById('th-forecast-original');
+  const thAct = document.getElementById('th-forecast-active');
+  const thWeekly = document.getElementById('th-forecast-weekly');
+  const thOut = document.getElementById('th-forecast-output');
+  const subTitle = document.getElementById('forecast-card-subtitle');
+
+  if (thOrig) thOrig.textContent = isCarton ? 'Original (Ctn)' : 'Original (Packet)';
+  if (thAct) thAct.textContent = isCarton ? 'Active Forecast (Ctn)' : 'Active Forecast (Packet)';
+  if (thWeekly) thWeekly.textContent = isCarton ? 'Weekly Breakdown (W1-W4 Ctn)' : 'Weekly Breakdown (W1-W4 Pkt)';
+  if (thOut) thOut.textContent = isCarton ? 'Total Output (Packets)' : 'Total in Cartons';
+  if (subTitle) subTitle.textContent = `Edit ${isCarton ? 'carton' : 'packet'} values and click "Save Forecast Changes"`;
+
+  const ctnWrap = document.getElementById('forecast-total-ctn-wrap');
+  const pcsWrap = document.getElementById('forecast-total-pcs-wrap');
+  if (ctnWrap) {
+    ctnWrap.style.background = isCarton ? 'rgba(37,99,235,0.12)' : 'transparent';
+    ctnWrap.style.borderColor = isCarton ? 'rgba(37,99,235,0.35)' : 'transparent';
+    ctnWrap.style.fontWeight = isCarton ? '700' : 'normal';
+  }
+  if (pcsWrap) {
+    pcsWrap.style.background = !isCarton ? 'rgba(16,185,129,0.12)' : 'transparent';
+    pcsWrap.style.borderColor = !isCarton ? 'rgba(16,185,129,0.35)' : 'transparent';
+    pcsWrap.style.fontWeight = !isCarton ? '700' : 'normal';
+  }
+}
+
 function setDisplayUOM(uom) {
   AppState.displayUOM = uom;
   document.querySelectorAll('.uom-btn').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-uom') === uom);
   });
+  updateForecastHeadersForUOM(uom);
   showToast(`Display unit changed to: ${uom}s`, 'primary');
   switchView(AppState.currentView);
 }
@@ -582,6 +641,12 @@ function initNavigation() {
 }
 
 function switchView(viewName, subOptions = {}) {
+  if (AppState.hasUnsavedChanges) {
+    const discard = confirm('You have unsaved changes in your plan! Discard changes and navigate away?');
+    if (!discard) return;
+    AppState.hasUnsavedChanges = false;
+  }
+
   // Access control: Only Super Admin can view 'users' or 'master_bom'
   if ((viewName === 'users' || viewName === 'master_bom') && !isSuperAdminUser()) {
     showToast('Access Denied: Only Super Admin has permission to view this section.', 'warning');
@@ -612,16 +677,37 @@ function switchView(viewName, subOptions = {}) {
     'production': 'Production Planning & Material Requirement',
     'store': 'Store Inventory, Stock Inward (MRR) & Safety Stock',
     'procurement': 'Supply Chain & Purchase Orders (PO)',
-    'master_bom': 'Master Data, BOM Formulation & User Management',
+    'master_bom': 'Master Data & BOM Formulation',
     'reports': 'Reports & Analytics (Performance, Stock & FSN)',
     'users': 'System User Management & Access Control (RBAC)'
   };
+  const shortTitles = {
+    'dashboard': 'Dashboard',
+    'forecast': 'Sales Forecast',
+    'production': 'Production Plans',
+    'store': 'Store & Stock',
+    'procurement': 'Supply Chain',
+    'master_bom': 'Master & BOM',
+    'reports': 'Reports',
+    'users': 'Users'
+  };
   const titleEl = document.getElementById('page-header-title');
-  if (titleEl) titleEl.textContent = titles[viewName] || 'Planning Portal';
+  if (titleEl) {
+    titleEl.textContent = (window.innerWidth <= 640 ? shortTitles[viewName] : titles[viewName]) || 'Planning Portal';
+  }
 
   // Handle specific view & sub-tab parameters
   switch (viewName) {
-    case 'dashboard': loadDashboard(); break;
+    case 'dashboard': 
+      loadDashboard(); 
+      setTimeout(() => {
+        if (AppState.currentView === 'dashboard') {
+          renderDashboardCharts();
+          if (AppState.charts.perf) AppState.charts.perf.resize();
+          if (AppState.charts.health) AppState.charts.health.resize();
+        }
+      }, 150);
+      break;
     case 'forecast': loadForecastView(); break;
     case 'production': loadProductionView(); break;
     case 'store': 
@@ -643,14 +729,23 @@ function switchView(viewName, subOptions = {}) {
 
 // ----------------- 1. DASHBOARD CONTROLLER -----------------
 async function loadDashboard() {
-  loadMyTasks();
   const cat = AppState.selectedCategory;
   const month = AppState.selectedMonth;
   const uom = AppState.displayUOM;
 
+  // Load action center drawer tasks asynchronously in background so main stats render immediately
+  setTimeout(loadMyTasks, 50);
+
   try {
     const res = await fetch(`/api/dashboard/stats?category=${cat}&month=${month}&uom=${uom}`);
+    if (!res.ok) {
+      if (res.status === 401) {
+        console.warn('Session expired or unauthorized in loadDashboard');
+      }
+      return;
+    }
     const stats = await res.json();
+    if (!stats || !stats.materials) return;
     AppState.dashboardStats = stats;
 
     document.getElementById('kpi-total-items').textContent = stats.materials.total;
@@ -662,18 +757,24 @@ async function loadDashboard() {
     document.getElementById('kpi-pending-prod-req').textContent = stats.requisitions.pending_production;
     document.getElementById('kpi-pending-po').textContent = `${stats.requisitions.pending_purchase} POs in Procurement`;
 
-    document.getElementById('kpi-inventory-val').textContent = `৳ ${stats.valuation.total.toLocaleString()}`;
-    document.getElementById('kpi-rm-pm-val').textContent = `RM: ৳${stats.valuation.rm.toLocaleString()} | PM: ৳${stats.valuation.pm.toLocaleString()}`;
+    document.getElementById('kpi-inventory-val').textContent = `BDT ${stats.valuation.total.toLocaleString()}`;
+    document.getElementById('kpi-rm-pm-val').textContent = `RM: BDT ${stats.valuation.rm.toLocaleString()} | PM: BDT ${stats.valuation.pm.toLocaleString()}`;
 
     document.getElementById('kpi-achievement').textContent = `${stats.performance.achievement_pct}%`;
     document.getElementById('kpi-actual-produced').textContent = `${stats.performance.actual.toLocaleString()} / ${stats.performance.planned.toLocaleString()} ${uom}s`;
 
     // Sidebar badges
     const critBadge = document.getElementById('badge-critical-stock');
-    if (critBadge) critBadge.textContent = stats.materials.critical;
+    if (critBadge) {
+      critBadge.textContent = stats.materials.critical;
+      critBadge.style.display = stats.materials.critical > 0 ? 'inline-block' : 'none';
+    }
 
     const prodReqBadge = document.getElementById('badge-prod-req');
-    if (prodReqBadge) prodReqBadge.textContent = stats.requisitions.pending_production;
+    if (prodReqBadge) {
+      prodReqBadge.textContent = stats.requisitions.pending_production;
+      prodReqBadge.style.display = stats.requisitions.pending_production > 0 ? 'inline-block' : 'none';
+    }
 
     const storeReqBadge = document.getElementById('store-pending-req-badge');
     if (storeReqBadge) {
@@ -683,7 +784,10 @@ async function loadDashboard() {
     }
 
     const poBadge = document.getElementById('badge-po-req');
-    if (poBadge) poBadge.textContent = stats.requisitions.pending_purchase;
+    if (poBadge) {
+      poBadge.textContent = stats.requisitions.pending_purchase;
+      poBadge.style.display = stats.requisitions.pending_purchase > 0 ? 'inline-block' : 'none';
+    }
 
     renderCriticalTable(stats.critical_items);
     renderRecentTxns(stats.recent_transactions);
@@ -760,6 +864,7 @@ function renderRecentTxns(txns) {
   }).join('');
 }
 
+
 function renderDashboardCharts() {
   if (!AppState.dashboardStats) return;
   const stats = AppState.dashboardStats;
@@ -768,8 +873,24 @@ function renderDashboardCharts() {
   const textColor = isLight ? '#334155' : '#9ca3af';
   const labelColor = isLight ? '#0f172a' : '#f8fafc';
 
-  // 1. BAR CHART: Forecast vs Plan vs Actual
   const ctxPerf = document.getElementById('chart-forecast-vs-prod');
+  const ctxHealth = document.getElementById('chart-stock-health');
+  if (!ctxPerf || !ctxHealth) return;
+
+  // Defensive layout check: if canvas parent container has 0 width (e.g. during login transition or section animation), retry after layout reflow
+  const parentPerf = ctxPerf.parentElement;
+  const parentHealth = ctxHealth.parentElement;
+  if (!parentPerf || parentPerf.offsetWidth === 0 || !parentHealth || parentHealth.offsetWidth === 0) {
+    if (!renderDashboardCharts._retryCount) renderDashboardCharts._retryCount = 0;
+    if (renderDashboardCharts._retryCount < 8) {
+      renderDashboardCharts._retryCount++;
+      setTimeout(renderDashboardCharts, 70);
+      return;
+    }
+  }
+  renderDashboardCharts._retryCount = 0;
+
+  // 1. BAR CHART: Forecast vs Plan vs Actual
   if (ctxPerf) {
     if (AppState.charts.perf) AppState.charts.perf.destroy();
 
@@ -781,9 +902,11 @@ function renderDashboardCharts() {
         ctx.save();
         chart.data.datasets.forEach((dataset, i) => {
           const meta = chart.getDatasetMeta(i);
+          if (!meta || !meta.data) return;
           meta.data.forEach((bar, index) => {
             const val = dataset.data[index];
             if (val === undefined || val === null) return;
+            if (!bar || isNaN(bar.x) || isNaN(bar.y)) return;
             const text = Number(val).toLocaleString() + (AppState.displayUOM ? ` ${AppState.displayUOM}` : '');
             
             ctx.font = 'bold 11px Inter, system-ui, sans-serif';
@@ -830,6 +953,7 @@ function renderDashboardCharts() {
         },
         plugins: {
           legend: { display: false },
+          datalabels: { display: false },
           tooltip: {
             callbacks: {
               label: (ctx) => ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString()}`
@@ -856,9 +980,10 @@ function renderDashboardCharts() {
   }
 
   // 2. DOUGHNUT CHART: Stock Health Breakdown
-  const ctxHealth = document.getElementById('chart-stock-health');
   if (ctxHealth) {
     if (AppState.charts.health) AppState.charts.health.destroy();
+
+    const hasHealthData = ((stats.materials.safe || 0) + (stats.materials.low || 0) + (stats.materials.critical || 0)) > 0;
 
     // Custom Data Labels Plugin for Doughnut Slices
     const doughnutLabelsPlugin = {
@@ -866,15 +991,30 @@ function renderDashboardCharts() {
       afterDatasetsDraw(chart) {
         const { ctx, data } = chart;
         ctx.save();
+
+        if (!hasHealthData) {
+          ctx.font = '600 12px Inter, system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = textColor;
+          const { width, height } = chart;
+          ctx.fillText('0 Items / Clean', width / 2, height / 2 - 6);
+          ctx.restore();
+          return;
+        }
+
         const dataset = data.datasets[0];
         const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) { ctx.restore(); return; }
         const total = dataset.data.reduce((a, b) => a + (Number(b) || 0), 0);
 
         meta.data.forEach((element, index) => {
           const val = dataset.data[index];
           if (!val || val <= 0) return;
           const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+          if (!element || typeof element.tooltipPosition !== 'function') return;
           const pos = element.tooltipPosition();
+          if (!pos || isNaN(pos.x) || isNaN(pos.y)) return;
 
           ctx.font = 'bold 12px Inter, system-ui, sans-serif';
           ctx.textAlign = 'center';
@@ -888,21 +1028,29 @@ function renderDashboardCharts() {
       }
     };
 
+    const healthLabels = hasHealthData ? ['Safe Buffer', 'Low Stock', 'Critical (< Safety)'] : ['No Stock Active / All Clean'];
+    const healthDatasets = hasHealthData ? [{
+      data: [
+        stats.materials.safe || 0,
+        stats.materials.low || 0,
+        stats.materials.critical || 0
+      ],
+      backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+      borderWidth: 2,
+      borderColor: isLight ? '#ffffff' : '#111827'
+    }] : [{
+      data: [1],
+      backgroundColor: [isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'],
+      borderWidth: 1,
+      borderColor: isLight ? '#cbd5e1' : 'rgba(255,255,255,0.15)'
+    }];
+
     AppState.charts.health = new Chart(ctxHealth, {
       type: 'doughnut',
       plugins: [doughnutLabelsPlugin],
       data: {
-        labels: ['Safe Buffer', 'Low Stock', 'Critical (< Safety)'],
-        datasets: [{
-          data: [
-            stats.materials.safe,
-            stats.materials.low,
-            stats.materials.critical
-          ],
-          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-          borderWidth: 2,
-          borderColor: isLight ? '#ffffff' : '#111827'
-        }]
+        labels: healthLabels,
+        datasets: healthDatasets
       },
       options: {
         responsive: true,
@@ -912,12 +1060,21 @@ function renderDashboardCharts() {
           legend: {
             position: 'bottom',
             labels: { boxWidth: 12, font: { size: 11, weight: '600' }, color: textColor, padding: 14 }
-          }
+          },
+          datalabels: { display: false }
         }
       }
     });
   }
 }
+
+// Window resize handler to keep charts responsive
+window.addEventListener('resize', () => {
+  if (AppState.currentView === 'dashboard') {
+    if (AppState.charts.perf) AppState.charts.perf.resize();
+    if (AppState.charts.health) AppState.charts.health.resize();
+  }
+});
 
 // ----------------- 2. SALES FORECAST CONTROLLER -----------------
 async function loadForecastView() {
@@ -947,26 +1104,69 @@ function renderForecastTable(items) {
   const tbody = document.getElementById('forecast-table-body');
   if (!tbody) return;
 
+  const isCarton = AppState.displayUOM === 'Carton';
   const canEdit = canUserEdit('forecast');
   const isSuperAdmin = AppState.currentUser?.role === 'Super Admin';
+
+  // Dynamic Table Headers based on Carton / Packet
+  const thOrig = document.getElementById('th-forecast-original');
+  const thAct = document.getElementById('th-forecast-active');
+  const thWeekly = document.getElementById('th-forecast-weekly');
+  const thOut = document.getElementById('th-forecast-output');
+  const subTitle = document.getElementById('forecast-card-subtitle');
+
+  if (thOrig) thOrig.textContent = isCarton ? 'Original (Ctn)' : 'Original (Packet)';
+  if (thAct) thAct.textContent = isCarton ? 'Active Forecast (Ctn)' : 'Active Forecast (Packet)';
+  if (thWeekly) thWeekly.textContent = isCarton ? 'Weekly Breakdown (W1-W4 Ctn)' : 'Weekly Breakdown (W1-W4 Pkt)';
+  if (thOut) thOut.textContent = isCarton ? 'Total Output (Packets)' : 'Total in Cartons';
+  if (subTitle) subTitle.textContent = `Edit ${isCarton ? 'carton' : 'packet'} values and click "Save Forecast Changes"`;
+
+  // Highlight active UOM in header total summary
+  const ctnWrap = document.getElementById('forecast-total-ctn-wrap');
+  const pcsWrap = document.getElementById('forecast-total-pcs-wrap');
+  if (ctnWrap) {
+    ctnWrap.style.background = isCarton ? 'rgba(37,99,235,0.12)' : 'transparent';
+    ctnWrap.style.borderColor = isCarton ? 'rgba(37,99,235,0.35)' : 'transparent';
+    ctnWrap.style.fontWeight = isCarton ? '700' : 'normal';
+  }
+  if (pcsWrap) {
+    pcsWrap.style.background = !isCarton ? 'rgba(16,185,129,0.12)' : 'transparent';
+    pcsWrap.style.borderColor = !isCarton ? 'rgba(16,185,129,0.35)' : 'transparent';
+    pcsWrap.style.fontWeight = !isCarton ? '700' : 'normal';
+  }
+
   let totalCtn = 0;
   let totalPcs = 0;
 
   tbody.innerHTML = items.map((it, idx) => {
-    totalCtn += (it.forecast_ctn || 0);
-    totalPcs += (it.forecast_pcs || 0);
+    const ctnSize = Math.max(1, parseInt(it.ctn_size) || 12);
+    // Strict whole numbers (no floating-point decimals)
+    const origCtn = Math.round(it.original_forecast_ctn != null ? it.original_forecast_ctn : (it.forecast_ctn || 0));
+    const origPcs = Math.round(it.original_forecast_pcs != null ? it.original_forecast_pcs : (origCtn * ctnSize));
+    const curCtn = Math.round(it.forecast_ctn || 0);
+    const curPcs = Math.round(it.forecast_pcs != null ? it.forecast_pcs : (curCtn * ctnSize));
 
-    const origCtn = it.original_forecast_ctn != null ? it.original_forecast_ctn : (it.forecast_ctn || 0);
+    totalCtn += curCtn;
+    totalPcs += curPcs;
+
     const revNo = it.revision_no || 0;
-    const varianceFromOrig = (it.forecast_ctn || 0) - origCtn;
-    
-    // Default weekly split if not set
-    const totalCurrent = it.forecast_ctn || 0;
-    const defaultW = Math.round(totalCurrent / 4);
-    const w1 = it.week1_ctn != null ? it.week1_ctn : defaultW;
-    const w2 = it.week2_ctn != null ? it.week2_ctn : defaultW;
-    const w3 = it.week3_ctn != null ? it.week3_ctn : defaultW;
-    const w4 = it.week4_ctn != null ? it.week4_ctn : (totalCurrent - (w1 + w2 + w3));
+    const diffCtn = curCtn - origCtn;
+    const diffPcs = curPcs - origPcs;
+    const diff = isCarton ? diffCtn : diffPcs;
+    const uomLabel = isCarton ? 'Ctn' : (it.uom_default || 'Pkt');
+
+    const displayedOrig = isCarton ? origCtn : origPcs;
+    const displayedCurrent = isCarton ? curCtn : curPcs;
+
+    // Default weekly split if not set (strictly whole integers)
+    const defaultW = Math.round(displayedCurrent / 4);
+    let w1 = Math.round(isCarton ? (it.week1_ctn != null ? it.week1_ctn : defaultW) : (it.week1_ctn != null ? it.week1_ctn * ctnSize : defaultW));
+    let w2 = Math.round(isCarton ? (it.week2_ctn != null ? it.week2_ctn : defaultW) : (it.week2_ctn != null ? it.week2_ctn * ctnSize : defaultW));
+    let w3 = Math.round(isCarton ? (it.week3_ctn != null ? it.week3_ctn : defaultW) : (it.week3_ctn != null ? it.week3_ctn * ctnSize : defaultW));
+    let w4 = Math.round(isCarton ? (it.week4_ctn != null ? it.week4_ctn : (displayedCurrent - (w1 + w2 + w3))) : (it.week4_ctn != null ? it.week4_ctn * ctnSize : (displayedCurrent - (w1 + w2 + w3))));
+
+    // Output representation in alternative UOM
+    const outputDisplay = isCarton ? `${curPcs.toLocaleString()} ${it.uom_default || 'Packets'}` : `${curCtn.toLocaleString()} Cartons`;
 
     return `
       <tr>
@@ -974,28 +1174,31 @@ function renderForecastTable(items) {
         <td><strong>${it.sku_code}</strong></td>
         <td>
           <div style="font-weight:600;">${it.sku_name}</div>
-          <div style="font-size:0.72rem; color:var(--text-dim);">${it.pack_size || ''} • ${it.ctn_size} ${it.uom_default || 'Pcs'}/Ctn</div>
+          <div style="font-size:0.72rem; color:var(--text-dim);">${it.pack_size || ''} • ${ctnSize} ${it.uom_default || 'Pcs'}/Ctn</div>
         </td>
         <td><span class="pill pill-safe">${it.category}</span></td>
         <td style="text-align:right; color:var(--text-muted); font-weight:600;">
-          ${origCtn.toLocaleString()} Ctn
+          ${displayedOrig.toLocaleString()} ${uomLabel}
         </td>
         <td>
           <input type="number" 
                  class="form-control forecast-input" 
+                 step="1"
                  style="width:115px; text-align:right; font-weight:700; ${canEdit ? '' : 'background:var(--bg-tertiary); opacity:0.8; cursor:not-allowed;'}" 
                  data-sku-id="${it.sku_id}" 
-                 data-ctn-size="${it.ctn_size}"
+                 data-ctn-size="${ctnSize}"
+                 data-orig-val="${displayedOrig}"
                  data-orig-ctn="${origCtn}"
-                 value="${it.forecast_ctn || 0}" 
+                 value="${displayedCurrent}" 
                  min="0"
                  ${canEdit ? '' : 'disabled readonly'}
+                 oninput="this.value = this.value.replace(/[^0-9]/g, ''); recalculateForecastRow(this);"
                  onchange="recalculateForecastRow(this)">
-          ${varianceFromOrig !== 0 ? `
-            <div style="font-size:0.68rem; text-align:right; margin-top:2px; font-weight:700; color:${varianceFromOrig > 0 ? 'var(--success)' : 'var(--danger)'};">
-              ${varianceFromOrig > 0 ? '+' : ''}${varianceFromOrig} Ctn
+          ${diff !== 0 ? `
+            <div class="forecast-variance-badge" style="font-size:0.68rem; text-align:right; margin-top:2px; font-weight:700; color:${diff > 0 ? 'var(--success)' : 'var(--danger)'};">
+              ${diff > 0 ? '+' : ''}${Math.round(diff)} ${uomLabel}
             </div>
-          ` : ''}
+          ` : '<div class="forecast-variance-badge" style="display:none; font-size:0.68rem; text-align:right; margin-top:2px; font-weight:700;"></div>'}
         </td>
         <td style="text-align:center;">
           ${revNo > 0 ? `
@@ -1008,14 +1211,14 @@ function renderForecastTable(items) {
         </td>
         <td style="text-align:center;">
           <div style="display:inline-flex; gap:3px; align-items:center;">
-            <input type="number" class="form-control form-control-sm forecast-w1" style="width:48px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${w1}" min="0" placeholder="W1" title="Week 1 (Ctn)" ${canEdit ? '' : 'disabled'} onchange="recalculateFromWeekly(this)">
-            <input type="number" class="form-control form-control-sm forecast-w2" style="width:48px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${w2}" min="0" placeholder="W2" title="Week 2 (Ctn)" ${canEdit ? '' : 'disabled'} onchange="recalculateFromWeekly(this)">
-            <input type="number" class="form-control form-control-sm forecast-w3" style="width:48px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${w3}" min="0" placeholder="W3" title="Week 3 (Ctn)" ${canEdit ? '' : 'disabled'} onchange="recalculateFromWeekly(this)">
-            <input type="number" class="form-control form-control-sm forecast-w4" style="width:48px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${w4}" min="0" placeholder="W4" title="Week 4 (Ctn)" ${canEdit ? '' : 'disabled'} onchange="recalculateFromWeekly(this)">
+            <input type="number" step="1" class="form-control form-control-sm forecast-w1" style="width:52px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${Math.round(w1)}" min="0" placeholder="W1" title="Week 1 (${uomLabel})" ${canEdit ? '' : 'disabled'} oninput="this.value = this.value.replace(/[^0-9]/g, ''); recalculateFromWeekly(this);" onchange="recalculateFromWeekly(this)">
+            <input type="number" step="1" class="form-control form-control-sm forecast-w2" style="width:52px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${Math.round(w2)}" min="0" placeholder="W2" title="Week 2 (${uomLabel})" ${canEdit ? '' : 'disabled'} oninput="this.value = this.value.replace(/[^0-9]/g, ''); recalculateFromWeekly(this);" onchange="recalculateFromWeekly(this)">
+            <input type="number" step="1" class="form-control form-control-sm forecast-w3" style="width:52px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${Math.round(w3)}" min="0" placeholder="W3" title="Week 3 (${uomLabel})" ${canEdit ? '' : 'disabled'} oninput="this.value = this.value.replace(/[^0-9]/g, ''); recalculateFromWeekly(this);" onchange="recalculateFromWeekly(this)">
+            <input type="number" step="1" class="form-control form-control-sm forecast-w4" style="width:52px; font-size:0.72rem; padding:2px 3px; text-align:right;" data-sku-id="${it.sku_id}" value="${Math.round(w4)}" min="0" placeholder="W4" title="Week 4 (${uomLabel})" ${canEdit ? '' : 'disabled'} oninput="this.value = this.value.replace(/[^0-9]/g, ''); recalculateFromWeekly(this);" onchange="recalculateFromWeekly(this)">
           </div>
         </td>
         <td class="forecast-pcs-display" style="text-align:right; font-weight:700; color:var(--primary);">
-          ${(it.forecast_pcs || 0).toLocaleString()} ${it.uom_default || 'Packets'}
+          ${outputDisplay}
         </td>
         <td style="text-align:center; white-space:nowrap;">
           <div style="display:inline-flex; gap:4px;">
@@ -1037,16 +1240,17 @@ function renderForecastTable(items) {
     `;
   }).join('');
 
-  document.getElementById('forecast-total-cartons').textContent = totalCtn.toLocaleString();
-  document.getElementById('forecast-total-pieces').textContent = totalPcs.toLocaleString();
+  // Pure whole numbers without decimals
+  document.getElementById('forecast-total-cartons').textContent = Math.round(totalCtn).toLocaleString();
+  document.getElementById('forecast-total-pieces').textContent = Math.round(totalPcs).toLocaleString();
 }
 
 function recalculateFromWeekly(weeklyInp) {
   const row = weeklyInp.closest('tr');
-  const w1 = parseFloat(row.querySelector('.forecast-w1')?.value) || 0;
-  const w2 = parseFloat(row.querySelector('.forecast-w2')?.value) || 0;
-  const w3 = parseFloat(row.querySelector('.forecast-w3')?.value) || 0;
-  const w4 = parseFloat(row.querySelector('.forecast-w4')?.value) || 0;
+  const w1 = Math.round(parseFloat(row.querySelector('.forecast-w1')?.value) || 0);
+  const w2 = Math.round(parseFloat(row.querySelector('.forecast-w2')?.value) || 0);
+  const w3 = Math.round(parseFloat(row.querySelector('.forecast-w3')?.value) || 0);
+  const w4 = Math.round(parseFloat(row.querySelector('.forecast-w4')?.value) || 0);
   const total = w1 + w2 + w3 + w4;
 
   const mainInp = row.querySelector('.forecast-input');
@@ -1057,56 +1261,92 @@ function recalculateFromWeekly(weeklyInp) {
 }
 
 function recalculateForecastRow(input, autoSplitWeekly = true) {
-  const ctn = parseFloat(input.value) || 0;
-  const ctnSize = parseFloat(input.getAttribute('data-ctn-size')) || 1;
+  AppState.hasUnsavedChanges = true;
+  const isCarton = AppState.displayUOM === 'Carton';
+  const inputVal = Math.round(parseFloat(input.value) || 0);
+  input.value = inputVal;
+  const ctnSize = Math.max(1, parseInt(input.getAttribute('data-ctn-size')) || 12);
+  const origVal = Math.round(parseFloat(input.getAttribute('data-orig-val')) || 0);
   const row = input.closest('tr');
-  const pcsDisplay = row.querySelector('.forecast-pcs-display');
-  if (pcsDisplay) {
-    pcsDisplay.textContent = `${(ctn * ctnSize).toLocaleString()} Packets`;
+
+  const ctnVal = isCarton ? inputVal : Math.round(inputVal / ctnSize);
+  const pcsVal = isCarton ? Math.round(inputVal * ctnSize) : inputVal;
+
+  const convertedDisplay = row.querySelector('.forecast-pcs-display');
+  if (convertedDisplay) {
+    convertedDisplay.textContent = isCarton ? `${pcsVal.toLocaleString()} Packets` : `${ctnVal.toLocaleString()} Cartons`;
   }
 
-  // Update weekly inputs if autoSplitWeekly is requested
+  const diff = inputVal - origVal;
+  const uomLabel = isCarton ? 'Ctn' : 'Pkt';
+  const varEl = row.querySelector('.forecast-variance-badge');
+  if (varEl) {
+    if (diff !== 0) {
+      varEl.style.display = 'block';
+      varEl.style.color = diff > 0 ? 'var(--success)' : 'var(--danger)';
+      varEl.textContent = `${diff > 0 ? '+' : ''}${Math.round(diff)} ${uomLabel}`;
+    } else {
+      varEl.style.display = 'none';
+    }
+  }
+
+  // Update weekly inputs if autoSplitWeekly is requested (pure integers)
   if (autoSplitWeekly && row) {
     const w1 = row.querySelector('.forecast-w1');
     const w2 = row.querySelector('.forecast-w2');
     const w3 = row.querySelector('.forecast-w3');
     const w4 = row.querySelector('.forecast-w4');
-    const baseW = Math.round(ctn / 4);
+    const baseW = Math.round(inputVal / 4);
     if (w1) w1.value = baseW;
     if (w2) w2.value = baseW;
     if (w3) w3.value = baseW;
-    if (w4) w4.value = Math.max(0, ctn - (baseW * 3));
+    if (w4) w4.value = Math.max(0, inputVal - (baseW * 3));
   }
 
+  // Recalculate grand totals in pure whole integers
   let grandCtn = 0;
   let grandPcs = 0;
   document.querySelectorAll('.forecast-input').forEach(inp => {
-    const c = parseFloat(inp.value) || 0;
-    const s = parseFloat(inp.getAttribute('data-ctn-size')) || 1;
-    grandCtn += c;
-    grandPcs += c * s;
+    const iv = Math.round(parseFloat(inp.value) || 0);
+    const cs = Math.max(1, parseInt(inp.getAttribute('data-ctn-size')) || 12);
+    if (isCarton) {
+      grandCtn += iv;
+      grandPcs += Math.round(iv * cs);
+    } else {
+      grandPcs += iv;
+      grandCtn += Math.round(iv / cs);
+    }
   });
-  document.getElementById('forecast-total-cartons').textContent = grandCtn.toLocaleString();
-  document.getElementById('forecast-total-pieces').textContent = grandPcs.toLocaleString();
+  document.getElementById('forecast-total-cartons').textContent = Math.round(grandCtn).toLocaleString();
+  document.getElementById('forecast-total-pieces').textContent = Math.round(grandPcs).toLocaleString();
 }
 
 async function saveForecastChanges() {
   const month = document.getElementById('forecast-month-select').value;
+  const isCarton = AppState.displayUOM === 'Carton';
   const items = [];
   let hasChanges = false;
 
   document.querySelectorAll('.forecast-input').forEach(inp => {
     const sku_id = parseInt(inp.getAttribute('data-sku-id'));
-    const forecast_ctn = parseFloat(inp.value) || 0;
-    const orig_ctn = parseFloat(inp.getAttribute('data-orig-ctn')) || 0;
+    const ctnSize = Math.max(1, parseInt(inp.getAttribute('data-ctn-size')) || 12);
+    const inputVal = Math.round(parseFloat(inp.value) || 0);
+    const origVal = Math.round(parseFloat(inp.getAttribute('data-orig-val')) || 0);
+
+    const forecast_ctn = isCarton ? inputVal : Math.round(inputVal / ctnSize);
 
     const row = inp.closest('tr');
-    const week1_ctn = parseFloat(row.querySelector('.forecast-w1')?.value) || 0;
-    const week2_ctn = parseFloat(row.querySelector('.forecast-w2')?.value) || 0;
-    const week3_ctn = parseFloat(row.querySelector('.forecast-w3')?.value) || 0;
-    const week4_ctn = parseFloat(row.querySelector('.forecast-w4')?.value) || 0;
+    const w1Raw = Math.round(parseFloat(row.querySelector('.forecast-w1')?.value) || 0);
+    const w2Raw = Math.round(parseFloat(row.querySelector('.forecast-w2')?.value) || 0);
+    const w3Raw = Math.round(parseFloat(row.querySelector('.forecast-w3')?.value) || 0);
+    const w4Raw = Math.round(parseFloat(row.querySelector('.forecast-w4')?.value) || 0);
 
-    if (forecast_ctn !== orig_ctn) {
+    const week1_ctn = isCarton ? w1Raw : Math.round(w1Raw / ctnSize);
+    const week2_ctn = isCarton ? w2Raw : Math.round(w2Raw / ctnSize);
+    const week3_ctn = isCarton ? w3Raw : Math.round(w3Raw / ctnSize);
+    const week4_ctn = isCarton ? w4Raw : Math.round(w4Raw / ctnSize);
+
+    if (inputVal !== origVal) {
       hasChanges = true;
     }
 
@@ -1122,7 +1362,7 @@ async function saveForecastChanges() {
 
   let revisionNotes = 'Monthly Sales Forecast Update';
   if (hasChanges) {
-    const userReason = prompt('Sales forecast values have been adjusted. Please enter revision reason or specific period note (যেমনঃ Week 3 Promotion, Ramadan surge):', 'Periodic Demand Adjustment');
+    const userReason = prompt('Sales forecast values have been adjusted. Please enter revision reason or specific period note (e.g. Week 3 Promotion, Ramadan surge):', 'Periodic Demand Adjustment');
     if (userReason !== null && userReason.trim() !== '') {
       revisionNotes = userReason.trim();
     }
@@ -1148,6 +1388,7 @@ async function saveForecastChanges() {
     });
     const data = await res.json();
     if (data.success) {
+      AppState.hasUnsavedChanges = false;
       const countMsg = data.items_updated || data.count || items.length;
       showToast(`✓ Sales forecast successfully saved (${countMsg} SKUs)!`, 'success');
       loadForecastView();
@@ -1174,7 +1415,7 @@ async function openForecastRevisionsModal(skuId, skuName) {
   const titleEl = document.getElementById('modal-revision-sku-title');
   const subEl = document.getElementById('modal-revision-sku-sub');
   if (titleEl) titleEl.textContent = `${skuName} - Forecast Revision History`;
-  if (subEl) subEl.textContent = `Full audit log of all weekly/monthly adjustments made for ${month} (SKU #${skuId}).`;
+  if (subEl) subEl.textContent = `Month: ${month} • Audit Log & Revisions`;
 
   const tbody = document.getElementById('modal-forecast-revisions-tbody');
   if (tbody) {
@@ -1242,7 +1483,7 @@ async function triggerRealignProduction() {
 function downloadForecastBlankTemplate() {
   const cat = AppState.selectedCategory;
   const month = document.getElementById('forecast-month-select')?.value || AppState.selectedMonth;
-  window.location.href = `/api/forecast/template?category=${cat}&month=${month}`;
+  window.location.href = authDownloadUrl(`/api/forecast/template?category=${cat}&month=${month}`);
   showToast('Downloading blank Excel template...', 'success');
 }
 
@@ -1368,9 +1609,10 @@ function renderProductionPlans(plans) {
     else if (p.status === 'In Production') badgeClass = 'pill-fast';
     else if (p.status === 'Planned') badgeClass = 'pill-critical';
 
-    const plannedVal = isCarton ? p.planned_ctn : (p.planned_pcs || p.planned_ctn * p.ctn_size);
-    const actualVal = isCarton ? p.actual_produced_ctn : (p.actual_produced_pcs || p.actual_produced_ctn * p.ctn_size);
-    const openVal = isCarton ? (p.opening_stock_ctn || 0.0) : (p.opening_stock_pcs || (p.opening_stock_ctn || 0.0) * p.ctn_size);
+    const plannedVal = isCarton ? Math.round(p.planned_ctn || 0) : Math.round(p.planned_pcs || (p.planned_ctn || 0) * (p.ctn_size || 1));
+    const actualVal = isCarton ? Math.round(p.actual_produced_ctn || 0) : Math.round(p.actual_produced_pcs || (p.actual_produced_ctn || 0) * (p.ctn_size || 1));
+    const openVal = isCarton ? Math.round(p.opening_stock_ctn || 0) : Math.round(p.opening_stock_pcs || (p.opening_stock_ctn || 0) * (p.ctn_size || 1));
+    const varianceVal = isCarton ? Math.round((p.actual_produced_ctn || 0) - (p.planned_ctn || 0)) : Math.round(((p.actual_produced_ctn || 0) - (p.planned_ctn || 0)) * (p.ctn_size || 1));
     const uomLabel = isCarton ? 'Ctn' : (p.uom_default || 'Pcs');
 
     let prevDateLabel = 'Prev Day';
@@ -1397,18 +1639,28 @@ function renderProductionPlans(plans) {
             <i class="fas fa-warehouse" style="color:var(--primary); font-size:0.8rem; margin-right:3px;"></i>
             ${openVal.toLocaleString()} ${uomLabel}
           </div>
-          <div style="font-size:0.68rem; color:var(--text-dim);" title="Poloxy Godown: ${p.godown_name || 'Godown'} [Group: Cut-Up-Part]">
+          <div style="font-size:0.68rem; color:var(--text-dim);" title="Poloxy Godown: ${p.godown_name || 'Godown'}">
             ${p.plan_date ? `Closing: ${prevDateLabel} / Open: ${planDateLabel}` : (p.godown_name ? p.godown_name.split(' ')[1] || p.godown_name : 'Poloxy In-Hand')}
           </div>
         </td>
-        <td><strong>${plannedVal.toLocaleString()}</strong> ${uomLabel}</td>
         <td>
-          <div style="font-weight:700; color:${ach >= 80 ? 'var(--success)' : 'var(--warning)'}; font-size:0.95rem;">${actualVal.toLocaleString()} ${uomLabel}</div>
-          ${p.output_amount ? `<div style="font-size:0.68rem; color:var(--success); font-weight:600;">৳ ${p.output_amount.toLocaleString()}</div>` : ''}
+          ${canUserEdit('production') ? `
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" step="1" min="0" class="form-control form-control-sm plan-target-input" 
+                     data-plan-id="${p.id}" data-sku-id="${p.sku_id}" data-plan-date="${p.plan_date || ''}" data-ctn-size="${p.ctn_size || 1}"
+                     value="${plannedVal}" style="width:85px; text-align:right; font-weight:700; padding:2px 6px;"
+                     oninput="this.value = this.value.replace(/[^0-9]/g, ''); markProductionPlanDirty(this);">
+              <span style="font-size:0.75rem; color:var(--text-muted);">${uomLabel}</span>
+            </div>
+          ` : `<strong>${plannedVal.toLocaleString()}</strong> ${uomLabel}`}
         </td>
         <td>
-          <span style="font-weight:600; color:${p.variance_ctn >= 0 ? 'var(--success)' : 'var(--danger)'};">
-            ${p.variance_ctn >= 0 ? '+' : ''}${p.variance_ctn} Ctn
+          <div style="font-weight:700; color:${ach >= 80 ? 'var(--success)' : 'var(--warning)'}; font-size:0.95rem;">${actualVal.toLocaleString()} ${uomLabel}</div>
+          ${p.output_amount ? `<div style="font-size:0.68rem; color:var(--success); font-weight:600;">BDT ${Math.round(p.output_amount).toLocaleString()}</div>` : ''}
+        </td>
+        <td>
+          <span style="font-weight:600; color:${varianceVal >= 0 ? 'var(--success)' : 'var(--danger)'};">
+            ${varianceVal >= 0 ? '+' : ''}${varianceVal.toLocaleString()} ${uomLabel}
           </span>
         </td>
         <td style="width:110px;">
@@ -1433,13 +1685,14 @@ function renderProductionPlans(plans) {
               <button class="btn btn-sm btn-outline" title="Manual correction (Super Admin only)" onclick="openUpdateOutputModal(${p.id}, '${p.plan_no}', ${p.planned_ctn}, ${p.actual_produced_ctn})">
                 <i class="fas fa-edit"></i> Output
               </button>
-            ` : `<span class="pill pill-safe" style="font-size:0.7rem;" title="Actual output Poloxy report থেকে আসে"><i class="fas fa-link"></i> Poloxy</span>`}
+            ` : `<span class="pill pill-safe" style="font-size:0.7rem;" title="Actual output Pulled from Poloxy ERP report"><i class="fas fa-link"></i> Poloxy</span>`}
           </div>
         </td>
       </tr>
     `;
   }).join('');
 }
+
 
 // Poloxy ERP Smart Live Sync (Calendar Single Date & Range with Cache Bypass)
 let syncDateMode = 'single';
@@ -1456,7 +1709,7 @@ function openPoloxySyncModal() {
     'ALL': 'All Production Units'
   };
   const workCenters = {
-    '05': 'Dry Food Packing (Bakery Puffed Sauce Chanachur & Lachsa) [Main Product]',
+    '05': 'All 4 Lines: 1. Sweets Pastry & Savory (WC253), 2. Export (WC275), 3. Corporate (WC276), 4. Bakery & Chanachur (WC33)',
     '02': 'Frozen Finished Goods [Main Product]',
     '01': 'Process Chicken Plant [Main Product]',
     'ALL': 'Multi-Work Center'
@@ -1483,7 +1736,7 @@ function openPoloxySyncModal() {
   if (rFrom) rFrom.value = `${AppState.selectedMonth}-01`;
   if (rTo) rTo.value = today;
 
-  setSyncAction('actual_output');
+  setSyncAction('both');
 
   const statusMsg = document.getElementById('sync-status-msg');
   if (statusMsg) {
@@ -1494,7 +1747,7 @@ function openPoloxySyncModal() {
   const btn = document.getElementById('btn-submit-erp-sync');
   if (btn) {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> <span>Poloxy ERP থেকে ডাটা আনুন (Pull Data Now)</span>';
+    btn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> <span>Pull Poloxy ERP Data Now</span>';
   }
 
   showModal('modal-poloxy-sync');
@@ -1516,8 +1769,8 @@ function updateRule9DateHelper() {
     const yestStr = yest.toISOString().split('T')[0];
 
     let prefix = '';
-    if (sDate.value === todayStr) prefix = 'আজকের ';
-    else if (sDate.value === yestStr) prefix = 'গতকালকের ';
+    if (sDate.value === todayStr) prefix = "Today's ";
+    else if (sDate.value === yestStr) prefix = "Yesterday's ";
 
     if (friendlyLabel) {
       friendlyLabel.textContent = `${prefix}(${formatted} / ${fmtEn})`;
@@ -1554,8 +1807,8 @@ function setSyncDateMode(mode) {
 
   if (toggleBtn) {
     toggleBtn.innerHTML = (mode === 'single') 
-      ? '🗓️ একাধিক দিন (Date Range)' 
-      : '📅 একক দিন (Single Date)';
+      ? '🗓️ Date Range' 
+      : '📅 Single Date';
   }
 
   if (boxSingle) boxSingle.style.display = (mode === 'single') ? 'block' : 'none';
@@ -1659,7 +1912,7 @@ async function submitPoloxySync() {
     });
     const data = await res.json();
     
-    if (data.success) {
+    if (data.success && data.poloxy_connected !== false) {
       if (statusMsg) {
         statusMsg.style.color = 'var(--success)';
         const prodInfo = data.total_produced_cartons > 0 ? ` • Output: <strong>${data.total_produced_cartons} ctn</strong>` : '';
@@ -1806,17 +2059,21 @@ async function loadStoreView() {
 }
 
 // Live Poloxy ERP RM & PM Stock Synchronization
+let isSyncingPoloxyMaterials = false;
 async function syncMaterialsFromPoloxy() {
+  if (isSyncingPoloxyMaterials) return;
+  isSyncingPoloxyMaterials = true;
   const cat = AppState.selectedCategory;
   const btn = document.getElementById('btn-sync-poloxy-rm-pm');
   let originalHtml = '';
   if (btn) {
     originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Poloxy লাইভ স্টক সিঙ্ক হচ্ছে... (~১৫ সেকেন্ড)</span>';
+    btn.classList.add('disabled');
+    btn.style.pointerEvents = 'none';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Syncing Poloxy Live Stock... (~15s)</span>';
   }
 
-  showToast(`Poloxy ERP থেকে Unit ${cat}-এর Factory Godown (RAW & PACKAGING MATERIAL) লাইভ স্টক সিঙ্ক শুরু হয়েছে... দয়া করে অপেক্ষা করুন।`, 'info');
+  showToast(`Connecting to Poloxy ERP to sync live RM & PM stock for Unit ${cat}... Please wait.`, 'info');
   
   try {
     const res = await fetch('/api/materials/sync-poloxy', {
@@ -1826,18 +2083,20 @@ async function syncMaterialsFromPoloxy() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`✅ Poloxy ERP থেকে ${data.updated_count} টি RM ও PM আইটেমের স্টক সফলভাবে সিঙ্ক হয়েছে!`, 'success');
+      showToast(`✅ Successfully synced ${data.updated_count} RM and PM materials with live Poloxy ERP closing stock!`, 'success');
       loadStoreStock();
-      loadMaterials();
       if (AppState.storeSubTab === 'ledger') loadStockLedger();
     } else {
       showToast(`Poloxy Sync Error: ${data.error || 'Failed to sync'}`, 'danger');
     }
   } catch (e) {
-    showToast('Poloxy ERP সার্ভারের সাথে সংযোগে ত্রুটি দেখা দিয়েছে (Timeout/Network)', 'danger');
+    console.error('Poloxy sync exception:', e);
+    showToast(`Error connecting to Poloxy ERP server: ${e.message || 'Timeout/Network'}`, 'danger');
   } finally {
+    isSyncingPoloxyMaterials = false;
     if (btn) {
-      btn.disabled = false;
+      btn.classList.remove('disabled');
+      btn.style.pointerEvents = '';
       btn.innerHTML = originalHtml;
     }
   }
@@ -1960,10 +2219,23 @@ function renderStoreTable(items) {
           </span>
         </td>
         <td>
-          <a href="javascript:void(0)" class="aging-stock-link" onclick="openMaterialAgingModal(${m.id})" style="font-weight:700; color:${m.stock_status === 'Critical' ? 'var(--danger)' : 'var(--primary)'}; font-size:0.95rem; text-decoration:underline; cursor:pointer;" title="Click to view Batch Receiving Dates & Shelf-Life Aging Breakdown">
-            ${m.current_stock.toLocaleString()}
-          </a> ${m.unit}
-          <div style="font-size:0.68rem; color:var(--text-dim);"><i class="fas fa-history"></i> Click for Aging</div>
+          ${canUserEdit('store') ? `
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" step="any" min="0" class="form-control form-control-sm store-stock-input"
+                     data-mat-id="${m.id}" data-orig-val="${m.current_stock}"
+                     value="${m.current_stock}" style="width:85px; text-align:right; font-weight:700; padding:2px 6px;"
+                     oninput="markStoreStockDirty(this)">
+              <span style="font-size:0.75rem; color:var(--text-muted);">${m.unit}</span>
+            </div>
+            <a href="javascript:void(0)" class="aging-stock-link" onclick="openMaterialAgingModal(${m.id})" style="font-size:0.68rem; color:var(--text-dim); text-decoration:underline;">
+              <i class="fas fa-history"></i> Aging
+            </a>
+          ` : `
+            <a href="javascript:void(0)" class="aging-stock-link" onclick="openMaterialAgingModal(${m.id})" style="font-weight:700; color:${m.stock_status === 'Critical' ? 'var(--danger)' : 'var(--primary)'}; font-size:0.95rem; text-decoration:underline;" title="Click to view Batch Receiving Dates & Shelf-Life Aging Breakdown">
+              ${m.current_stock.toLocaleString()}
+            </a> ${m.unit}
+            <div style="font-size:0.68rem; color:var(--text-dim);"><i class="fas fa-history"></i> Click for Aging</div>
+          `}
         </td>
         <td>
           <span style="font-weight:600; color:var(--cyan); font-size:0.92rem;">${floorStock.toLocaleString()}</span> ${m.unit}
@@ -1972,12 +2244,15 @@ function renderStoreTable(items) {
           <strong style="color:var(--text-main); font-size:0.95rem;">${totalPlant.toLocaleString()}</strong> ${m.unit}
         </td>
         <td>
-          <span style="font-weight:600;">${m.safety_stock.toLocaleString()}</span> ${m.unit}
           ${canUserEdit('store') ? `
-            <button class="btn btn-sm btn-outline" style="padding:1px 5px; font-size:0.65rem; margin-left:4px;" title="Edit Safety Stock" onclick="openEditSafetyStockModal(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.safety_stock})">
-              <i class="fas fa-pen"></i>
-            </button>
-          ` : ''}
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" step="any" min="0" class="form-control form-control-sm store-safety-input"
+                     data-mat-id="${m.id}" data-orig-val="${m.safety_stock}"
+                     value="${m.safety_stock}" style="width:75px; text-align:right; font-weight:600; padding:2px 6px;"
+                     oninput="markStoreStockDirty(this)">
+              <span style="font-size:0.75rem; color:var(--text-muted);">${m.unit}</span>
+            </div>
+          ` : `<span style="font-weight:600;">${m.safety_stock.toLocaleString()}</span> ${m.unit}`}
         </td>
         <td>
           ${m.in_transit > 0 
@@ -1985,7 +2260,7 @@ function renderStoreTable(items) {
             : `<span style="color:var(--text-dim);">-</span>`}
         </td>
         <td><span class="pill ${pillClass}">${m.stock_status}</span></td>
-        <td><strong>৳ ${m.stock_value.toLocaleString()}</strong></td>
+        <td><strong>BDT ${m.stock_value.toLocaleString()}</strong></td>
         <td>
           <div style="display:flex; gap:0.35rem;">
             ${canUserEdit('store') ? `
@@ -2001,6 +2276,109 @@ function renderStoreTable(items) {
       </tr>
     `;
   }).join('');
+}
+
+// Material FIFO Stock Aging Modal
+async function openMaterialAgingModal(matId) {
+  const titleEl = document.getElementById('aging-modal-title');
+  const subEl = document.getElementById('aging-modal-subtitle');
+  const bodyEl = document.getElementById('aging-modal-body');
+  
+  if (titleEl) titleEl.textContent = 'Material Stock Aging & Batch History';
+  if (subEl) subEl.textContent = 'FIFO Batch Breakdown, Receiving Dates and Shelf-Life Aging Brackets';
+  if (bodyEl) {
+    bodyEl.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:0.75rem;"></i><br><span style="color:var(--text-muted); font-size:0.88rem;">Analyzing FIFO batch receipt history & shelf-life aging...</span></div>';
+  }
+  showModal('modal-material-aging');
+
+  try {
+    const res = await fetch(`/api/store/materials/${matId}/aging`);
+    const data = await res.json();
+    
+    if (!res.ok || !data.material) {
+      if (bodyEl) bodyEl.innerHTML = `<div style="padding:1.5rem; text-align:center; color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> ${data.error || 'Could not load material aging details.'}</div>`;
+      return;
+    }
+
+    const mat = data.material;
+    const s = data.summary || {};
+    const batches = data.batches || [];
+
+    if (titleEl) titleEl.textContent = `${mat.item_code} - ${mat.name} (Aging Analysis)`;
+    if (subEl) subEl.textContent = `Type: ${mat.type} • Current Godown Stock: ${Math.round(s.current_stock || mat.current_stock).toLocaleString()} ${mat.unit} • Avg Age: ${s.avg_age_days || 0} Days`;
+
+    let html = `
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:0.65rem; margin-bottom:1.25rem;">
+        <div style="background:var(--bg-tertiary); border:1px solid var(--card-border); border-radius:8px; padding:0.65rem 0.85rem; text-align:center;">
+          <div style="font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Avg Stock Age</div>
+          <div style="font-size:1.2rem; font-weight:800; color:var(--primary); margin-top:2px;">${s.avg_age_days || 0} <small style="font-size:0.75rem;">Days</small></div>
+        </div>
+        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:0.65rem 0.85rem; text-align:center;">
+          <div style="font-size:0.72rem; color:var(--success); font-weight:600;">0-30 Days (Fresh)</div>
+          <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">${Math.round(s.bracket_0_30 || 0).toLocaleString()} <small style="font-size:0.75rem;">${mat.unit}</small></div>
+        </div>
+        <div style="background:rgba(14,165,233,0.08); border:1px solid rgba(14,165,233,0.25); border-radius:8px; padding:0.65rem 0.85rem; text-align:center;">
+          <div style="font-size:0.72rem; color:var(--cyan); font-weight:600;">31-60 Days (Normal)</div>
+          <div style="font-size:1.15rem; font-weight:800; color:var(--cyan); margin-top:2px;">${Math.round(s.bracket_31_60 || 0).toLocaleString()} <small style="font-size:0.75rem;">${mat.unit}</small></div>
+        </div>
+        <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:0.65rem 0.85rem; text-align:center;">
+          <div style="font-size:0.72rem; color:var(--warning); font-weight:600;">61-90 Days (Slow)</div>
+          <div style="font-size:1.15rem; font-weight:800; color:var(--warning); margin-top:2px;">${Math.round(s.bracket_61_90 || 0).toLocaleString()} <small style="font-size:0.75rem;">${mat.unit}</small></div>
+        </div>
+        <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:0.65rem 0.85rem; text-align:center;">
+          <div style="font-size:0.72rem; color:var(--danger); font-weight:600;">90+ Days (High Risk)</div>
+          <div style="font-size:1.15rem; font-weight:800; color:var(--danger); margin-top:2px;">${Math.round(s.bracket_90_plus || 0).toLocaleString()} <small style="font-size:0.75rem;">${mat.unit}</small></div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table" style="width:100%; font-size:0.82rem;">
+          <thead>
+            <tr>
+              <th>Ref / MRR #</th>
+              <th>Receipt Date</th>
+              <th>Supplier</th>
+              <th>Challan #</th>
+              <th style="text-align:right;">Received Qty</th>
+              <th style="text-align:right;">Active In Stock</th>
+              <th style="text-align:center;">Age (Days)</th>
+              <th style="text-align:center;">Aging Bracket</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    if (batches.length === 0) {
+      html += `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No receiving lots or batches recorded for this material.</td></tr>`;
+    } else {
+      batches.forEach(b => {
+        html += `
+          <tr>
+            <td style="font-weight:700;">${b.ref_no}</td>
+            <td>${b.receipt_date}</td>
+            <td style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${b.supplier_name}</td>
+            <td>${b.chalan_no}</td>
+            <td style="text-align:right;">${Math.round(b.received_qty).toLocaleString()} ${mat.unit}</td>
+            <td style="text-align:right; font-weight:700; color:var(--primary);">${Math.round(b.active_qty).toLocaleString()} ${mat.unit}</td>
+            <td style="text-align:center; font-weight:600;">${b.age_days}d</td>
+            <td style="text-align:center;"><span class="pill ${b.badge_class || 'pill-safe'}">${b.bracket}</span></td>
+          </tr>
+        `;
+      });
+    }
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    if (bodyEl) bodyEl.innerHTML = html;
+  } catch (err) {
+    if (bodyEl) {
+      bodyEl.innerHTML = `<div style="padding:1.5rem; text-align:center; color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Error loading aging analysis: ${err.message}</div>`;
+    }
+  }
 }
 
 // Tab 2: Incoming Production Requisitions (Matches Screenshot 2!)
@@ -2081,8 +2459,8 @@ async function loadMRREntries() {
         </td>
         <td><strong>${r.material_name}</strong> <span style="font-size:0.7rem; color:var(--text-dim);">(${r.item_code})</span></td>
         <td><strong>${r.received_qty.toLocaleString()}</strong> ${r.unit}</td>
-        <td>৳ ${r.unit_price}</td>
-        <td><strong>৳ ${r.total_amount.toLocaleString()}</strong></td>
+        <td>BDT ${r.unit_price}</td>
+        <td><strong>BDT ${r.total_amount.toLocaleString()}</strong></td>
         <td><span style="font-size:0.75rem; color:var(--text-dim);">${r.created_by}</span></td>
       </tr>
     `).join('');
@@ -2162,7 +2540,7 @@ async function loadWastageEntries() {
         <td><span class="pill ${w.item_type === 'FG' ? 'pill-safe' : 'pill-fast'}">${w.item_type}</span></td>
         <td><strong>${w.qty.toLocaleString()}</strong> ${w.unit}</td>
         <td><span class="pill pill-critical">${w.reason}</span></td>
-        <td><strong>৳ ${w.estimated_cost.toLocaleString()}</strong></td>
+        <td><strong>BDT ${w.estimated_cost.toLocaleString()}</strong></td>
         <td>${w.remarks || '-'}</td>
       </tr>
     `).join('');
@@ -2222,16 +2600,19 @@ async function submitCreateWastage() {
   }
 }
 
-// ----------------- 5. SUPER ADMIN: MASTER & BOM & USERS & ERP -----------------
+// ----------------- 5. SUPER ADMIN: MASTER & BOM & ERP -----------------
 async function loadMasterBOMView() {
   loadAdminSKUs();
   loadAdminMaterials();
-  loadAdminUsers();
   loadERPSettings();
   loadTursoStatusUI();
 }
 
 function setAdminTab(tab) {
+  if (tab === 'users') {
+    switchView('users');
+    return;
+  }
   AppState.adminSubTab = tab;
   document.querySelectorAll('#admin-tabs .tab-btn').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-tab') === tab);
@@ -2242,18 +2623,33 @@ function setAdminTab(tab) {
 
   if (tab === 'skus') loadAdminSKUs();
   else if (tab === 'materials') loadAdminMaterials();
-  else if (tab === 'users') loadAdminUsers();
   else if (tab === 'erp') loadERPSettings();
   else if (tab === 'cloud') loadTursoStatusUI();
 }
 
 async function loadAdminSKUs() {
   try {
-    const res = await fetch('/api/skus');
+    const cat = AppState.selectedCategory;
+    const url = (cat && cat !== 'ALL') ? `/api/skus?category=${cat}` : '/api/skus';
+    const res = await fetch(url);
     const skus = await res.json();
     AppState.skus = skus;
     const tbody = document.getElementById('admin-sku-table-body');
     if (!tbody) return;
+
+    const titleEl = document.getElementById('admin-sku-card-title');
+    if (titleEl) {
+      const catName = cat === '02' ? '02. Frozen Foods' : (cat === '01' ? '01. Process Chicken' : (cat === '05' ? '05. Dry Foods' : 'All Categories'));
+      titleEl.innerHTML = `<i class="fas fa-boxes" style="color:var(--primary); margin-right:6px;"></i> Finished Goods Master (${catName}: ${skus.length} SKUs)`;
+    }
+
+    if (!skus || skus.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-dim);">
+        <i class="fas fa-box-open" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.5;"></i>
+        No finished goods found for Unit ${cat}. Click <strong>"+ New Finished Good"</strong> to add products!
+      </td></tr>`;
+      return;
+    }
 
     tbody.innerHTML = skus.map(s => `
       <tr>
@@ -2268,9 +2664,14 @@ async function loadAdminSKUs() {
         </td>
         <td><span class="pill pill-safe">${s.status}</span></td>
         <td>
-          <button class="btn btn-sm btn-primary" onclick="openBOMBuilder(${s.id}, '${s.name.replace(/'/g, "\\'")}')">
-            <i class="fas fa-sitemap"></i> Edit BOM
-          </button>
+          <div style="display:inline-flex; gap:5px;">
+            <button class="btn btn-sm btn-outline" title="Edit Finished Good Item Name & Details" onclick="openEditSKUModal(${s.id})">
+              <i class="fas fa-edit"></i> Edit Item
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="openBOMBuilder(${s.id}, '${s.name.replace(/'/g, "\\'")}')">
+              <i class="fas fa-sitemap"></i> BOM
+            </button>
+          </div>
         </td>
       </tr>
     `).join('');
@@ -2301,27 +2702,190 @@ async function updateSKUConversion(skuId, ctnSize) {
   }
 }
 
+async function openEditSKUModal(skuId) {
+  let sku = (AppState.skus || []).find(s => s.id === skuId);
+  if (!sku) {
+    try {
+      const res = await fetch('/api/skus');
+      const all = await res.json();
+      AppState.skus = all;
+      sku = all.find(s => s.id === skuId);
+    } catch (e) {}
+  }
+  if (!sku) {
+    showToast('Could not load SKU details', 'warning');
+    return;
+  }
+
+  document.getElementById('edit-sku-id').value = sku.id;
+  document.getElementById('edit-sku-code').value = sku.sku_code || '';
+  document.getElementById('edit-sku-name').value = sku.name || '';
+  document.getElementById('edit-sku-category-code').value = sku.category_code || '05';
+  document.getElementById('edit-sku-category').value = sku.category || 'General';
+  document.getElementById('edit-sku-pack-size').value = sku.pack_size || '';
+  document.getElementById('edit-sku-ctn-size').value = sku.ctn_size || 12;
+  document.getElementById('edit-sku-uom').value = sku.uom_default || 'Packet';
+  document.getElementById('edit-sku-status').value = sku.status || 'Active';
+
+  showModal('modal-edit-sku');
+}
+
+async function submitEditSKU() {
+  const id = parseInt(document.getElementById('edit-sku-id').value);
+  const name = document.getElementById('edit-sku-name').value.trim();
+  const category_code = document.getElementById('edit-sku-category-code').value;
+  const category = document.getElementById('edit-sku-category').value.trim();
+  const pack_size = document.getElementById('edit-sku-pack-size').value.trim();
+  const ctn_size = parseInt(document.getElementById('edit-sku-ctn-size').value) || 12;
+  const uom_default = document.getElementById('edit-sku-uom').value;
+  const status = document.getElementById('edit-sku-status').value;
+
+  if (!name) {
+    showToast('Finished good name is required', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/skus/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        category_code,
+        category,
+        pack_size,
+        ctn_size,
+        uom_default,
+        status
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      hideModal('modal-edit-sku');
+      showToast('✓ Finished good details updated successfully!', 'success');
+      loadAdminSKUs();
+      if (AppState.currentView === 'forecast') loadForecastView();
+      if (AppState.currentView === 'production') loadProductionView();
+    } else {
+      showToast(data.error || 'Failed to update SKU', 'danger');
+    }
+  } catch (e) {
+    showToast('Error updating SKU', 'danger');
+  }
+}
+
+async function openEditMaterialModal(matId) {
+  let mat = (AppState.materials || []).find(m => m.id === matId);
+  if (!mat) {
+    try {
+      const res = await fetch('/api/materials');
+      const all = await res.json();
+      AppState.materials = all;
+      mat = all.find(m => m.id === matId);
+    } catch (e) {}
+  }
+  if (!mat) {
+    showToast('Could not load material details', 'warning');
+    return;
+  }
+
+  document.getElementById('edit-mat-id').value = mat.id;
+  document.getElementById('edit-mat-code').value = mat.item_code || '';
+  document.getElementById('edit-mat-name').value = mat.name || '';
+  document.getElementById('edit-mat-type').value = mat.type || 'RM';
+  document.getElementById('edit-mat-category-code').value = mat.category_code || '05';
+  document.getElementById('edit-mat-unit').value = mat.unit || 'Kg';
+  document.getElementById('edit-mat-price').value = mat.unit_price || 0.0;
+  document.getElementById('edit-mat-safety').value = mat.safety_stock || 0.0;
+  document.getElementById('edit-mat-supplier').value = mat.supplier_name || '';
+  document.getElementById('edit-mat-lead-time').value = mat.lead_time_days || 7;
+
+  showModal('modal-edit-material');
+}
+
+async function submitEditMaterial() {
+  const id = parseInt(document.getElementById('edit-mat-id').value);
+  const name = document.getElementById('edit-mat-name').value.trim();
+  const type = document.getElementById('edit-mat-type').value;
+  const category_code = document.getElementById('edit-mat-category-code').value;
+  const unit = document.getElementById('edit-mat-unit').value.trim();
+  const unit_price = parseFloat(document.getElementById('edit-mat-price').value) || 0.0;
+  const safety_stock = parseFloat(document.getElementById('edit-mat-safety').value) || 0.0;
+  const supplier_name = document.getElementById('edit-mat-supplier').value.trim();
+  const lead_time_days = parseInt(document.getElementById('edit-mat-lead-time').value) || 7;
+
+  if (!name) {
+    showToast('Material name is required', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/materials/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        type,
+        category_code,
+        unit,
+        unit_price,
+        safety_stock,
+        supplier_name,
+        lead_time_days
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      hideModal('modal-edit-material');
+      showToast('✓ Material updated successfully!', 'success');
+      loadAdminMaterials();
+      if (AppState.currentView === 'store') loadStoreView();
+      if (AppState.currentView === 'dashboard') loadDashboard();
+    } else {
+      showToast(data.error || 'Failed to update material', 'danger');
+    }
+  } catch (e) {
+    showToast('Error updating material', 'danger');
+  }
+}
+
 async function loadAdminMaterials() {
   try {
-    const res = await fetch('/api/materials');
+    const cat = AppState.selectedCategory;
+    const url = (cat && cat !== 'ALL') ? `/api/materials?category=${cat}` : '/api/materials';
+    const res = await fetch(url);
     const mats = await res.json();
     AppState.materials = mats;
     const tbody = document.getElementById('admin-mat-table-body');
     if (!tbody) return;
 
+    const titleEl = document.getElementById('admin-mat-card-title');
+    if (titleEl) {
+      const catName = cat === '02' ? '02. Frozen Foods' : (cat === '01' ? '01. Process Chicken' : (cat === '05' ? '05. Dry Foods' : 'All Categories'));
+      titleEl.innerHTML = `<i class="fas fa-layer-group" style="color:var(--primary); margin-right:6px;"></i> Raw & Packaging Materials (${catName}: ${mats.length} Items)`;
+    }
+
+    if (!mats || mats.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-dim);">
+        <i class="fas fa-boxes" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.5;"></i>
+        No raw & packaging materials found for Unit ${cat}. Click <strong>"+ New RM / PM Item"</strong> to add materials!
+      </td></tr>`;
+      return;
+    }
+
     tbody.innerHTML = mats.map(m => `
       <tr>
         <td><strong>${m.item_code}</strong></td>
         <td><strong>${m.name}</strong></td>
-        <td><span class="pill ${m.type === 'RM' ? 'pill-safe' : 'pill-fast'}">${m.type}</span></td>
+        <td><span class="pill ${m.type === 'RM' ? 'pill-safe' : (m.type === 'SFG' ? 'pill-warn' : 'pill-fast')}">${m.type}</span></td>
         <td>Unit ${m.category_code}</td>
         <td>${m.unit}</td>
-        <td>৳ ${m.unit_price}</td>
+        <td>BDT ${m.unit_price}</td>
         <td>${m.safety_stock.toLocaleString()}</td>
         <td>${m.supplier_name || '-'}</td>
         <td>
-          <button class="btn btn-sm btn-outline" onclick="openEditMaterialModal(${m.id})">
-            <i class="fas fa-pen"></i>
+          <button class="btn btn-sm btn-outline" title="Edit Material Details" onclick="openEditMaterialModal(${m.id})">
+            <i class="fas fa-pen"></i> Edit
           </button>
         </td>
       </tr>
@@ -2463,12 +3027,12 @@ async function submitEditUser() {
 
 async function deleteUser(id) {
   if (!confirm('Are you sure you want to delete this user?')) return;
-  showDeleteAnimation('ইউজার প্রোফাইল মোছা হচ্ছে...', 'ইউজার ডাটাবেস থেকে নিরাপদভাবে মুছে ফেলা হচ্ছে...');
+  showDeleteAnimation('Deleting user profile...', 'Removing user securely from database...');
   try {
     const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (data.success) {
-      finishDeleteAnimation('ইউজার সফলভাবে মুছে ফেলা হয়েছে।', () => {
+      finishDeleteAnimation('User successfully deleted.', () => {
         showToast('User deleted successfully', 'success');
         loadAdminUsers();
       });
@@ -2522,6 +3086,31 @@ async function saveERPSettings() {
     }
   } catch (e) {
     showToast('Failed to save ERP settings', 'danger');
+  }
+}
+
+async function testPoloxyConnectionLive() {
+  const btn = document.getElementById('btn-test-poloxy-conn');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing Connection...';
+  }
+  try {
+    const res = await fetch('/api/erp/test-connection', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`✅ ${data.message}`, 'success');
+    } else {
+      showToast(`❌ Connection Failed: ${data.error || 'Cannot reach Poloxy ERP'}`, 'danger');
+    }
+  } catch (e) {
+    showToast(`❌ Network Error: ${e.message}`, 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
   }
 }
 
@@ -2733,8 +3322,8 @@ async function loadSKUBOMDetails(skuId, skuName) {
               <th>Type</th>
               <th>Rate / Carton</th>
               <th>Unit</th>
-              <th>Unit Price (৳)</th>
-              <th>Est. Cost / Ctn (৳)</th>
+              <th>Unit Price (BDT)</th>
+              <th>Est. Cost / Ctn (BDT)</th>
               <th>Notes / Formulation</th>
               <th>Actions</th>
             </tr>
@@ -2749,8 +3338,8 @@ async function loadSKUBOMDetails(skuId, skuName) {
                          onchange="updateBOMItemRate(${skuId}, ${it.material_id}, this.value, '${it.bom_unit}')">
                 </td>
                 <td>${it.bom_unit}</td>
-                <td>৳ ${it.unit_price}</td>
-                <td><strong>৳ ${(it.rate_per_ctn * it.unit_price).toFixed(2)}</strong></td>
+                <td>BDT ${it.unit_price}</td>
+                <td><strong>BDT ${(it.rate_per_ctn * it.unit_price).toFixed(2)}</strong></td>
                 <td><span style="font-size:0.75rem; color:var(--text-muted);">${it.notes || '-'}</span></td>
                 <td>
                   <button class="btn btn-sm btn-danger" onclick="deleteBOMItem(${skuId}, ${it.material_id})">
@@ -2880,8 +3469,8 @@ function renderProcurementTable(pos) {
         </td>
         <td><span class="pill ${p.type === 'RM' ? 'pill-safe' : 'pill-fast'}">${p.type}</span></td>
         <td><strong>${p.req_qty.toLocaleString()}</strong> ${p.unit}</td>
-        <td>৳ ${p.unit_price}</td>
-        <td><strong>৳ ${p.total_value.toLocaleString()}</strong></td>
+        <td>BDT ${p.unit_price}</td>
+        <td><strong>BDT ${p.total_value.toLocaleString()}</strong></td>
         <td><span class="pill ${statusClass}">${p.status}</span></td>
         <td>${p.expected_delivery || `${p.lead_time_days} days`}</td>
         <td>
@@ -2905,6 +3494,7 @@ function renderProcurementTable(pos) {
     `;
   }).join('');
 }
+
 
 function openRaisePurchaseModal(matId, name, suggestedQty, price, supplier) {
   document.getElementById('raise-po-mat-id').value = matId;
@@ -3001,21 +3591,34 @@ async function submitReceiveGRN() {
 function switchReportSubTab(tabName) {
   AppState.reportSubTab = tabName;
   const isForecast = tabName === 'forecast_prod';
+  const isStock = tabName === 'stock_fsn';
+  const isVariance = tabName === 'consumption_variance';
 
   document.getElementById('tab-btn-forecast-prod')?.classList.toggle('active', isForecast);
-  document.getElementById('tab-btn-stock-fsn')?.classList.toggle('active', !isForecast);
+  document.getElementById('tab-btn-stock-fsn')?.classList.toggle('active', isStock);
+  document.getElementById('tab-btn-consumption-variance')?.classList.toggle('active', isVariance);
 
   const fSec = document.getElementById('report-subtab-forecast-prod');
   const sSec = document.getElementById('report-subtab-stock-fsn');
+  const vSec = document.getElementById('report-subtab-consumption-variance');
   if (fSec) fSec.style.display = isForecast ? 'block' : 'none';
-  if (sSec) sSec.style.display = !isForecast ? 'block' : 'none';
+  if (sSec) sSec.style.display = isStock ? 'block' : 'none';
+  if (vSec) vSec.style.display = isVariance ? 'block' : 'none';
 
   const btnLabel = document.getElementById('export-excel-btn-label');
   if (btnLabel) {
-    btnLabel.textContent = isForecast ? 'Export Forecast vs Production (.xlsx)' : 'Export RM & PM Stock Summary (.xlsx)';
+    if (isVariance) {
+      btnLabel.textContent = 'Export Consumption Variance (.xlsx)';
+    } else if (isForecast) {
+      btnLabel.textContent = 'Export Forecast vs Production (.xlsx)';
+    } else {
+      btnLabel.textContent = 'Export RM & PM Stock Summary (.xlsx)';
+    }
   }
 
-  if (isForecast) {
+  if (isVariance) {
+    loadConsumptionVarianceReport();
+  } else if (isForecast) {
     loadForecastVsProdReport();
   } else {
     loadStockSummaryReport();
@@ -3028,11 +3631,18 @@ async function loadReportsView() {
 }
 
 function exportActiveReportExcel() {
-  const isForecast = (AppState.reportSubTab || 'forecast_prod') === 'forecast_prod';
+  const currentTab = AppState.reportSubTab || 'forecast_prod';
   const uom = AppState.displayUOM;
-  const month = document.getElementById('report-month-select')?.value || AppState.selectedMonth;
 
-  if (isForecast) {
+  if (currentTab === 'consumption_variance') {
+    const cat = document.getElementById('report-var-cat-select')?.value || AppState.selectedCategory;
+    const month = document.getElementById('report-var-month-select')?.value || AppState.selectedMonth;
+    const type = document.getElementById('report-var-type-select')?.value || 'ALL';
+    const url = `/api/reports/export/excel?section=consumption_variance&category=${cat}&month=${month}&type=${type}`;
+    showToast('Downloading Consumption Variance Excel report...', 'primary');
+    window.location.href = authDownloadUrl(url);
+  } else if (currentTab === 'forecast_prod') {
+    const month = document.getElementById('report-month-select')?.value || AppState.selectedMonth;
     const cat = document.getElementById('report-category-select')?.value || AppState.selectedCategory;
     const mode = AppState.reportFilterMode || 'month';
     let url = `/api/reports/export/excel?section=forecast_vs_prod&category=${cat}&month=${month}&uom=${uom}`;
@@ -3045,17 +3655,20 @@ function exportActiveReportExcel() {
       if (dFrom && dTo) url += `&date_from=${dFrom}&date_to=${dTo}`;
     }
     showToast('Downloading Forecast vs Production Excel report...', 'primary');
-    window.location.href = url;
+    window.location.href = authDownloadUrl(url);
   } else {
+    const month = document.getElementById('report-month-select')?.value || AppState.selectedMonth;
     const cat = document.getElementById('report-stock-cat-select')?.value || AppState.selectedCategory;
     const url = `/api/reports/export/excel?section=stock_fsn&category=${cat}&month=${month}&uom=${uom}`;
     showToast('Downloading RM & PM Stock Summary Excel report...', 'primary');
-    window.location.href = url;
+    window.location.href = authDownloadUrl(url);
   }
 }
 
 function setReportDateFilterMode(mode) {
   AppState.reportFilterMode = mode;
+  const sel = document.getElementById('report-mode-select');
+  if (sel && sel.value !== mode) sel.value = mode;
   document.getElementById('report-mode-month-btn')?.classList.toggle('active', mode === 'month');
   document.getElementById('report-mode-single-btn')?.classList.toggle('active', mode === 'single');
   document.getElementById('report-mode-range-btn')?.classList.toggle('active', mode === 'range');
@@ -3149,10 +3762,10 @@ async function loadForecastVsProdReport() {
     }
 
     tbody.innerHTML = data.items.map(it => {
-      const origFcVal = isCarton ? (it.original_forecast_ctn || it.forecast_ctn) : ((it.original_forecast_ctn || it.forecast_ctn) * it.ctn_size);
-      const activeFcVal = isCarton ? it.forecast_ctn : (it.forecast_ctn * it.ctn_size);
-      const planVal = isCarton ? it.planned_ctn : (it.planned_ctn * it.ctn_size);
-      const actVal = isCarton ? it.actual_produced_ctn : (it.actual_produced_ctn * it.ctn_size);
+      const origFcVal = Math.round(isCarton ? (it.original_forecast_ctn || it.forecast_ctn || 0) : ((it.original_forecast_ctn || it.forecast_ctn || 0) * (it.ctn_size || 1)));
+      const activeFcVal = Math.round(isCarton ? (it.forecast_ctn || 0) : ((it.forecast_ctn || 0) * (it.ctn_size || 1)));
+      const planVal = Math.round(isCarton ? (it.planned_ctn || 0) : ((it.planned_ctn || 0) * (it.ctn_size || 1)));
+      const actVal = Math.round(isCarton ? (it.actual_produced_ctn || 0) : ((it.actual_produced_ctn || 0) * (it.ctn_size || 1)));
       const varVal = actVal - activeFcVal;
       const uomLabel = isCarton ? 'Ctn' : (it.uom_default || 'Pcs');
 
@@ -3239,15 +3852,15 @@ async function loadStockSummaryReport() {
               ? `<span class="pill pill-critical">-${m.deficit_qty}</span>` 
               : `<span class="pill pill-safe">Buffer OK</span>`}
           </td>
-          <td>৳ ${m.unit_price}</td>
-          <td><strong>৳ ${m.stock_value.toLocaleString()}</strong></td>
+          <td>BDT ${m.unit_price}</td>
+          <td><strong>BDT ${m.stock_value.toLocaleString()}</strong></td>
           <td><span class="pill ${fsnClass}">${m.fsn_status}</span></td>
         </tr>
       `;
     }).join('');
 
     const valEl = document.getElementById('report-kpi-total-val');
-    if (valEl) valEl.textContent = `Total Valuation: ৳${Math.round(totalVal).toLocaleString()}`;
+    if (valEl) valEl.textContent = `Total Valuation: BDT ${Math.round(totalVal).toLocaleString()}`;
     const critEl = document.getElementById('report-kpi-critical-count');
     if (critEl) critEl.textContent = `Critical: ${criticalCount} Items`;
     const countBadge = document.getElementById('report-stock-count-badge');
@@ -3255,6 +3868,136 @@ async function loadStockSummaryReport() {
   } catch (e) {
     console.error('Error loading stock summary report:', e);
   }
+}
+
+// ----------------- STANDARD VS ACTUAL RM & PM CONSUMPTION VARIANCE -----------------
+let currentVarianceItems = [];
+
+async function loadConsumptionVarianceReport() {
+  const cat = document.getElementById('report-var-cat-select')?.value || AppState.selectedCategory;
+  const month = document.getElementById('report-var-month-select')?.value || AppState.selectedMonth;
+  const type = document.getElementById('report-var-type-select')?.value || 'ALL';
+  const tbody = document.getElementById('report-consumption-variance-tbody');
+  
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; padding:1.5rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Calculating standard requirement vs actual issued consumption...</td></tr>';
+  }
+
+  try {
+    const res = await fetch(`/api/reports/material-consumption-variance?category=${cat}&month=${month}&type=${type}`);
+    const data = await res.json();
+    currentVarianceItems = data.items || [];
+    const summary = data.summary || {};
+
+    const stdCostEl = document.getElementById('report-var-kpi-std-cost');
+    if (stdCostEl) stdCostEl.textContent = `BDT ${(summary.total_standard_cost || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+    const actCostEl = document.getElementById('report-var-kpi-act-cost');
+    if (actCostEl) actCostEl.textContent = `BDT ${(summary.total_actual_cost || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+    const varCostEl = document.getElementById('report-var-kpi-variance-cost');
+    const varCard = document.getElementById('report-var-kpi-variance-card');
+    const varSub = document.getElementById('report-var-kpi-variance-sub');
+    const netVar = summary.total_variance_cost || 0;
+
+    if (varCostEl) {
+      varCostEl.textContent = `${netVar > 0 ? '+' : ''}BDT ${netVar.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+      if (netVar > 0) {
+        varCostEl.style.color = 'var(--danger)';
+        if (varCard) varCard.style.borderLeftColor = 'var(--danger)';
+        if (varSub) varSub.textContent = 'Net Excess / Over-budget Cost';
+      } else {
+        varCostEl.style.color = 'var(--success)';
+        if (varCard) varCard.style.borderLeftColor = 'var(--success)';
+        if (varSub) varSub.textContent = 'Net Savings / Under-consumption';
+      }
+    }
+
+    const excessEl = document.getElementById('report-var-kpi-excess');
+    if (excessEl) excessEl.textContent = `${summary.excess_items_count || 0} Excess`;
+    const favEl = document.getElementById('report-var-kpi-favorable');
+    if (favEl) favEl.textContent = `${summary.favorable_items_count || 0} Favorable`;
+
+    const countBadge = document.getElementById('report-var-count-badge');
+    if (countBadge) countBadge.textContent = `${currentVarianceItems.length} Materials Analyzed`;
+
+    const titleEl = document.getElementById('report-consumption-var-title');
+    if (titleEl) titleEl.textContent = `RM & PM Consumption Variance Report (${month} • Unit ${cat})`;
+
+    renderConsumptionVarianceTable(currentVarianceItems);
+  } catch (e) {
+    console.error('Error loading consumption variance report:', e);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding:1.5rem; color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Error loading consumption variance report: ${e.message}</td></tr>`;
+    }
+  }
+}
+
+function renderConsumptionVarianceTable(items) {
+  const tbody = document.getElementById('report-consumption-variance-tbody');
+  if (!tbody) return;
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:1.5rem;">No material consumption records found for this selection.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map((it, idx) => {
+    let statusClass = 'pill-safe';
+    let statusIcon = '<i class="fas fa-check-circle"></i> Balanced';
+    if (it.status === 'Over-Consumed') {
+      statusClass = 'pill-danger';
+      statusIcon = '<i class="fas fa-arrow-up"></i> Excess';
+    } else if (it.status === 'Favorable') {
+      statusClass = 'pill-safe';
+      statusIcon = '<i class="fas fa-arrow-down"></i> Favorable';
+    } else {
+      statusClass = 'pill-warn';
+      statusIcon = '<i class="fas fa-check"></i> On Target';
+    }
+
+    const varColor = it.variance_qty > 0 ? 'color:var(--danger); font-weight:700;' : (it.variance_qty < 0 ? 'color:var(--success); font-weight:700;' : 'color:var(--text-muted);');
+    const varSign = it.variance_qty > 0 ? '+' : '';
+
+    return `
+      <tr>
+        <td style="color:var(--text-muted);">${idx + 1}</td>
+        <td><strong>${it.item_code || '-'}</strong></td>
+        <td><strong>${it.name || '-'}</strong></td>
+        <td><span class="pill ${it.type === 'RM' ? 'pill-safe' : 'pill-fast'}">${it.type || '-'}</span></td>
+        <td>${it.unit || 'Kg'}</td>
+        <td style="text-align:right;"><strong>${it.standard_req_qty.toLocaleString()}</strong></td>
+        <td style="text-align:right; color:var(--text-muted);">${it.requisitioned_qty.toLocaleString()}</td>
+        <td style="text-align:right;"><strong>${it.actual_issued_qty.toLocaleString()}</strong></td>
+        <td style="text-align:right; ${varColor}">${varSign}${it.variance_qty.toLocaleString()}</td>
+        <td style="text-align:center;">
+          <span class="pill ${Math.abs(it.variance_pct) > 10 ? (it.variance_qty > 0 ? 'pill-danger' : 'pill-safe') : 'pill-safe'}" style="font-weight:700;">
+            ${varSign}${it.variance_pct}%
+          </span>
+        </td>
+        <td style="text-align:right;">BDT ${it.unit_price.toFixed(2)}</td>
+        <td style="text-align:right; ${varColor}">
+          ${varSign}BDT ${Math.abs(it.variance_cost).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
+        </td>
+        <td style="text-align:center;">
+          <span class="pill ${statusClass}" style="font-size:0.75rem;">${statusIcon}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterConsumptionVarianceTable() {
+  const query = (document.getElementById('report-var-search')?.value || '').trim().toLowerCase();
+  if (!query) {
+    renderConsumptionVarianceTable(currentVarianceItems);
+    return;
+  }
+  const filtered = currentVarianceItems.filter(it => 
+    (it.name || '').toLowerCase().includes(query) || 
+    (it.item_code || '').toLowerCase().includes(query)
+  );
+  renderConsumptionVarianceTable(filtered);
 }
 
 // Dynamic Section-Specific Excel Export
@@ -3272,7 +4015,7 @@ function downloadSectionExcel(specificSection) {
     }
   }
   
-  window.location.href = `/api/reports/export/excel?section=${section}&category=${cat}&month=${month}&uom=${uom}`;
+  window.location.href = authDownloadUrl(`/api/reports/export/excel?section=${section}&category=${cat}&month=${month}&uom=${uom}`);
   showToast(`Downloading Excel report for ${section.toUpperCase()} with solid cell shades...`, 'success');
 }
 
@@ -3299,7 +4042,7 @@ async function submitBulkForecast() {
   formData.append('month', month);
   runUploadWithPreview({
     url: '/api/forecast/bulk-upload', formData, sourceModal: 'modal-bulk-forecast',
-    cols: [['code', 'SKU Code'], ['name', 'SKU'], ['old', 'আগের (ctn)'], ['new', 'নতুন (ctn)']],
+    cols: [['code', 'SKU Code'], ['name', 'SKU'], ['old', 'Previous (ctn)'], ['new', 'New (ctn)']],
     onSuccess: () => { loadForecastView(); loadDashboard(); }
   });
 }
@@ -3308,7 +4051,7 @@ async function submitBulkForecast() {
 function downloadProductionTemplate() {
   const cat = AppState.selectedCategory;
   const month = AppState.selectedMonth;
-  window.location.href = `/api/production/template?category=${cat}&month=${month}`;
+  window.location.href = authDownloadUrl(`/api/production/template?category=${cat}&month=${month}`);
   showToast('Downloading blank Production Plan template...', 'success');
 }
 
@@ -3337,14 +4080,14 @@ async function submitBulkProduction() {
 }
 
 // Super Admin Data Clear Tool
-function openClearDataModal(defaultSection) {
+function openClearDataModal(defaultSection = 'all') {
   if (!isSuperAdminUser()) {
-    showToast('Access Denied (নিরাপত্তা সীমাবদ্ধতা): Only Super Admin has permission to access the System Reset & Data Cleanup Tool.', 'danger');
+    showToast('Access Denied: Only Super Admin has permission to access the System Reset & Data Cleanup Tool.', 'danger');
     return;
   }
-  if (defaultSection) {
-    const secSelect = document.getElementById('clear-data-section');
-    if (secSelect) secSelect.value = defaultSection;
+  const secSelect = document.getElementById('clear-data-section');
+  if (secSelect) {
+    secSelect.value = defaultSection || 'all';
   }
   const backupToggle = document.getElementById('clear-data-backup-toggle');
   if (backupToggle) backupToggle.checked = false; // Default optional unchecked
@@ -3353,7 +4096,7 @@ function openClearDataModal(defaultSection) {
 
 async function submitClearData() {
   if (!isSuperAdminUser()) {
-    showToast('Access Denied (নিরাপত্তা সীমাবদ্ধতা): Only Super Admin can perform data cleanup operations.', 'danger');
+    showToast('Access Denied: Only Super Admin can perform data cleanup operations.', 'danger');
     return;
   }
   const section = document.getElementById('clear-data-section').value;
@@ -3516,8 +4259,13 @@ window.addEventListener('keydown', (e) => {
 });
 
 function showToast(message, type = 'primary') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -3795,7 +4543,7 @@ async function calculatePlanBOMRequirement() {
 
 async function submitCreatePlan() {
   const skuId = parseInt(document.getElementById('plan-sku-select').value);
-  const plannedCtn = parseFloat(document.getElementById('plan-cartons-input').value) || 0;
+  const plannedCtn = Math.round(parseFloat(document.getElementById('plan-cartons-input').value) || 0);
   const planDate = document.getElementById('plan-date-input').value;
   const notes = document.getElementById('plan-notes-input').value;
   const autoReq = document.getElementById('plan-auto-req-check').checked;
@@ -3861,8 +4609,49 @@ async function submitUpdateOutput() {
   }
 }
 
+// ----------------- GENERIC ACTION DROPDOWNS -----------------
+function toggleDropdown(menuId, e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const targetMenu = document.getElementById(menuId);
+  if (!targetMenu) return;
+  const isCurrentlyOpen = targetMenu.style.display === 'block';
+  closeAllActionDropdowns();
+  if (!isCurrentlyOpen) {
+    targetMenu.style.display = 'block';
+  }
+}
+
+function closeAllActionDropdowns() {
+  document.querySelectorAll('.portal-action-dropdown').forEach(m => {
+    m.style.display = 'none';
+  });
+  const masterMenu = document.getElementById('master-add-dropdown-menu');
+  if (masterMenu) masterMenu.style.display = 'none';
+}
+
+function toggleMasterAddDropdown(e) {
+  toggleDropdown('master-add-dropdown-menu', e);
+}
+
+function closeMasterAddDropdown() {
+  closeAllActionDropdowns();
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.portal-action-dropdown') && !e.target.closest('[onclick*="toggleDropdown"]') && !e.target.closest('#btn-master-add-dropdown')) {
+    closeAllActionDropdowns();
+  }
+});
+
 function openCreateSKUModal() {
   document.getElementById('form-create-sku')?.reset();
+  const catSelect = document.getElementById('new-sku-category-code');
+  if (catSelect && AppState.selectedCategory && AppState.selectedCategory !== 'ALL') {
+    catSelect.value = AppState.selectedCategory;
+  }
   showModal('modal-create-sku');
 }
 
@@ -3891,6 +4680,8 @@ async function submitCreateSKU() {
       hideModal('modal-create-sku');
       showToast(`SKU ${data.sku_code} created!`, 'success');
       loadAdminSKUs();
+      if (typeof loadForecastData === 'function') loadForecastData();
+      if (typeof loadProductionPlans === 'function') loadProductionPlans();
     }
   } catch (e) {
     showToast('Failed to create SKU', 'danger');
@@ -3899,20 +4690,24 @@ async function submitCreateSKU() {
 
 function openCreateMaterialModal() {
   document.getElementById('form-create-material')?.reset();
+  const catSelect = document.getElementById('new-mat-cat-code');
+  if (catSelect && AppState.selectedCategory && AppState.selectedCategory !== 'ALL') {
+    catSelect.value = AppState.selectedCategory;
+  }
   showModal('modal-create-material');
 }
 
 async function submitCreateMaterial() {
-  const name = document.getElementById('new-mat-name').value;
-  const code = document.getElementById('new-mat-code').value;
-  const type = document.getElementById('new-mat-type').value;
-  const unit = document.getElementById('new-mat-unit').value;
-  const price = parseFloat(document.getElementById('new-mat-price').value) || 0;
-  const stock = parseFloat(document.getElementById('new-mat-stock').value) || 0;
-  const safety = parseFloat(document.getElementById('new-mat-safety').value) || 0;
-  const supplier = document.getElementById('new-mat-supplier').value;
-  const lead = parseInt(document.getElementById('new-mat-lead').value) || 7;
-  const catCode = document.getElementById('new-mat-cat-code').value || AppState.selectedCategory;
+  const name = document.getElementById('new-mat-name')?.value?.trim() || '';
+  const code = document.getElementById('new-mat-code')?.value?.trim() || '';
+  const type = document.getElementById('new-mat-type')?.value || 'RM';
+  const unit = document.getElementById('new-mat-unit')?.value || 'Kg';
+  const price = parseFloat(document.getElementById('new-mat-price')?.value) || 0;
+  const stock = parseFloat(document.getElementById('new-mat-stock')?.value) || 0;
+  const safety = parseFloat(document.getElementById('new-mat-safety')?.value) || 0;
+  const supplier = document.getElementById('new-mat-supplier')?.value?.trim() || '';
+  const lead = parseInt(document.getElementById('new-mat-lead')?.value) || 7;
+  const catCode = document.getElementById('new-mat-cat-code')?.value || AppState.selectedCategory;
 
   if (!name) {
     showToast('Material Name is required', 'warning');
@@ -3986,7 +4781,7 @@ async function openFloorStockModal() {
       <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.82rem; display:flex; justify-content:space-between; align-items:center;">
         <div>
           <i class="fas fa-info-circle" style="color:var(--cyan);"></i>
-          <strong>Floor Stock (WIP):</strong> Production ফ্লোরে অবস্থিত আনইউজড কাঁচামাল ও প্যাকেজিং ম্যাটেরিয়ালের শিফট অনুযায়ী ফিজিক্যাল কাউন্ট আপডেট করুন।
+          <strong>Floor Stock (WIP):</strong> Update physical count of raw materials and packaging on the shop floor per shift.
         </div>
         <span class="pill pill-safe">Unit ${cat}</span>
       </div>
@@ -4044,9 +4839,11 @@ async function submitFloorStockAudit(matId) {
 // ----------------- REQUIREMENT 7: MRR BLANK TEMPLATE & BULK UPLOAD -----------------
 function downloadMRRBlankTemplate() {
   const cat = AppState.selectedCategory;
-  window.location.href = `/api/store/mrr/template?category=${cat}`;
+  window.location.href = authDownloadUrl(`/api/store/mrr/template?category=${cat}`);
   showToast('Downloading MRR Stock Inward Blank Template with solid cell shading...', 'success');
 }
+const downloadMRRTemplate = downloadMRRBlankTemplate;
+window.downloadMRRTemplate = downloadMRRBlankTemplate;
 
 function openBulkMRRModal() {
   const f = document.getElementById('bulk-mrr-file');
@@ -4072,7 +4869,7 @@ async function submitBulkMRR() {
 }
 
 // ----------------- ENHANCED POLOXY ERP SYNC HANDLERS -----------------
-let syncActionType = 'actual_output';
+let syncActionType = 'both';
 
 function setSyncAction(action) {
   syncActionType = action;
@@ -4223,7 +5020,7 @@ document.addEventListener('click', (e) => {
 // ----------------- SUPER ADMIN EXCLUSIVE: FORECAST BOM MODAL -----------------
 async function openForecastBOMModal(skuId, skuName) {
   if (!isSuperAdminUser()) {
-    showToast('Access Denied (নিরাপত্তা সীমাবদ্ধতা): Only Super Admin has permission to view or edit Bill of Materials (BOM) specifications.', 'danger');
+    showToast('Access Denied: Only Super Admin has permission to view or edit Bill of Materials (BOM) specifications.', 'danger');
     return;
   }
 
@@ -4314,8 +5111,8 @@ async function openForecastBOMModal(skuId, skuName) {
                     <td style="padding:0.4rem 0.6rem; text-align:right;">
                       ${formattedStock} ${it.material_unit}
                     </td>
-                    <td style="padding:0.4rem 0.6rem; text-align:right;">৳ ${(it.unit_price || 0).toFixed(2)}</td>
-                    <td style="padding:0.4rem 0.6rem; text-align:right; font-weight:600;">৳ ${itemCost.toFixed(2)}</td>
+                    <td style="padding:0.4rem 0.6rem; text-align:right;">BDT ${(it.unit_price || 0).toFixed(2)}</td>
+                    <td style="padding:0.4rem 0.6rem; text-align:right; font-weight:600;">BDT ${itemCost.toFixed(2)}</td>
                   </tr>
                 `;
               }).join('')}
@@ -4336,15 +5133,15 @@ async function openForecastBOMModal(skuId, skuName) {
           <div style="display:flex; gap:1rem; text-align:right;">
             <div>
               <div style="font-size:0.7rem; color:var(--text-muted);">RM Cost/Ctn</div>
-              <div style="font-size:0.9rem; font-weight:700; color:var(--success);">৳ ${rmCost.toFixed(2)}</div>
+              <div style="font-size:0.9rem; font-weight:700; color:var(--success);">BDT ${rmCost.toFixed(2)}</div>
             </div>
             <div>
               <div style="font-size:0.7rem; color:var(--text-muted);">PM Cost/Ctn</div>
-              <div style="font-size:0.9rem; font-weight:700; color:var(--warning);">৳ ${pmCost.toFixed(2)}</div>
+              <div style="font-size:0.9rem; font-weight:700; color:var(--warning);">BDT ${pmCost.toFixed(2)}</div>
             </div>
             <div style="border-left:1px solid var(--border-color); padding-left:1rem;">
               <div style="font-size:0.7rem; color:var(--text-muted);">Total Material / Ctn</div>
-              <div style="font-size:0.98rem; font-weight:800; color:var(--primary);">৳ ${totalCost.toFixed(2)}</div>
+              <div style="font-size:0.98rem; font-weight:800; color:var(--primary);">BDT ${totalCost.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -4356,7 +5153,7 @@ async function openForecastBOMModal(skuId, skuName) {
             <span>Raw Materials (RM Formulation)</span>
             <span class="badge" style="background:var(--success); color:#fff; font-size:0.68rem; padding:1px 5px; border-radius:3px;">${rmItems.length} items</span>
           </h4>
-          <span style="font-size:0.78rem; font-weight:700; color:var(--success);">Subtotal: ৳ ${rmCost.toFixed(2)} / ctn</span>
+          <span style="font-size:0.78rem; font-weight:700; color:var(--success);">Subtotal: BDT ${rmCost.toFixed(2)} / ctn</span>
         </div>
         ${renderTable(rmItems, 'Raw Materials')}
 
@@ -4367,7 +5164,7 @@ async function openForecastBOMModal(skuId, skuName) {
             <span>Packaging Materials (PM Formulation)</span>
             <span class="badge" style="background:var(--warning); color:#fff; font-size:0.68rem; padding:1px 5px; border-radius:3px;">${pmItems.length} items</span>
           </h4>
-          <span style="font-size:0.78rem; font-weight:700; color:var(--warning);">Subtotal: ৳ ${pmCost.toFixed(2)} / ctn</span>
+          <span style="font-size:0.78rem; font-weight:700; color:var(--warning);">Subtotal: BDT ${pmCost.toFixed(2)} / ctn</span>
         </div>
         ${renderTable(pmItems, 'Packaging Materials')}
       `;
@@ -4462,9 +5259,10 @@ async function loadMyTasks() {
       navBadge.style.display = urgentCount > 0 ? 'inline-block' : 'none';
     }
 
-    // Render on Dashboard (if container exists)
+    // Dashboard banner removed to avoid duplicate clumsy UI; drawer is primary
     if (box) {
-      renderMyTasks(box, data);
+      box.innerHTML = '';
+      box.style.display = 'none';
     }
 
     // Render in Slide-out Drawer
@@ -4477,7 +5275,7 @@ async function loadMyTasks() {
 function renderMyTasks(box, data) {
   if (!box || !data) return;
   const levelColor = { danger: 'var(--danger)', warning: 'var(--warning)', info: 'var(--primary)', success: 'var(--success)' };
-  const groupLabel = { 'Sales': 'Sales (সেলস)', 'Production': 'Production (প্রোডাকশন)', 'Store': 'Store (স্টোর)', 'Supply Chain': 'Supply Chain (সাপ্লাই চেইন)' };
+  const groupLabel = { 'Sales': 'Sales', 'Production': 'Production', 'Store': 'Store', 'Supply Chain': 'Supply Chain' };
   const groupIcon = { 'Sales': 'fa-chart-line', 'Production': 'fa-industry', 'Store': 'fa-boxes', 'Supply Chain': 'fa-truck-loading' };
   const multi = data.groups && data.groups.length > 1;
 
@@ -4507,13 +5305,13 @@ function renderMyTasks(box, data) {
           <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
             <div class="mt-main-heading">
               <i class="fas fa-bolt" style="color:var(--warning);"></i> 
-              <span>আজকের অ্যাকশন সেন্টার (Action Center)</span>
+              <span>Action Center</span>
             </div>
-            ${urgentCount > 0 ? `<span class="mt-urgent-badge">${urgentCount} টি কাজ অপেক্ষায়</span>` : '<span class="pill pill-safe">কোনো কাজ বাকি নেই ✅</span>'}
+            ${urgentCount > 0 ? `<span class="mt-urgent-badge">${urgentCount}  tasks pending</span>` : '<span class="pill pill-safe">All caught up ✅</span>'}
             ${multi ? `<div style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; margin-left:0.5rem;">${groupBadges}</div>` : ''}
           </div>
           <button type="button" class="btn btn-sm btn-outline" style="padding:2px 10px; font-size:0.75rem; font-weight:700; border-radius:6px; color:var(--primary); pointer-events:none;">
-            কাজগুলো দেখুন <i class="fas fa-chevron-down" style="margin-left:4px;"></i>
+            View tasks <i class="fas fa-chevron-down" style="margin-left:4px;"></i>
           </button>
         </div>
       </div>
@@ -4522,7 +5320,7 @@ function renderMyTasks(box, data) {
   }
 
   // Expanded View
-  const headline = urgentCount > 0 ? `আপনার <b>${urgentCount}</b> টি কাজ অপেক্ষায় আছে` : 'আজ কোনো জরুরি কাজ বাকি নেই ✅';
+  const headline = urgentCount > 0 ? `You have <b>${urgentCount}</b> pending tasks` : 'No pending tasks today ✅';
 
   // Filter tabs for multi-group users
   let tabsHtml = '';
@@ -4530,7 +5328,7 @@ function renderMyTasks(box, data) {
     tabsHtml = `
       <div class="mt-dept-tabs">
         <button type="button" class="mt-tab-pill ${curFilter === 'all' ? 'active' : ''}" onclick="setMyTasksFilter('all')">
-          <i class="fas fa-th-large"></i> সব কাজ (${data.tasks.length})
+          <i class="fas fa-th-large"></i> All Tasks (${data.tasks.length})
         </button>
         ${data.groups.map(g => `
           <button type="button" class="mt-tab-pill ${curFilter === g ? 'active' : ''}" onclick="setMyTasksFilter('${g}')">
@@ -4574,22 +5372,22 @@ function renderMyTasks(box, data) {
         <div class="mt-title-area" onclick="toggleMyTasks()">
           <div class="mt-main-heading">
             <i class="fas fa-bolt" style="color:var(--warning);"></i> 
-            <span>আজকের অ্যাকশন সেন্টার (Action Center)</span>
+            <span>Action Center</span>
           </div>
           <span class="mt-role-badge">${escHtml(data.role)}</span>
-          ${urgentCount > 0 ? `<span class="mt-urgent-badge">${urgentCount} টি পেন্ডিং</span>` : '<span class="pill pill-safe">ক্লিয়ার</span>'}
+          ${urgentCount > 0 ? `<span class="mt-urgent-badge">${urgentCount}  Pending</span>` : '<span class="pill pill-safe">Clear</span>'}
           <span style="font-size:0.78rem; color:var(--text-muted); margin-left:4px;">${headline} · ${escHtml(data.today)}</span>
         </div>
         <div class="mt-controls-area">
-          <button class="btn btn-sm btn-outline" onclick="loadMyTasks()" title="রিফ্রেশ"><i class="fas fa-sync-alt"></i></button>
-          <button class="btn btn-sm btn-outline" onclick="toggleMyTasks()" style="font-size:0.75rem; font-weight:700; color:var(--text-dim);" title="হাইড করুন">
-            হাইড করুন <i class="fas fa-chevron-up" style="margin-left:3px;"></i>
+          <button class="btn btn-sm btn-outline" onclick="loadMyTasks()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+          <button class="btn btn-sm btn-outline" onclick="toggleMyTasks()" style="font-size:0.75rem; font-weight:700; color:var(--text-dim);" title="Hide">
+            Hide <i class="fas fa-chevron-up" style="margin-left:3px;"></i>
           </button>
         </div>
       </div>
       ${tabsHtml}
       <div class="mt-cards-grid">
-        ${filteredTasks.length > 0 ? filteredTasks.map(renderTaskCard).join('') : '<div style="color:var(--text-dim); padding:1.5rem; text-align:center; grid-column:1/-1;">এই ক্যাটাগরিতে কোনো পেন্ডিং কাজ নেই।</div>'}
+        ${filteredTasks.length > 0 ? filteredTasks.map(renderTaskCard).join('') : '<div style="color:var(--text-dim); padding:1.5rem; text-align:center; grid-column:1/-1;">No pending tasks in this category.</div>'}
       </div>
     </div>
   `;
@@ -4644,7 +5442,7 @@ function closeActionDrawer() {
 function renderDrawerTasks(data) {
   if (!data) return;
   const levelColor = { danger: 'var(--danger)', warning: 'var(--warning)', info: 'var(--primary)', success: 'var(--success)' };
-  const groupLabel = { 'Sales': 'Sales (সেলস)', 'Production': 'Production (প্রোডাকশন)', 'Store': 'Store (স্টোর)', 'Supply Chain': 'Supply Chain (সাপ্লাই চেইন)' };
+  const groupLabel = { 'Sales': 'Sales', 'Production': 'Production', 'Store': 'Store', 'Supply Chain': 'Supply Chain' };
   const groupIcon = { 'Sales': 'fa-chart-line', 'Production': 'fa-industry', 'Store': 'fa-boxes', 'Supply Chain': 'fa-truck-loading' };
   const multi = data.groups && data.groups.length > 1;
   const curFilter = AppState.myTasksFilter || 'all';
@@ -4652,7 +5450,7 @@ function renderDrawerTasks(data) {
   // Subtitle
   const subEl = document.getElementById('drawer-user-info');
   if (subEl) {
-    subEl.textContent = `রোল: ${data.role} • ${data.urgent > 0 ? data.urgent + ' টি কাজ অপেক্ষায়' : 'সব কাজ সম্পন্ন ✅'}`;
+    subEl.textContent = `Role: ${data.role} • ${data.urgent > 0 ? data.urgent + ' tasks pending' : 'All tasks completed ✅'}`;
   }
   const countEl = document.getElementById('drawer-total-count');
   if (countEl) {
@@ -4666,7 +5464,7 @@ function renderDrawerTasks(data) {
       filterBox.style.display = 'flex';
       filterBox.innerHTML = `
         <button type="button" class="mt-tab-pill ${curFilter === 'all' ? 'active' : ''}" onclick="setMyTasksFilter('all')">
-          সব (${data.tasks.length})
+          All (${data.tasks.length})
         </button>
         ${data.groups.map(g => `
           <button type="button" class="mt-tab-pill ${curFilter === g ? 'active' : ''}" onclick="setMyTasksFilter('${g}')">
@@ -4688,7 +5486,7 @@ function renderDrawerTasks(data) {
     : (data.tasks || []).filter(t => t.group === curFilter);
 
   if (filteredTasks.length === 0) {
-    listBox.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:3rem 1rem;"><i class="fas fa-check-circle fa-2x" style="color:var(--success); margin-bottom:0.5rem;"></i><br>আজ কোনো পেন্ডিং কাজ নেই।</div>';
+    listBox.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:3rem 1rem;"><i class="fas fa-check-circle fa-2x" style="color:var(--success); margin-bottom:0.5rem;"></i><br>No pending tasks today.</div>';
     return;
   }
 
@@ -4730,17 +5528,17 @@ let _pendingUpload = null;
 async function runUploadWithPreview(cfg) {
   const { url, formData } = cfg;
   formData.set('preview', '1');
-  showToast('ফাইল যাচাই করা হচ্ছে...', 'primary');
+  showToast('Validating file...', 'primary');
   let data;
   try {
     const res = await fetch(url, { method: 'POST', body: formData });
     data = await res.json();
     if (!res.ok || data.error) {
-      showToast(data.error || 'ফাইল যাচাই ব্যর্থ', 'danger');
+      showToast(data.error || 'File validation failed', 'danger');
       return;
     }
   } catch (e) {
-    showToast('সার্ভারের সাথে যোগাযোগ করা যায়নি', 'danger');
+    showToast('Could not reach server', 'danger');
     return;
   }
   _pendingUpload = cfg;
@@ -4751,14 +5549,14 @@ function renderUploadPreview(data, cfg) {
   const s = data.summary;
   document.getElementById('upload-preview-title').textContent = data.title || 'Upload Preview';
   document.getElementById('upload-preview-summary').innerHTML = `
-    <span class="up-chip up-ok"><b>${s.ok}</b> ঠিক আছে</span>
-    <span class="up-chip up-warn"><b>${s.warn}</b> সতর্কতা</span>
-    <span class="up-chip up-error"><b>${s.error}</b> ভুল (বাদ যাবে)</span>
-    <span class="up-chip up-skip"><b>${s.skip}</b> বাদ/অপরিবর্তিত</span>`;
+    <span class="up-chip up-ok"><b>${s.ok}</b> Valid</span>
+    <span class="up-chip up-warn"><b>${s.warn}</b> Warning</span>
+    <span class="up-chip up-error"><b>${s.error}</b> Error (Skipped)</span>
+    <span class="up-chip up-skip"><b>${s.skip}</b> Unchanged/Skipped</span>`;
   document.getElementById('upload-preview-note').textContent = data.unit_note || '';
 
   const cols = cfg.cols || [['code', 'Code'], ['name', 'Name'], ['new', 'Value']];
-  const badge = { ok: 'ঠিক', warn: 'সতর্ক', error: 'ভুল', skip: 'বাদ' };
+  const badge = { ok: 'Valid', warn: 'Warning', error: 'Error', skip: 'Skip' };
   const rows = data.rows.map(r => `
     <tr class="up-row up-row-${r.status}">
       <td>${escHtml(r.row)}</td>
@@ -4766,15 +5564,15 @@ function renderUploadPreview(data, cfg) {
       <td><span class="up-badge up-${r.status}">${badge[r.status] || r.status}</span> ${escHtml(r.message)}</td>
     </tr>`).join('');
   document.getElementById('upload-preview-table').innerHTML = `
-    <table class="data-table up-table"><thead><tr><th>সারি</th>${cols.map(([, l]) => `<th>${escHtml(l)}</th>`).join('')}<th>অবস্থা</th></tr></thead>
+    <table class="data-table up-table"><thead><tr><th>Row</th>${cols.map(([, l]) => `<th>${escHtml(l)}</th>`).join('')}<th>Status</th></tr></thead>
     <tbody>${rows}</tbody></table>
-    ${data.truncated ? '<div class="up-note">প্রথম ৪০০ সারি দেখানো হয়েছে; কনফার্ম করলে সব বৈধ সারি প্রয়োগ হবে।</div>' : ''}`;
+    ${data.truncated ? '<div class="up-note">Showing first 400 rows; all valid rows will be applied upon confirmation.</div>' : ''}`;
 
   const btn = document.getElementById('upload-preview-confirm');
   btn.disabled = s.applicable === 0;
   btn.innerHTML = s.applicable === 0
-    ? '<i class="fas fa-ban"></i> প্রয়োগ করার মতো সারি নেই'
-    : `<i class="fas fa-check"></i> কনফার্ম — ${s.applicable} টি সারি প্রয়োগ করুন`;
+    ? '<i class="fas fa-ban"></i> No valid rows to apply'
+    : `<i class="fas fa-check"></i> Confirm — Apply ${s.applicable} rows`;
   if (cfg.sourceModal) hideModal(cfg.sourceModal);
   showModal('modal-upload-preview');
 }
@@ -4784,23 +5582,23 @@ async function confirmUploadPreview() {
   const cfg = _pendingUpload;
   const btn = document.getElementById('upload-preview-confirm');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> প্রয়োগ হচ্ছে...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying changes...';
   cfg.formData.set('preview', '0');
   try {
     const res = await fetch(cfg.url, { method: 'POST', body: cfg.formData });
     const data = await res.json();
     if (data.success) {
       hideModal('modal-upload-preview');
-      showToast(data.message || 'সফলভাবে সম্পন্ন', 'success');
+      showToast(data.message || 'Import completed successfully', 'success');
       _pendingUpload = null;
       if (cfg.onSuccess) cfg.onSuccess(data);
     } else {
-      showToast(data.error || 'প্রয়োগ ব্যর্থ', 'danger');
+      showToast(data.error || 'Import failed', 'danger');
       btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-redo"></i> আবার চেষ্টা করুন';
+      btn.innerHTML = '<i class="fas fa-redo"></i> Try Again';
     }
   } catch (e) {
-    showToast('সার্ভারের সাথে যোগাযোগ করা যায়নি', 'danger');
+    showToast('Could not reach server', 'danger');
     btn.disabled = false;
   }
 }
@@ -4824,7 +5622,7 @@ function openOutputImportModal() {
 function submitOutputImport() {
   const f = document.getElementById('output-import-file');
   if (!f || !f.files || !f.files.length) {
-    showToast('Poloxy থেকে ডাউনলোড করা Output রিপোর্ট সিলেক্ট করুন', 'warning');
+    showToast('Please select a valid Poloxy Output report file', 'warning');
     return;
   }
   const formData = new FormData();
@@ -4834,7 +5632,7 @@ function submitOutputImport() {
   formData.append('default_date', document.getElementById('output-import-date').value);
   runUploadWithPreview({
     url: '/api/production/output-import', formData, sourceModal: 'modal-output-import',
-    cols: [['code', 'SKU Code'], ['name', 'SKU'], ['date', 'Date'], ['old', 'আগের (ctn)'], ['new', 'Poloxy (ctn)']],
+    cols: [['code', 'SKU Code'], ['name', 'SKU'], ['date', 'Date'], ['old', 'Previous (ctn)'], ['new', 'Poloxy (ctn)']],
     onSuccess: () => { loadProductionView(); loadDashboard(); }
   });
 }
@@ -4856,3 +5654,247 @@ async function downloadBackupFile() {
     return false;
   }
 }
+
+
+
+// ==================== INLINE SAVE FOR PRODUCTION PLANS & STORE STOCK ====================
+
+let dirtyProductionPlans = new Set();
+let dirtyStoreStock = new Set();
+
+function markProductionPlanDirty(inp) {
+  AppState.hasUnsavedChanges = true;
+  const planId = inp.dataset.planId || inp.dataset.skuId;
+  if (planId) {
+    dirtyProductionPlans.add(inp);
+    inp.style.borderColor = 'var(--primary)';
+    inp.style.backgroundColor = 'rgba(59, 130, 246, 0.08)';
+    const saveBtn = document.getElementById('btn-save-production-plans');
+    if (saveBtn) {
+      saveBtn.classList.add('pulse-highlight');
+      saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Plans *';
+    }
+  }
+}
+
+async function saveProductionPlanChanges() {
+  const btn = document.getElementById('btn-save-production-plans');
+  const cat = AppState.selectedCategory;
+  const month = AppState.selectedMonth;
+  const isCarton = AppState.displayUOM === 'Carton';
+
+  // Collect all input elements in the production table
+  const inputs = document.querySelectorAll('.plan-target-input');
+  if (inputs.length === 0) {
+    showToast('No production plans available to save.', 'info');
+    return;
+  }
+
+  const plansPayload = [];
+  inputs.forEach(inp => {
+    const planId = inp.dataset.planId ? parseInt(inp.dataset.planId) : null;
+    const skuId = inp.dataset.skuId ? parseInt(inp.dataset.skuId) : null;
+    const planDate = inp.dataset.planDate || '';
+    const ctnSize = parseFloat(inp.dataset.ctnSize || 1.0);
+    const rawVal = Math.round(parseFloat(inp.value) || 0);
+    const plannedCtn = isCarton ? rawVal : Math.round(rawVal / ctnSize);
+
+    plansPayload.push({
+      id: planId,
+      sku_id: skuId,
+      plan_date: planDate,
+      planned_ctn: Math.round(plannedCtn)
+    });
+  });
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+  }
+
+  try {
+    const res = await fetch('/api/production/plans/bulk-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        category_code: cat,
+        month: month,
+        plans: plansPayload
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      AppState.hasUnsavedChanges = false;
+      showToast(`✅ ${data.message || 'Production plans saved successfully!'}`, 'success');
+      dirtyProductionPlans.clear();
+      loadProductionView();
+      loadDashboard();
+    } else {
+      showToast(`Error saving plans: ${data.error || 'Server error'}`, 'danger');
+    }
+  } catch (e) {
+    showToast(`Network error saving production plans: ${e.message}`, 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save"></i> Save Plans';
+    }
+  }
+}
+
+function markStoreStockDirty(inp) {
+  AppState.hasUnsavedChanges = true;
+  const matId = inp.dataset.matId;
+  if (matId) {
+    dirtyStoreStock.add(inp);
+    inp.style.borderColor = 'var(--primary)';
+    inp.style.backgroundColor = 'rgba(59, 130, 246, 0.08)';
+    const saveBtn = document.getElementById('btn-save-store-stock');
+    if (saveBtn) {
+      saveBtn.classList.add('pulse-highlight');
+      saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Stock *';
+    }
+  }
+}
+
+async function saveStoreStockChanges() {
+  const btn = document.getElementById('btn-save-store-stock');
+  const cat = AppState.selectedCategory;
+
+  const stockInputs = document.querySelectorAll('.store-stock-input');
+  const safetyInputs = document.querySelectorAll('.store-safety-input');
+
+  if (stockInputs.length === 0 && safetyInputs.length === 0) {
+    showToast('No store items available to save.', 'info');
+    return;
+  }
+
+  const itemsMap = {};
+  stockInputs.forEach(inp => {
+    const id = parseInt(inp.dataset.matId);
+    if (!itemsMap[id]) itemsMap[id] = { id };
+    itemsMap[id].current_stock = parseFloat(inp.value) || 0.0;
+  });
+
+  safetyInputs.forEach(inp => {
+    const id = parseInt(inp.dataset.matId);
+    if (!itemsMap[id]) itemsMap[id] = { id };
+    itemsMap[id].safety_stock = parseFloat(inp.value) || 0.0;
+  });
+
+  const payloadItems = Object.values(itemsMap);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+  }
+
+  try {
+    const res = await fetch('/api/store/stock/bulk-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        category_code: cat,
+        items: payloadItems
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      AppState.hasUnsavedChanges = false;
+      showToast(`✅ ${data.message || 'Store stock saved successfully!'}`, 'success');
+      dirtyStoreStock.clear();
+      loadStoreStock();
+      loadDashboard();
+    } else {
+      showToast(`Error saving stock: ${data.error || 'Server error'}`, 'danger');
+    }
+  } catch (e) {
+    showToast(`Network error saving store stock: ${e.message}`, 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save"></i> Save Stock';
+    }
+  }
+}
+
+// ==================== QUICK SEARCH & KEYBOARD NAVIGATION ====================
+
+function filterForecastTable(query) {
+  const q = (query || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#forecast-table-body tr');
+  rows.forEach(r => {
+    if (!q) {
+      r.style.display = '';
+      return;
+    }
+    const text = r.textContent.toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
+function filterProductionTable(query) {
+  const q = (query || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#production-plans-table-body tr');
+  rows.forEach(r => {
+    if (!q) {
+      r.style.display = '';
+      return;
+    }
+    const text = r.textContent.toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
+// Excel-Style Keyboard Navigation for Inputs (Enter, Down, Up)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  
+  const target = e.target;
+  if (!target || !target.classList) return;
+  
+  const isInput = target.matches('.forecast-input, .forecast-input-ctn, .forecast-input-pcs, .plan-target-input, .store-stock-input');
+  if (!isInput) return;
+  
+  const currentTr = target.closest('tr');
+  if (!currentTr) return;
+  
+  if (e.key === 'Enter' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    let nextTr = currentTr.nextElementSibling;
+    while (nextTr && nextTr.style.display === 'none') {
+      nextTr = nextTr.nextElementSibling;
+    }
+    if (nextTr) {
+      const targetClass = Array.from(target.classList).find(c => c.includes('input'));
+      const nextInput = targetClass ? nextTr.querySelector(`.${targetClass}`) : nextTr.querySelector('input');
+      if (nextInput) {
+        nextInput.focus();
+        if (nextInput.select) nextInput.select();
+      }
+    }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    let prevTr = currentTr.previousElementSibling;
+    while (prevTr && prevTr.style.display === 'none') {
+      prevTr = prevTr.previousElementSibling;
+    }
+    if (prevTr) {
+      const targetClass = Array.from(target.classList).find(c => c.includes('input'));
+      const prevInput = targetClass ? prevTr.querySelector(`.${targetClass}`) : prevTr.querySelector('input');
+      if (prevInput) {
+        prevInput.focus();
+        if (prevInput.select) prevInput.select();
+      }
+    }
+  }
+});
+
+// Protect against accidental navigation with unsaved changes
+window.addEventListener('beforeunload', (e) => {
+  if (AppState && AppState.hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved changes in your plan. Are you sure you want to leave?';
+    return e.returnValue;
+  }
+});
